@@ -1,0 +1,16 @@
+[package]
+name = "lib3mf-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+glam = { version = "0.31.0", features = ["serde"] }
+indexmap = { version = "2.13.0", features = ["serde"] }
+quick-xml = "0.39.0"
+serde = { version = "1.0.228", features = ["derive"] }
+thiserror = "2.0.18"
+uuid = { version = "1.20.0", features = ["v4", "serde"] }
+zip = { version = "7.2.0", features = ["deflate", "time"] }
+
+[dev-dependencies]
+anyhow = "1.0.100"
