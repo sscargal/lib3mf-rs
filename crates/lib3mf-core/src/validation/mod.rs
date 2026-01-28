@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// Level of validation to perform.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ValidationLevel {
-    /// Basic structural checks (e.g. required attributes). 
+    /// Basic structural checks (e.g. required attributes).
     /// Fast.
     Minimal,
     /// Full 3MF Core Spec compliance (Resource IDs, Reference integrity).

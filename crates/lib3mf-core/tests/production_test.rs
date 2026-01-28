@@ -1,4 +1,4 @@
-use lib3mf_core::model::{Geometry};
+use lib3mf_core::model::Geometry;
 use lib3mf_core::parser::parse_model;
 use std::io::Cursor;
 use uuid::Uuid;
@@ -35,32 +35,53 @@ fn test_parse_production_extension() -> anyhow::Result<()> {
     let model = parse_model(Cursor::new(xml))?;
 
     // Check Object 1 UUID (no prefix)
-    let obj1 = model.resources.get_object(lib3mf_core::model::ResourceId(1)).expect("Object 1 missing");
-    assert_eq!(obj1.uuid, Some(Uuid::parse_str("6d1d4f20-8c2f-4a37-9d21-4f0e9b9d9d9d")?));
+    let obj1 = model
+        .resources
+        .get_object(lib3mf_core::model::ResourceId(1))
+        .expect("Object 1 missing");
+    assert_eq!(
+        obj1.uuid,
+        Some(Uuid::parse_str("6d1d4f20-8c2f-4a37-9d21-4f0e9b9d9d9d")?)
+    );
 
     // Check Object 2 UUID (p: prefix)
-    let obj2 = model.resources.get_object(lib3mf_core::model::ResourceId(2)).expect("Object 2 missing");
-    assert_eq!(obj2.uuid, Some(Uuid::parse_str("f47ac10b-58cc-4372-a567-0e02b2c3d479")?));
+    let obj2 = model
+        .resources
+        .get_object(lib3mf_core::model::ResourceId(2))
+        .expect("Object 2 missing");
+    assert_eq!(
+        obj2.uuid,
+        Some(Uuid::parse_str("f47ac10b-58cc-4372-a567-0e02b2c3d479")?)
+    );
 
     // Check Component UUID
     if let Geometry::Components(comps) = &obj2.geometry {
         assert_eq!(comps.components.len(), 1);
-        assert_eq!(comps.components[0].uuid, Some(Uuid::parse_str("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")?));
+        assert_eq!(
+            comps.components[0].uuid,
+            Some(Uuid::parse_str("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")?)
+        );
     } else {
         panic!("Object 2 should be components");
     }
 
     // Check Build Items
     assert_eq!(model.build.items.len(), 2);
-    
+
     // Item 1: "path"
     let item1 = &model.build.items[0];
-    assert_eq!(item1.uuid, Some(Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000")?));
+    assert_eq!(
+        item1.uuid,
+        Some(Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000")?)
+    );
     assert_eq!(item1.path, Some("/3D/external.model".to_string()));
 
     // Item 2: "p:path"
     let item2 = &model.build.items[1];
-    assert_eq!(item2.uuid, Some(Uuid::parse_str("98765432-1234-5678-90ab-cdef12345678")?));
+    assert_eq!(
+        item2.uuid,
+        Some(Uuid::parse_str("98765432-1234-5678-90ab-cdef12345678")?)
+    );
     assert_eq!(item2.path, Some("/Production/part.model".to_string()));
 
     Ok(())

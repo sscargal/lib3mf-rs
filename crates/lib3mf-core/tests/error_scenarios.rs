@@ -22,7 +22,7 @@ fn test_error_is_directory() {
     // Note: On some OS `File::open` on dir might succeed but reading fails, or fail immediately.
     // On Linux it often succeeds opening, but `read` fails with IsADirectory.
     let file_result = File::open(&path);
-    
+
     if let Ok(file) = file_result {
         // Now try to trigger error in ZipArchiver
         let archiver_result = ZipArchiver::new(file);
@@ -32,7 +32,7 @@ fn test_error_is_directory() {
                 println!("Got expected IO error for directory: {}", e);
                 // On Linux reading a dir usually gives EISDIR
                 // But zip crate might just fail to read magic signature.
-            },
+            }
             e => panic!("Unexpected error type: {:?}", e),
         }
     } else {
@@ -46,14 +46,14 @@ fn test_error_invalid_zip() {
     let path = std::env::temp_dir().join("test_invalid.3mf");
     std::fs::write(&path, "This is not a zip file").unwrap();
     let file = File::open(&path).unwrap();
-    
+
     let result = ZipArchiver::new(file);
     assert!(result.is_err());
     match result.unwrap_err() {
         Lib3mfError::Io(e) => {
-             // Zip crate wrapper might return Io error with specific kind or custom error
-             println!("Got expected error for invalid zip: {}", e);
-        },
+            // Zip crate wrapper might return Io error with specific kind or custom error
+            println!("Got expected error for invalid zip: {}", e);
+        }
         // Or it might be a library wrapper
         e => panic!("Unexpected error type: {:?}", e),
     }

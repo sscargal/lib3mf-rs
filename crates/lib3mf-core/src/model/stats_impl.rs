@@ -1,20 +1,18 @@
 use crate::archive::ArchiveReader;
 use crate::error::Result;
-use crate::model::stats::{
-    GeometryStats, MaterialsStats, ModelStats, ProductionStats, VendorData,
-};
+use crate::model::stats::{GeometryStats, MaterialsStats, ModelStats, ProductionStats, VendorData};
 use crate::model::{Geometry, Model};
 use crate::parser::bambu_config::parse_model_settings;
 
 impl Model {
     pub fn compute_stats(&self, archiver: &mut impl ArchiveReader) -> Result<ModelStats> {
         // 1. Geometry Stats
-        let mut geom_stats = GeometryStats::default();
-        
         // Count resources objects
-        // Note: iter_objects returns unique objects
-        geom_stats.object_count = self.resources.iter_objects().count();
-        
+        let mut geom_stats = GeometryStats {
+            object_count: self.resources.iter_objects().count(),
+            ..Default::default()
+        };
+
         for obj in self.resources.iter_objects() {
             match &obj.geometry {
                 Geometry::Mesh(mesh) => {
@@ -37,7 +35,7 @@ impl Model {
                 }
             }
         }
-        
+
         // Count build items
         geom_stats.instance_count = self.build.items.len();
         // TODO: For accurate instance count, we should recursively count components too?
@@ -50,24 +48,23 @@ impl Model {
 
         // 3. Vendor Data
         let mut vendor_data = VendorData::default();
-        
+
         // Detect Generator
         let generator = self.metadata.get("Application").cloned();
-        
+
         // Bambu/Prusa specific metadata
-         if let Some(app) = &generator {
-            if app.contains("Bambu") || app.contains("Orca") {
-                // Try to read Metadata/model_settings.config
-                if archiver.entry_exists("Metadata/model_settings.config") {
-                    if let Ok(content) = archiver.read_entry("Metadata/model_settings.config") {
-                        if let Ok(plates) = parse_model_settings(&content) {
-                            vendor_data.plates = plates;
-                        }
-                    }
-                }
+        if let Some(app) = &generator
+            && (app.contains("Bambu") || app.contains("Orca"))
+        {
+            // Try to read Metadata/model_settings.config
+            if archiver.entry_exists("Metadata/model_settings.config")
+                && let Ok(content) = archiver.read_entry("Metadata/model_settings.config")
+                && let Ok(plates) = parse_model_settings(&content)
+            {
+                vendor_data.plates = plates;
             }
         }
-        
+
         // Extract Printer Model if available (Bambu uses separate config, usually machine_settings)
         // For now, simpler metadata checks or placeholder.
 

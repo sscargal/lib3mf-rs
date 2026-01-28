@@ -1,4 +1,4 @@
-use lib3mf_core::archive::{find_model_path, parse_content_types, ArchiveReader, ZipArchiver};
+use lib3mf_core::archive::{ArchiveReader, ZipArchiver, find_model_path, parse_content_types};
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -10,7 +10,7 @@ fn test_read_benchy() {
     d.pop(); // lib3mf-rs
     d.push("models");
     d.push("Benchy.3mf");
-    
+
     // Check if models/Benchy.3mf exists. If not, we might be in CI environment without the file.
     // Ideally we should have it committed or downloaded.
     // For this test, we skip if not found, but print a warning.
@@ -31,19 +31,28 @@ fn test_read_benchy() {
     let model_path = find_model_path(&mut archiver).expect("Failed to find 3D model path");
     println!("Found model path: {}", model_path);
     assert!(!model_path.is_empty(), "Model path should not be empty");
-    assert!(archiver.entry_exists(&model_path), "Model file referenced in _rels should exist");
+    assert!(
+        archiver.entry_exists(&model_path),
+        "Model file referenced in _rels should exist"
+    );
 
     // 3. Read Content Types
     if archiver.entry_exists("[Content_Types].xml") {
-        let ct_data = archiver.read_entry("[Content_Types].xml").expect("Failed to read [Content_Types].xml");
+        let ct_data = archiver
+            .read_entry("[Content_Types].xml")
+            .expect("Failed to read [Content_Types].xml");
         let content_types = parse_content_types(&ct_data).expect("Failed to parse content types");
         println!("Content Types: {:?}", content_types);
-        
+
         let has_3d_model_type = content_types.iter().any(|ct| match ct {
-            lib3mf_core::archive::ContentType::Default { content_type, .. } => content_type == "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
-            lib3mf_core::archive::ContentType::Override { content_type, .. } => content_type == "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
+            lib3mf_core::archive::ContentType::Default { content_type, .. } => {
+                content_type == "application/vnd.ms-package.3dmanufacturing-3dmodel+xml"
+            }
+            lib3mf_core::archive::ContentType::Override { content_type, .. } => {
+                content_type == "application/vnd.ms-package.3dmanufacturing-3dmodel+xml"
+            }
         });
-        
+
         assert!(has_3d_model_type, "Should contain 3D Model content type");
     } else {
         panic!("[Content_Types].xml is missing (required by OPC)");

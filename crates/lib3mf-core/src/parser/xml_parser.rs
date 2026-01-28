@@ -20,7 +20,7 @@ impl<R: BufRead> XmlParser<R> {
         }
     }
 
-    pub fn next(&mut self) -> Result<Event<'_>> {
+    pub fn read_next_event(&mut self) -> Result<Event<'_>> {
         self.buf.clear();
         self.reader
             .read_event_into(&mut self.buf)
@@ -30,12 +30,12 @@ impl<R: BufRead> XmlParser<R> {
     pub fn read_text_content(&mut self) -> Result<String> {
         let mut text = String::new();
         let mut depth = 0;
-        
+
         loop {
-            match self.next()? {
+            match self.read_next_event()? {
                 Event::Text(e) => text.push_str(&String::from_utf8_lossy(e.as_ref())),
                 Event::CData(e) => text.push_str(&String::from_utf8_lossy(e.into_inner().as_ref())),
-                Event::Start(_) => depth += 1, 
+                Event::Start(_) => depth += 1,
                 Event::End(_) => {
                     if depth > 0 {
                         depth -= 1;
@@ -43,17 +43,22 @@ impl<R: BufRead> XmlParser<R> {
                         return Ok(text);
                     }
                 }
-                Event::Eof => return Err(Lib3mfError::Validation("Unexpected EOF in text content".to_string())),
+                Event::Eof => {
+                    return Err(Lib3mfError::Validation(
+                        "Unexpected EOF in text content".to_string(),
+                    ));
+                }
                 _ => {}
             }
         }
     }
 
     pub fn read_to_end(&mut self, end: &[u8]) -> Result<()> {
-         // read_to_end_into expects QName
-         self.reader.read_to_end_into(quick_xml::name::QName(end), &mut self.buf)
+        // read_to_end_into expects QName
+        self.reader
+            .read_to_end_into(quick_xml::name::QName(end), &mut self.buf)
             .map_err(|e| Lib3mfError::Validation(e.to_string()))?;
-         Ok(())
+        Ok(())
     }
 }
 
@@ -69,7 +74,10 @@ pub fn get_attribute(e: &BytesStart, name: &[u8]) -> Option<String> {
 
 pub fn get_attribute_f32(e: &BytesStart, name: &[u8]) -> Result<f32> {
     let val = get_attribute(e, name).ok_or_else(|| {
-        Lib3mfError::Validation(format!("Missing attribute: {}", String::from_utf8_lossy(name)))
+        Lib3mfError::Validation(format!(
+            "Missing attribute: {}",
+            String::from_utf8_lossy(name)
+        ))
     })?;
     f32::from_str(&val).map_err(|_| {
         Lib3mfError::Validation(format!(
@@ -82,7 +90,10 @@ pub fn get_attribute_f32(e: &BytesStart, name: &[u8]) -> Result<f32> {
 
 pub fn get_attribute_u32(e: &BytesStart, name: &[u8]) -> Result<u32> {
     let val = get_attribute(e, name).ok_or_else(|| {
-        Lib3mfError::Validation(format!("Missing attribute: {}", String::from_utf8_lossy(name)))
+        Lib3mfError::Validation(format!(
+            "Missing attribute: {}",
+            String::from_utf8_lossy(name)
+        ))
     })?;
     u32::from_str(&val).map_err(|_| {
         Lib3mfError::Validation(format!(
@@ -104,9 +115,8 @@ pub fn get_attribute_u32_opt(e: &BytesStart, name: &[u8]) -> Result<Option<u32>>
 
 pub fn get_attribute_uuid(e: &BytesStart) -> Result<Option<uuid::Uuid>> {
     // Try "uuid" then "p:uuid"
-    let val = get_attribute(e, b"uuid")
-        .or_else(|| get_attribute(e, b"p:uuid"));
-        
+    let val = get_attribute(e, b"uuid").or_else(|| get_attribute(e, b"p:uuid"));
+
     match val {
         Some(s) => uuid::Uuid::parse_str(&s)
             .map(Some)

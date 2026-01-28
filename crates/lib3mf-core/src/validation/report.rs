@@ -37,7 +37,7 @@ impl ValidationReport {
     }
 
     pub fn add_warning(&mut self, code: u32, msg: impl Into<String>) {
-         self.items.push(ValidationItem {
+        self.items.push(ValidationItem {
             severity: ValidationSeverity::Warning,
             code,
             message: msg.into(),
@@ -45,8 +45,10 @@ impl ValidationReport {
             context: None,
         });
     }
-    
+
     pub fn has_errors(&self) -> bool {
-        self.items.iter().any(|i| i.severity == ValidationSeverity::Error)
+        self.items
+            .iter()
+            .any(|i| i.severity == ValidationSeverity::Error)
     }
 }

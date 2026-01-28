@@ -1,5 +1,5 @@
 use crate::error::{Lib3mfError, Result};
-use crate::model::{BaseMaterialsGroup, ColorGroup, Object, SliceStack, VolumetricStack};
+use crate::model::{BaseMaterialsGroup, ColorGroup, KeyStore, Object, SliceStack, VolumetricStack};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -15,6 +15,7 @@ pub struct ResourceCollection {
     color_groups: HashMap<ResourceId, ColorGroup>,
     slice_stacks: HashMap<ResourceId, SliceStack>,
     volumetric_stacks: HashMap<ResourceId, VolumetricStack>,
+    pub key_store: Option<KeyStore>, // Usually one KeyStore per model/part
 }
 
 impl ResourceCollection {
@@ -23,11 +24,11 @@ impl ResourceCollection {
     }
 
     pub fn exists(&self, id: ResourceId) -> bool {
-        self.objects.contains_key(&id) || 
-        self.base_materials.contains_key(&id) ||
-        self.color_groups.contains_key(&id) ||
-        self.slice_stacks.contains_key(&id) ||
-        self.volumetric_stacks.contains_key(&id)
+        self.objects.contains_key(&id)
+            || self.base_materials.contains_key(&id)
+            || self.color_groups.contains_key(&id)
+            || self.slice_stacks.contains_key(&id)
+            || self.volumetric_stacks.contains_key(&id)
     }
 
     pub fn add_object(&mut self, object: Object) -> Result<()> {
@@ -42,7 +43,7 @@ impl ResourceCollection {
     }
 
     pub fn add_base_materials(&mut self, group: BaseMaterialsGroup) -> Result<()> {
-         if self.exists(group.id) {
+        if self.exists(group.id) {
             return Err(Lib3mfError::Validation(format!(
                 "Duplicate resource ID: {}",
                 group.id.0
@@ -53,7 +54,7 @@ impl ResourceCollection {
     }
 
     pub fn add_color_group(&mut self, group: ColorGroup) -> Result<()> {
-         if self.exists(group.id) {
+        if self.exists(group.id) {
             return Err(Lib3mfError::Validation(format!(
                 "Duplicate resource ID: {}",
                 group.id.0
@@ -64,7 +65,7 @@ impl ResourceCollection {
     }
 
     pub fn add_slice_stack(&mut self, stack: SliceStack) -> Result<()> {
-         if self.exists(stack.id) {
+        if self.exists(stack.id) {
             return Err(Lib3mfError::Validation(format!(
                 "Duplicate resource ID: {}",
                 stack.id.0
@@ -75,7 +76,7 @@ impl ResourceCollection {
     }
 
     pub fn add_volumetric_stack(&mut self, stack: VolumetricStack) -> Result<()> {
-         if self.exists(stack.id) {
+        if self.exists(stack.id) {
             return Err(Lib3mfError::Validation(format!(
                 "Duplicate resource ID: {}",
                 stack.id.0
@@ -83,6 +84,10 @@ impl ResourceCollection {
         }
         self.volumetric_stacks.insert(stack.id, stack);
         Ok(())
+    }
+
+    pub fn set_key_store(&mut self, store: KeyStore) {
+        self.key_store = Some(store);
     }
 
     pub fn get_object(&self, id: ResourceId) -> Option<&Object> {
@@ -96,7 +101,7 @@ impl ResourceCollection {
     pub fn get_color_group(&self, id: ResourceId) -> Option<&ColorGroup> {
         self.color_groups.get(&id)
     }
-    
+
     pub fn get_slice_stack(&self, id: ResourceId) -> Option<&SliceStack> {
         self.slice_stacks.get(&id)
     }
@@ -112,7 +117,7 @@ impl ResourceCollection {
     pub fn color_groups_count(&self) -> usize {
         self.color_groups.len()
     }
-    
+
     pub fn volumetric_stacks_count(&self) -> usize {
         self.volumetric_stacks.len()
     }

@@ -20,32 +20,41 @@ fn test_parse_volumetric_extension() -> anyhow::Result<()> {
 </model>"##;
 
     let model = parse_model(Cursor::new(xml))?;
-    
+
     // Check VolumetricStack
-    let stack = model.resources.get_volumetric_stack(ResourceId(10)).expect("Volumetric stack 10 missing");
+    let stack = model
+        .resources
+        .get_volumetric_stack(ResourceId(10))
+        .expect("Volumetric stack 10 missing");
     assert_eq!(stack.layers.len(), 2);
     assert_eq!(stack.refs.len(), 1);
-    
+
     // Check Layer content
     let l1 = &stack.layers[0];
     assert_eq!(l1.z_height, 1.0);
     assert_eq!(l1.content_path, "/3D/texture1.png");
-    
+
     let l2 = &stack.layers[1];
     assert_eq!(l2.z_height, 2.0);
     assert_eq!(l2.content_path, "/3D/texture2.png");
-    
+
     // Check Refs
     let r = &stack.refs[0];
     assert_eq!(r.stack_id, ResourceId(5));
     assert_eq!(r.path, "/3D/other.model");
-    
+
     // Check Object
-    let obj = model.resources.get_object(ResourceId(1)).expect("Object 1 missing");
+    let obj = model
+        .resources
+        .get_object(ResourceId(1))
+        .expect("Object 1 missing");
     if let Geometry::VolumetricStack(ssid) = obj.geometry {
         assert_eq!(ssid, ResourceId(10));
     } else {
-        panic!("Object geometry mismatch: expected VolumetricStack, got {:?}", obj.geometry);
+        panic!(
+            "Object geometry mismatch: expected VolumetricStack, got {:?}",
+            obj.geometry
+        );
     }
 
     Ok(())

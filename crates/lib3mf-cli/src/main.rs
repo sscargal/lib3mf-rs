@@ -44,7 +44,7 @@ enum Commands {
     Dump {
         /// Path to the 3MF file
         file: PathBuf,
-        
+
         /// Output format (text, json)
         #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
         format: OutputFormat,
@@ -53,10 +53,10 @@ enum Commands {
     Extract {
         /// Path to the 3MF file
         file: PathBuf,
-        
+
         /// Path to the file inside the archive to extract
         inner_path: String,
-        
+
         /// Output path (defaults to stdout)
         #[arg(long, short)]
         output: Option<PathBuf>,
@@ -86,7 +86,11 @@ fn main() -> anyhow::Result<()> {
         Commands::Dump { file, format } => {
             commands::dump(file, format)?;
         }
-        Commands::Extract { file, inner_path, output } => {
+        Commands::Extract {
+            file,
+            inner_path,
+            output,
+        } => {
             commands::extract(file, inner_path, output)?;
         }
         Commands::Copy { input, output } => {

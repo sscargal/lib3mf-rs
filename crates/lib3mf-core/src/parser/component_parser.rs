@@ -1,6 +1,6 @@
 use crate::error::{Lib3mfError, Result};
 use crate::model::{Component, Components};
-use crate::parser::xml_parser::{get_attribute, get_attribute_u32, XmlParser};
+use crate::parser::xml_parser::{XmlParser, get_attribute, get_attribute_u32};
 use glam::Mat4;
 use quick_xml::events::Event;
 use std::io::BufRead;
@@ -10,7 +10,7 @@ pub fn parse_components<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Compone
     let mut components = Vec::new();
 
     loop {
-        match parser.next()? {
+        match parser.read_next_event()? {
             Event::Start(e) | Event::Empty(e) if e.name().as_ref() == b"component" => {
                 let object_id = crate::model::ResourceId(get_attribute_u32(&e, b"objectid")?);
                 let uuid = crate::parser::xml_parser::get_attribute_uuid(&e)?;
@@ -26,7 +26,11 @@ pub fn parse_components<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Compone
                 });
             }
             Event::End(e) if e.name().as_ref() == b"components" => break,
-            Event::Eof => return Err(Lib3mfError::Validation("Unexpected EOF in components".to_string())),
+            Event::Eof => {
+                return Err(Lib3mfError::Validation(
+                    "Unexpected EOF in components".to_string(),
+                ));
+            }
             _ => {}
         }
     }
@@ -46,16 +50,15 @@ pub fn parse_transform(s: &str) -> Result<Mat4> {
     let p: Result<Vec<f32>> = parts
         .iter()
         .map(|v| {
-            f32::from_str(v).map_err(|_| Lib3mfError::Validation(format!("Invalid float in transform: {}", v)))
+            f32::from_str(v)
+                .map_err(|_| Lib3mfError::Validation(format!("Invalid float in transform: {}", v)))
         })
         .collect();
     let p = p?;
 
     // 3MF uses column-major order 4x3 matrix, last column is 0,0,0,1
     Ok(Mat4::from_cols_array(&[
-        p[0], p[1], p[2], 0.0,
-        p[3], p[4], p[5], 0.0,
-        p[6], p[7], p[8], 0.0,
-        p[9], p[10], p[11], 1.0,
+        p[0], p[1], p[2], 0.0, p[3], p[4], p[5], 0.0, p[6], p[7], p[8], 0.0, p[9], p[10], p[11],
+        1.0,
     ]))
 }

@@ -7,7 +7,13 @@ pub fn validate_geometry(model: &Model, report: &mut ValidationReport) {
             for (i, tri) in mesh.triangles.iter().enumerate() {
                 // Degenerate check: duplicate indices
                 if tri.v1 == tri.v2 || tri.v2 == tri.v3 || tri.v1 == tri.v3 {
-                    report.add_warning(4001, format!("Triangle {} in Object {} is degenerate (duplicate vertices)", i, object.id.0));
+                    report.add_warning(
+                        4001,
+                        format!(
+                            "Triangle {} in Object {} is degenerate (duplicate vertices)",
+                            i, object.id.0
+                        ),
+                    );
                 }
             }
         }

@@ -24,7 +24,7 @@ impl<R: Read + Seek> Read for ZipArchiver<R> {
         // However, ArchiveReader inherits Read + Seek to allow flexibility.
         // A better design might be to separate the "Opener" from the "Reader".
         // Let's implement dummy Read/Seek for the Archiver wrapper or rethink the trait.
-        
+
         // Actually, looking at the design, ArchiveReader requires Read+Seek.
         // This implies the *underlying* reader has it, but the Archiver *is* the manager.
         // Let's implement pass-through if we have access, or just return 0.
@@ -40,11 +40,10 @@ impl<R: Read + Seek> Seek for ZipArchiver<R> {
 
 impl<R: Read + Seek> ArchiveReader for ZipArchiver<R> {
     fn read_entry(&mut self, name: &str) -> Result<Vec<u8>> {
-        let mut file = self
-            .archive
-            .by_name(name)
-            .map_err(|_| Lib3mfError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, name)))?;
-        
+        let mut file = self.archive.by_name(name).map_err(|_| {
+            Lib3mfError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, name))
+        })?;
+
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
         Ok(buffer)
@@ -55,10 +54,6 @@ impl<R: Read + Seek> ArchiveReader for ZipArchiver<R> {
     }
 
     fn list_entries(&mut self) -> Result<Vec<String>> {
-        Ok(self
-            .archive
-            .file_names()
-            .map(|s| s.to_string())
-            .collect())
+        Ok(self.archive.file_names().map(|s| s.to_string()).collect())
     }
 }

@@ -22,11 +22,14 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn validate(&self, level: crate::validation::ValidationLevel) -> crate::validation::ValidationReport {
-        use crate::validation::{geometry, schema, semantic, ValidationLevel};
-        
+    pub fn validate(
+        &self,
+        level: crate::validation::ValidationLevel,
+    ) -> crate::validation::ValidationReport {
+        use crate::validation::{ValidationLevel, geometry, schema, semantic};
+
         let mut report = crate::validation::ValidationReport::new();
-        
+
         // Minimal: Schema validation (placeholders usually checked by parser, but explicit invariants here)
         if level >= ValidationLevel::Minimal {
             schema::validate_schema(self, &mut report);
@@ -41,7 +44,7 @@ impl Model {
         if level >= ValidationLevel::Paranoid {
             geometry::validate_geometry(self, &mut report);
         }
-        
+
         report
     }
 }
@@ -59,19 +62,14 @@ impl Default for Model {
 }
 
 /// Units of measurement used in the 3MF model.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Unit {
     Micron,
+    #[default]
     Millimeter,
     Centimeter,
     Inch,
     Foot,
     Meter,
-}
-
-impl Default for Unit {
-    fn default() -> Self {
-        Self::Millimeter
-    }
 }

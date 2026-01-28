@@ -2,8 +2,8 @@ pub mod archive;
 pub mod error;
 pub mod model;
 pub mod parser;
-pub mod writer;
 pub mod validation;
+pub mod writer;
 
 pub use error::{Lib3mfError, Result};
 pub use model::*;
@@ -12,7 +12,6 @@ pub use model::*;
 mod tests {
     use super::*;
     // use glam::Vec3; // Removed unused import
-
 
     #[test]
     fn test_model_default() {
@@ -27,12 +26,12 @@ mod tests {
         let v1 = mesh.add_vertex(0.0, 0.0, 0.0);
         let v2 = mesh.add_vertex(1.0, 0.0, 0.0);
         let v3 = mesh.add_vertex(0.0, 1.0, 0.0);
-        
+
         mesh.add_triangle(v1, v2, v3);
-        
+
         assert_eq!(mesh.vertices.len(), 3);
         assert_eq!(mesh.triangles.len(), 1);
-        
+
         let t = &mesh.triangles[0];
         assert_eq!(t.v1, 0);
         assert_eq!(t.v2, 1);
@@ -47,12 +46,15 @@ mod tests {
             id: ResourceId(1),
             name: Some("Test Object".to_string()),
             part_number: None,
+            uuid: None,
+            pid: None,
+            pindex: None,
             geometry: Geometry::Mesh(mesh),
         };
 
         assert!(resources.add_object(object.clone()).is_ok());
         assert!(resources.add_object(object).is_err()); // Duplicate ID
-        
+
         assert!(resources.get_object(ResourceId(1)).is_some());
         assert!(resources.get_object(ResourceId(2)).is_none());
     }

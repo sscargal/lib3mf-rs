@@ -14,12 +14,12 @@ impl Color {
     pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
-    
+
     // Parse hex string #RRGGBB or #RRGGBBAA
     pub fn from_hex(hex: &str) -> Option<Self> {
         let hex = hex.trim_start_matches('#');
         let val = u32::from_str_radix(hex, 16).ok()?;
-        
+
         match hex.len() {
             6 => Some(Self {
                 r: ((val >> 16) & 0xFF) as u8,

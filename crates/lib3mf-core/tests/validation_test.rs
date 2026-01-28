@@ -1,4 +1,4 @@
-use lib3mf_core::model::{Geometry, Mesh, Model, Object, ResourceCollection, ResourceId};
+use lib3mf_core::model::{Geometry, Mesh, Model, Object, ResourceId};
 use lib3mf_core::validation::{ValidationLevel, ValidationSeverity};
 
 #[test]
@@ -17,6 +17,7 @@ fn test_validation_invalid_pid() {
         id: ResourceId(1),
         name: None,
         part_number: None,
+        uuid: None,
         pid: Some(ResourceId(999)), // Non-existent property group
         pindex: None,
         geometry: Geometry::Mesh(mesh),
@@ -26,7 +27,11 @@ fn test_validation_invalid_pid() {
     // Standard level should catch this
     let report = model.validate(ValidationLevel::Standard);
     assert!(report.has_errors());
-    let err = report.items.iter().find(|i| i.code == 2001).expect("Expected error 2001");
+    let err = report
+        .items
+        .iter()
+        .find(|i| i.code == 2001)
+        .expect("Expected error 2001");
     assert_eq!(err.severity, ValidationSeverity::Error);
 
     // Minimal level should IGNORE this (structural only)
@@ -46,6 +51,7 @@ fn test_validation_invalid_triangle_indices() {
         id: ResourceId(1),
         name: None,
         part_number: None,
+        uuid: None,
         pid: None,
         pindex: None,
         geometry: Geometry::Mesh(mesh),
@@ -54,6 +60,10 @@ fn test_validation_invalid_triangle_indices() {
 
     let report = model.validate(ValidationLevel::Standard);
     assert!(report.has_errors());
-    let err = report.items.iter().find(|i| i.code == 3001).expect("Expected error 3001 (OOB index)");
+    let err = report
+        .items
+        .iter()
+        .find(|i| i.code == 3001)
+        .expect("Expected error 3001 (OOB index)");
     assert_eq!(err.severity, ValidationSeverity::Error);
 }

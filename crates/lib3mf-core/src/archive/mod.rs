@@ -13,10 +13,10 @@ use std::io::{Read, Seek};
 pub trait ArchiveReader: Read + Seek {
     /// Read the content of an entry by name.
     fn read_entry(&mut self, name: &str) -> Result<Vec<u8>>;
-    
+
     /// Check if an entry exists.
     fn entry_exists(&mut self, name: &str) -> bool;
-    
+
     /// List all entries in the archive.
     fn list_entries(&mut self) -> Result<Vec<String>>;
 }

@@ -17,7 +17,7 @@ pub struct VolumetricLayer {
     // Content can be an image path, or raw data reference.
     // Spec usually uses image stack approach or field.
     // We will use a flexible 'path' to resource (e.g. texture path).
-    pub content_path: String, 
+    pub content_path: String,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

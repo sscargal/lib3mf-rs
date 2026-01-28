@@ -13,7 +13,7 @@ pub struct Build {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildItem {
     pub object_id: ResourceId,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uuid: Option<Uuid>,
 
@@ -22,7 +22,7 @@ pub struct BuildItem {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub part_number: Option<String>,
-    
+
     #[serde(default = "default_transform", skip_serializing_if = "is_identity")]
     pub transform: Mat4,
 }

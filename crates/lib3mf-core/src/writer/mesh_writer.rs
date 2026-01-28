@@ -26,12 +26,20 @@ pub fn write_mesh<W: Write>(writer: &mut XmlWriter<W>, mesh: &Mesh) -> Result<()
             .attr("v1", &t.v1.to_string())
             .attr("v2", &t.v2.to_string())
             .attr("v3", &t.v3.to_string());
-            
-        if let Some(p1) = t.p1 { builder = builder.attr("p1", &p1.to_string()); }
-        if let Some(p2) = t.p2 { builder = builder.attr("p2", &p2.to_string()); }
-        if let Some(p3) = t.p3 { builder = builder.attr("p3", &p3.to_string()); }
-        if let Some(pid) = t.pid { builder = builder.attr("pid", &pid.to_string()); }
-        
+
+        if let Some(p1) = t.p1 {
+            builder = builder.attr("p1", &p1.to_string());
+        }
+        if let Some(p2) = t.p2 {
+            builder = builder.attr("p2", &p2.to_string());
+        }
+        if let Some(p3) = t.p3 {
+            builder = builder.attr("p3", &p3.to_string());
+        }
+        if let Some(pid) = t.pid {
+            builder = builder.attr("pid", &pid.to_string());
+        }
+
         builder.write_empty()?;
     }
     writer.end_element("triangles")?;

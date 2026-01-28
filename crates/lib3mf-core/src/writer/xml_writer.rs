@@ -1,6 +1,6 @@
 use crate::error::{Lib3mfError, Result};
-use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::Writer;
+use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
 use std::io::Write;
 
 pub struct XmlWriter<W: Write> {
@@ -53,7 +53,7 @@ impl<'a, W: Write> ElementBuilder<'a, W> {
         self.attributes.push((key.to_string(), value.to_string()));
         self
     }
-    
+
     pub fn optional_attr(mut self, key: &str, value: Option<&str>) -> Self {
         if let Some(v) = value {
             self.attributes.push((key.to_string(), v.to_string()));

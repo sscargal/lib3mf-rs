@@ -13,8 +13,11 @@ impl Model {
             .start_element("model")
             .attr("unit", self.unit_str())
             .attr("xml:lang", self.language.as_deref().unwrap_or("en-US"))
-            .attr("xmlns", "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel");
-            
+            .attr(
+                "xmlns",
+                "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel",
+            );
+
         // Add typical namespaces if needed (e.g. production, slice) - strictly core for now
         root.write_start()?;
 
@@ -30,17 +33,18 @@ impl Model {
         // Resources
         xml.start_element("resources").write_start()?;
         for obj in self.resources.iter_objects() {
-            let mut obj_elem = xml.start_element("object")
+            let mut obj_elem = xml
+                .start_element("object")
                 .attr("id", &obj.id.0.to_string())
                 .attr("type", "model"); // TODO: object type enum
-                
+
             if let Some(pid) = obj.part_number.as_ref() {
                 obj_elem = obj_elem.attr("partnumber", pid);
             }
             if let Some(name) = obj.name.as_ref() {
                 obj_elem = obj_elem.attr("name", name);
             }
-            
+
             obj_elem.write_start()?;
 
             match &obj.geometry {
@@ -48,17 +52,26 @@ impl Model {
                 Geometry::Components(comps) => {
                     xml.start_element("components").write_start()?;
                     for c in &comps.components {
-                         let transform_str = format!(
+                        let transform_str = format!(
                             "{} {} {} {} {} {} {} {} {} {} {} {}",
-                            c.transform.x_axis.x, c.transform.x_axis.y, c.transform.x_axis.z,
-                            c.transform.y_axis.x, c.transform.y_axis.y, c.transform.y_axis.z,
-                            c.transform.z_axis.x, c.transform.z_axis.y, c.transform.z_axis.z,
-                            c.transform.w_axis.x, c.transform.w_axis.y, c.transform.w_axis.z
+                            c.transform.x_axis.x,
+                            c.transform.x_axis.y,
+                            c.transform.x_axis.z,
+                            c.transform.y_axis.x,
+                            c.transform.y_axis.y,
+                            c.transform.y_axis.z,
+                            c.transform.z_axis.x,
+                            c.transform.z_axis.y,
+                            c.transform.z_axis.z,
+                            c.transform.w_axis.x,
+                            c.transform.w_axis.y,
+                            c.transform.w_axis.z
                         );
-                        
-                        let mut comp = xml.start_element("component")
+
+                        let mut comp = xml
+                            .start_element("component")
                             .attr("objectid", &c.object_id.0.to_string());
-                            
+
                         if c.transform != glam::Mat4::IDENTITY {
                             comp = comp.attr("transform", &transform_str);
                         }
@@ -71,7 +84,7 @@ impl Model {
                     // But object element is already started.
                     // This writer structure makes it hard to add attributes conditionally based on geometry type
                     // unless we peek geometry before starting object element.
-                    // For now, I will assume writing slice models via this writer is not fully supported 
+                    // For now, I will assume writing slice models via this writer is not fully supported
                     // or requires refactoring.
                     // I will leave it empty as SliceStack objects have no body content (mesh/components).
                     // BUT they need `slicestackid` on the object tag.
@@ -82,7 +95,7 @@ impl Model {
                     // Similar to SliceStack, requires attribute on object tag.
                 }
             }
-            
+
             xml.end_element("object")?;
         }
         xml.end_element("resources")?;
@@ -90,21 +103,30 @@ impl Model {
         // Build
         xml.start_element("build").write_start()?;
         for item in &self.build.items {
-             let transform_str = format!(
+            let transform_str = format!(
                 "{} {} {} {} {} {} {} {} {} {} {} {}",
-                item.transform.x_axis.x, item.transform.x_axis.y, item.transform.x_axis.z,
-                item.transform.y_axis.x, item.transform.y_axis.y, item.transform.y_axis.z,
-                item.transform.z_axis.x, item.transform.z_axis.y, item.transform.z_axis.z,
-                item.transform.w_axis.x, item.transform.w_axis.y, item.transform.w_axis.z
+                item.transform.x_axis.x,
+                item.transform.x_axis.y,
+                item.transform.x_axis.z,
+                item.transform.y_axis.x,
+                item.transform.y_axis.y,
+                item.transform.y_axis.z,
+                item.transform.z_axis.x,
+                item.transform.z_axis.y,
+                item.transform.z_axis.z,
+                item.transform.w_axis.x,
+                item.transform.w_axis.y,
+                item.transform.w_axis.z
             );
 
-            let mut build_item = xml.start_element("item")
+            let mut build_item = xml
+                .start_element("item")
                 .attr("objectid", &item.object_id.0.to_string());
-                
+
             if item.transform != glam::Mat4::IDENTITY {
-                 build_item = build_item.attr("transform", &transform_str);
+                build_item = build_item.attr("transform", &transform_str);
             }
-             // partnumber support if needed
+            // partnumber support if needed
             build_item.write_empty()?;
         }
         xml.end_element("build")?;

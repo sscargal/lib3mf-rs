@@ -4,9 +4,9 @@ use crate::parser::build_parser::parse_build;
 use crate::parser::component_parser::parse_components;
 use crate::parser::material_parser::{parse_base_materials, parse_color_group};
 use crate::parser::mesh_parser::parse_mesh;
-use crate::parser::xml_parser::{get_attribute, get_attribute_f32, get_attribute_u32, XmlParser};
 use crate::parser::slice_parser::parse_slice_stack_content;
 use crate::parser::volumetric_parser::parse_volumetric_stack_content;
+use crate::parser::xml_parser::{XmlParser, get_attribute, get_attribute_f32, get_attribute_u32};
 use quick_xml::events::Event;
 use std::io::BufRead;
 
@@ -15,7 +15,7 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
     let mut model = Model::default();
 
     loop {
-        match parser.next()? {
+        match parser.read_next_event()? {
             Event::Start(e) => match e.name().as_ref() {
                 b"model" => {
                     if let Some(unit_str) = get_attribute(&e, b"unit") {
@@ -32,7 +32,8 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
                     model.language = get_attribute(&e, b"xml:lang");
                 }
                 b"metadata" => {
-                    let name = get_attribute(&e, b"name").ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?;
+                    let name = get_attribute(&e, b"name")
+                        .ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?;
                     let content = parser.read_text_content()?;
                     model.metadata.insert(name, content);
                 }
@@ -43,10 +44,11 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
                 _ => {}
             },
             Event::Empty(e) => {
-                 if e.name().as_ref() == b"metadata" {
-                     let name = get_attribute(&e, b"name").ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?;
-                     model.metadata.insert(name, String::new());
-                 }
+                if e.name().as_ref() == b"metadata" {
+                    let name = get_attribute(&e, b"name")
+                        .ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?;
+                    model.metadata.insert(name, String::new());
+                }
             }
             Event::End(e) if e.name().as_ref() == b"model" => break,
             Event::Eof => break,
@@ -57,44 +59,48 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
     Ok(model)
 }
 
-
 fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> Result<()> {
     loop {
-        match parser.next()? {
+        match parser.read_next_event()? {
             Event::Start(e) => {
-                 let local_name = e.local_name();
-                 match local_name.as_ref() {
+                let local_name = e.local_name();
+                match local_name.as_ref() {
                     b"object" => {
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
                         let name = get_attribute(&e, b"name");
                         let part_number = get_attribute(&e, b"partnumber");
-                        let pid = get_attribute_u32(&e, b"pid").map(crate::model::ResourceId).ok();
+                        let pid = get_attribute_u32(&e, b"pid")
+                            .map(crate::model::ResourceId)
+                            .ok();
                         let pindex = get_attribute_u32(&e, b"pindex").ok();
                         let uuid = crate::parser::xml_parser::get_attribute_uuid(&e)?;
-                        
+
                         // Check for slicestackid (default or prefixed)
                         let slice_stack_id = get_attribute_u32(&e, b"slicestackid")
                             .or_else(|_| get_attribute_u32(&e, b"s:slicestackid"))
-                            .map(crate::model::ResourceId).ok();
+                            .map(crate::model::ResourceId)
+                            .ok();
 
                         // Check for volumetricstackid (hypothetical prefix v:)
                         let vol_stack_id = get_attribute_u32(&e, b"volumetricstackid")
                             .or_else(|_| get_attribute_u32(&e, b"v:volumetricstackid"))
-                            .map(crate::model::ResourceId).ok();
+                            .map(crate::model::ResourceId)
+                            .ok();
 
-                        let _obj_type = get_attribute(&e, b"type").unwrap_or_else(|| "model".to_string());
-                        
+                        let _obj_type =
+                            get_attribute(&e, b"type").unwrap_or_else(|| "model".to_string());
+
                         let geometry_content = parse_object_geometry(parser)?;
-                        
+
                         let geometry = if let Some(ssid) = slice_stack_id {
                             // TODO: Warn if geometry_content is not empty?
                             crate::model::Geometry::SliceStack(ssid)
                         } else if let Some(vsid) = vol_stack_id {
-                             crate::model::Geometry::VolumetricStack(vsid)
+                            crate::model::Geometry::VolumetricStack(vsid)
                         } else {
                             geometry_content
                         };
-                        
+
                         let object = Object {
                             id,
                             name,
@@ -125,13 +131,17 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                     b"volumetricstack" => {
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
                         let stack = parse_volumetric_stack_content(parser, id, 0.0)?;
-                         model.resources.add_volumetric_stack(stack)?;
+                        model.resources.add_volumetric_stack(stack)?;
                     }
                     _ => {}
-                 }
+                }
             }
             Event::End(e) if e.name().as_ref() == b"resources" => break,
-            Event::Eof => return Err(Lib3mfError::Validation("Unexpected EOF in resources".to_string())),
+            Event::Eof => {
+                return Err(Lib3mfError::Validation(
+                    "Unexpected EOF in resources".to_string(),
+                ));
+            }
             _ => {}
         }
     }
@@ -141,15 +151,15 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
 fn parse_object_geometry<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Geometry> {
     // We are inside <object> tag. We expect either <mesh> or <components> next.
     // NOTE: object is open. We read until </object>.
-    
+
     // Actually, parse_object_geometry needs to look for mesh/components.
     // If <object> was Empty, we wouldn't be here (logic above needs check).
     // The previous match Event::Start(object) means it has content.
-    
+
     let mut geometry = Geometry::Mesh(crate::model::Mesh::default()); // Default fallback? Or Option/Result?
 
     loop {
-        match parser.next()? {
+        match parser.read_next_event()? {
             Event::Start(e) => match e.name().as_ref() {
                 b"mesh" => {
                     geometry = Geometry::Mesh(parse_mesh(parser)?);
@@ -160,7 +170,11 @@ fn parse_object_geometry<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Geomet
                 _ => {}
             },
             Event::End(e) if e.name().as_ref() == b"object" => break,
-            Event::Eof => return Err(Lib3mfError::Validation("Unexpected EOF in object".to_string())),
+            Event::Eof => {
+                return Err(Lib3mfError::Validation(
+                    "Unexpected EOF in object".to_string(),
+                ));
+            }
             _ => {}
         }
     }

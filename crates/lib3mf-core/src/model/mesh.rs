@@ -159,7 +159,7 @@ pub struct Triangle {
     pub v2: u32,
     /// Index of the third vertex.
     pub v3: u32,
-    
+
     /// Property index for v1 (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub p1: Option<u32>,
@@ -169,7 +169,7 @@ pub struct Triangle {
     /// Property index for v3 (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub p3: Option<u32>,
-    
+
     /// Property ID for the entire triangle (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pid: Option<u32>,

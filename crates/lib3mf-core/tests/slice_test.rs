@@ -32,31 +32,37 @@ fn test_parse_slice_extension() -> anyhow::Result<()> {
 </model>"##;
 
     let model = parse_model(Cursor::new(xml))?;
-    
+
     // Check SliceStack
-    let stack = model.resources.get_slice_stack(ResourceId(10)).expect("Slice stack 10 missing");
+    let stack = model
+        .resources
+        .get_slice_stack(ResourceId(10))
+        .expect("Slice stack 10 missing");
     assert_eq!(stack.z_bottom, 1.0);
     assert_eq!(stack.slices.len(), 1);
     assert_eq!(stack.refs.len(), 1);
-    
+
     // Check Slice content
     let slice = &stack.slices[0];
     assert_eq!(slice.z_top, 2.0);
     assert_eq!(slice.vertices.len(), 4);
     assert_eq!(slice.polygons.len(), 1);
-    
+
     let poly = &slice.polygons[0];
     assert_eq!(poly.start_segment, 0);
     assert_eq!(poly.segments.len(), 4);
     assert_eq!(poly.segments[0].v2, 1);
-    
+
     // Check Refs
     let r = &stack.refs[0];
     assert_eq!(r.slice_stack_id, ResourceId(5));
     assert_eq!(r.slice_path, "/3D/other.model");
-    
+
     // Check Object
-    let obj = model.resources.get_object(ResourceId(1)).expect("Object 1 missing");
+    let obj = model
+        .resources
+        .get_object(ResourceId(1))
+        .expect("Object 1 missing");
     if let Geometry::SliceStack(ssid) = obj.geometry {
         assert_eq!(ssid, ResourceId(10));
     } else {
