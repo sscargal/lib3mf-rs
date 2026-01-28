@@ -184,7 +184,7 @@ fn print_tree(paths: &[String]) {
         let mut current_level = &mut tree;
         
         for (i, part) in parts.iter().enumerate() {
-            let is_file = i == parts.len() - 1;
+            let _is_file = i == parts.len() - 1;
             let node = current_level.entry(part.to_string()).or_insert_with(|| node::Node::new());
             current_level = &mut node.children;
         }
