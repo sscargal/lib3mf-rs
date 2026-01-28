@@ -1,5 +1,6 @@
 pub mod build;
 pub mod core;
+pub mod crypto;
 pub mod materials;
 pub mod mesh;
 pub mod resources;
@@ -11,6 +12,7 @@ pub mod volumetric;
 
 pub use build::*;
 pub use core::*;
+pub use crypto::*;
 pub use materials::*;
 pub use mesh::*;
 pub use resources::*;

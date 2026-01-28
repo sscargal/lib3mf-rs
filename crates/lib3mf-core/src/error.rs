@@ -13,6 +13,8 @@ pub enum Lib3mfError {
 
     #[error("Invalid 3MF structure: {0}")]
     InvalidStructure(String),
+    #[error("Encryption error: {0}")]
+    EncryptionError(String),
 }
 
 pub type Result<T> = std::result::Result<T, Lib3mfError>;
