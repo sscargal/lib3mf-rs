@@ -32,6 +32,9 @@ impl Model {
                     // SliceStack stats not strictly "geometry" (mesh/production) in the same way.
                     // Could count slices or polygons if we resolved it.
                 }
+                Geometry::VolumetricStack(_id) => {
+                    // Volumetric stats
+                }
             }
         }
         

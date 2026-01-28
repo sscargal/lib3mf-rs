@@ -78,6 +78,9 @@ impl Model {
                     // Refactoring needed to support Slice extension writing.
                     // Phase 11 goal is parsing/validation. I will skip writing implementation logic but fix valid Rust match.
                 }
+                Geometry::VolumetricStack(_id) => {
+                    // Similar to SliceStack, requires attribute on object tag.
+                }
             }
             
             xml.end_element("object")?;

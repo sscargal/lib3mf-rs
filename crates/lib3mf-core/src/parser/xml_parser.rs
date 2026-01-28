@@ -48,6 +48,13 @@ impl<R: BufRead> XmlParser<R> {
             }
         }
     }
+
+    pub fn read_to_end(&mut self, end: &[u8]) -> Result<()> {
+         // read_to_end_into expects QName
+         self.reader.read_to_end_into(quick_xml::name::QName(end), &mut self.buf)
+            .map_err(|e| Lib3mfError::Validation(e.to_string()))?;
+         Ok(())
+    }
 }
 
 // Helper functions for attribute parsing

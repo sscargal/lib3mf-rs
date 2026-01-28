@@ -6,6 +6,7 @@ pub mod material_parser;
 pub mod mesh_parser;
 pub mod model_parser;
 pub mod slice_parser;
+pub mod volumetric_parser;
 pub mod xml_parser;
 
 pub use bambu_config::parse_model_settings;

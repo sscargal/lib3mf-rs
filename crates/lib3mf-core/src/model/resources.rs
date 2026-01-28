@@ -1,5 +1,5 @@
 use crate::error::{Lib3mfError, Result};
-use crate::model::{BaseMaterialsGroup, ColorGroup, Object, SliceStack};
+use crate::model::{BaseMaterialsGroup, ColorGroup, Object, SliceStack, VolumetricStack};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -14,6 +14,7 @@ pub struct ResourceCollection {
     base_materials: HashMap<ResourceId, BaseMaterialsGroup>,
     color_groups: HashMap<ResourceId, ColorGroup>,
     slice_stacks: HashMap<ResourceId, SliceStack>,
+    volumetric_stacks: HashMap<ResourceId, VolumetricStack>,
 }
 
 impl ResourceCollection {
@@ -25,7 +26,8 @@ impl ResourceCollection {
         self.objects.contains_key(&id) || 
         self.base_materials.contains_key(&id) ||
         self.color_groups.contains_key(&id) ||
-        self.slice_stacks.contains_key(&id)
+        self.slice_stacks.contains_key(&id) ||
+        self.volumetric_stacks.contains_key(&id)
     }
 
     pub fn add_object(&mut self, object: Object) -> Result<()> {
@@ -72,6 +74,17 @@ impl ResourceCollection {
         Ok(())
     }
 
+    pub fn add_volumetric_stack(&mut self, stack: VolumetricStack) -> Result<()> {
+         if self.exists(stack.id) {
+            return Err(Lib3mfError::Validation(format!(
+                "Duplicate resource ID: {}",
+                stack.id.0
+            )));
+        }
+        self.volumetric_stacks.insert(stack.id, stack);
+        Ok(())
+    }
+
     pub fn get_object(&self, id: ResourceId) -> Option<&Object> {
         self.objects.get(&id)
     }
@@ -88,12 +101,20 @@ impl ResourceCollection {
         self.slice_stacks.get(&id)
     }
 
+    pub fn get_volumetric_stack(&self, id: ResourceId) -> Option<&VolumetricStack> {
+        self.volumetric_stacks.get(&id)
+    }
+
     pub fn base_material_groups_count(&self) -> usize {
         self.base_materials.len()
     }
 
     pub fn color_groups_count(&self) -> usize {
         self.color_groups.len()
+    }
+    
+    pub fn volumetric_stacks_count(&self) -> usize {
+        self.volumetric_stacks.len()
     }
 
     pub fn iter_objects(&self) -> impl Iterator<Item = &Object> {

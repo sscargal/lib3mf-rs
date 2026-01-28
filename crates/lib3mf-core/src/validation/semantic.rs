@@ -42,6 +42,11 @@ pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
                      report.add_error(2004, format!("Object {} references non-existent slicestack {}", object.id.0, stack_id.0));
                 }
             }
+            Geometry::VolumetricStack(stack_id) => {
+                if model.resources.get_volumetric_stack(*stack_id).is_none() {
+                     report.add_error(2005, format!("Object {} references non-existent volumetricstack {}", object.id.0, stack_id.0));
+                }
+            }
         }
     }
 }

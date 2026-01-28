@@ -6,6 +6,7 @@ use crate::parser::material_parser::{parse_base_materials, parse_color_group};
 use crate::parser::mesh_parser::parse_mesh;
 use crate::parser::xml_parser::{get_attribute, get_attribute_f32, get_attribute_u32, XmlParser};
 use crate::parser::slice_parser::parse_slice_stack_content;
+use crate::parser::volumetric_parser::parse_volumetric_stack_content;
 use quick_xml::events::Event;
 use std::io::BufRead;
 
@@ -76,6 +77,11 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                             .or_else(|_| get_attribute_u32(&e, b"s:slicestackid"))
                             .map(crate::model::ResourceId).ok();
 
+                        // Check for volumetricstackid (hypothetical prefix v:)
+                        let vol_stack_id = get_attribute_u32(&e, b"volumetricstackid")
+                            .or_else(|_| get_attribute_u32(&e, b"v:volumetricstackid"))
+                            .map(crate::model::ResourceId).ok();
+
                         let _obj_type = get_attribute(&e, b"type").unwrap_or_else(|| "model".to_string());
                         
                         let geometry_content = parse_object_geometry(parser)?;
@@ -83,6 +89,8 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                         let geometry = if let Some(ssid) = slice_stack_id {
                             // TODO: Warn if geometry_content is not empty?
                             crate::model::Geometry::SliceStack(ssid)
+                        } else if let Some(vsid) = vol_stack_id {
+                             crate::model::Geometry::VolumetricStack(vsid)
                         } else {
                             geometry_content
                         };
@@ -113,6 +121,11 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                         let z_bottom = get_attribute_f32(&e, b"zbottom").unwrap_or(0.0);
                         let stack = parse_slice_stack_content(parser, id, z_bottom)?;
                         model.resources.add_slice_stack(stack)?;
+                    }
+                    b"volumetricstack" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let stack = parse_volumetric_stack_content(parser, id, 0.0)?;
+                         model.resources.add_volumetric_stack(stack)?;
                     }
                     _ => {}
                  }

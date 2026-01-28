@@ -25,6 +25,7 @@ pub enum Geometry {
     Mesh(Mesh),
     Components(Components),
     SliceStack(ResourceId),
+    VolumetricStack(ResourceId),
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
