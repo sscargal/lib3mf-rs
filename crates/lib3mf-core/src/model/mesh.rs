@@ -3,28 +3,43 @@ use glam::Vec3;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// A resource representing a 3D object/mesh or components.
+/// A resource representing a 3D object.
+///
+/// An object is a reusable resource that defines geometry (Mesh or Components).
+/// It can be referenced by Build items or other Components.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Object {
+    /// Unique identifier for this resource within the model.
     pub id: ResourceId,
+    /// Human-readable name (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// Part number for inventory tracking (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub part_number: Option<String>,
+    /// Production Extension UUID (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uuid: Option<Uuid>,
+    /// Default Property ID (material/color) for this object (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pid: Option<ResourceId>,
+    /// Default Property Index for this object (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pindex: Option<u32>,
+    /// The actual geometric content of the object.
     pub geometry: Geometry,
 }
 
+/// The geometric data of an object.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Geometry {
+    /// A triangle mesh.
     Mesh(Mesh),
+    /// A hierarchical assembly of other objects.
     Components(Components),
+    /// A stack of 2D slices (Slice Extension).
     SliceStack(ResourceId),
+    /// Voxel data (Volumetric Extension).
     VolumetricStack(ResourceId),
 }
 
@@ -50,11 +65,14 @@ fn is_identity(transform: &glam::Mat4) -> bool {
     *transform == glam::Mat4::IDENTITY
 }
 
-/// A triangle mesh.
+/// A mesh defined by vertices and triangles.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Mesh {
+    /// List of vertices (points in 3D space).
     pub vertices: Vec<Vertex>,
+    /// List of triangles connecting vertices.
     pub triangles: Vec<Triangle>,
+    /// Beam Lattice extension data (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub beam_lattice: Option<BeamLattice>,
 }

@@ -124,8 +124,26 @@ cargo test
 ```
 
 ## Project Structure
-- `crates/lib3mf-core`: The main library implementation.
-- `crates/lib3mf-cli`: The `3mf` command-line interface.
+
+```text
+lib3mf-rs/
+├── crates/             # Workspace members
+│   ├── lib3mf-core/    # Main library implementation
+│   ├── lib3mf-cli/     # Command-line interface
+│   ├── lib3mf-io/      # Format converters (STL, OBJ)
+│   ├── lib3mf-wasm/    # WebAssembly bindings
+│   └── lib3mf-async/   # Async I/O (In Progress)
+├── docs/               # Documentation
+├── examples/           # Code examples
+├── fuzz/               # Fuzzing targets
+├── tests/              # Integration tests
+└── CONTRIBUTING.md     # Developer guide
+```
+
+See the `README.md` in each subdirectory for more details.
 
 ## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, testing guide, and architecture overview.
 Please read [AGENTS.md](AGENTS.md) for AI agent protocols.
+
