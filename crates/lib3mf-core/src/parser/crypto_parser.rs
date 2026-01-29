@@ -46,8 +46,8 @@ fn parse_signed_info<R: BufRead>(parser: &mut XmlParser<R>) -> Result<SignedInfo
     loop {
         let evt_info = match parser.read_next_event()? {
             Event::Start(e) => {
-                let alg = get_attribute(&e, b"Algorithm"); // Capture attribute if present
-                let uri = get_attribute(&e, b"URI"); // For Reference
+                let alg = get_attribute(&e, b"Algorithm").map(|s| s.into_owned()); 
+                let uri = get_attribute(&e, b"URI").map(|s| s.into_owned());
                 Some((
                     e.local_name().as_ref().to_vec(),
                     e.name().as_ref().to_vec(),
@@ -57,8 +57,8 @@ fn parse_signed_info<R: BufRead>(parser: &mut XmlParser<R>) -> Result<SignedInfo
                 ))
             }
             Event::Empty(e) => {
-                let alg = get_attribute(&e, b"Algorithm");
-                let uri = get_attribute(&e, b"URI");
+                let alg = get_attribute(&e, b"Algorithm").map(|s| s.into_owned());
+                let uri = get_attribute(&e, b"URI").map(|s| s.into_owned());
                 Some((
                     e.local_name().as_ref().to_vec(),
                     e.name().as_ref().to_vec(),
@@ -137,7 +137,7 @@ fn parse_reference_content<R: BufRead>(
     loop {
         let evt_info = match parser.read_next_event()? {
             Event::Start(e) => {
-                let alg = get_attribute(&e, b"Algorithm");
+                let alg = get_attribute(&e, b"Algorithm").map(|s| s.into_owned());
                 Some((
                     e.local_name().as_ref().to_vec(),
                     e.name().as_ref().to_vec(),
@@ -146,7 +146,7 @@ fn parse_reference_content<R: BufRead>(
                 ))
             }
             Event::Empty(e) => {
-                let alg = get_attribute(&e, b"Algorithm");
+                let alg = get_attribute(&e, b"Algorithm").map(|s| s.into_owned());
                 Some((
                     e.local_name().as_ref().to_vec(),
                     e.name().as_ref().to_vec(),
@@ -201,7 +201,7 @@ fn parse_transforms_content<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec
     loop {
         let evt_info = match parser.read_next_event()? {
             Event::Start(e) => {
-                let alg = get_attribute(&e, b"Algorithm");
+                let alg = get_attribute(&e, b"Algorithm").map(|s| s.into_owned());
                 Some((
                     e.local_name().as_ref().to_vec(),
                     e.name().as_ref().to_vec(),
@@ -210,7 +210,7 @@ fn parse_transforms_content<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec
                 ))
             }
             Event::Empty(e) => {
-                let alg = get_attribute(&e, b"Algorithm");
+                let alg = get_attribute(&e, b"Algorithm").map(|s| s.into_owned());
                 Some((
                     e.local_name().as_ref().to_vec(),
                     e.name().as_ref().to_vec(),

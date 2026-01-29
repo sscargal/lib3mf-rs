@@ -32,13 +32,13 @@ pub fn parse_model_settings(content: &[u8]) -> Result<Vec<PlateInfo>> {
                                     let value = get_attribute(&child, b"value");
 
                                     if let (Some(k), Some(v)) = (key, value) {
-                                        match k.as_str() {
+                                        match k.as_ref() {
                                             "plater_id" => {
                                                 if let Ok(pid) = v.parse::<u32>() {
                                                     id = pid;
                                                 }
                                             }
-                                            "plater_name" => name = Some(v),
+                                            "plater_name" => name = Some(v.into_owned()),
                                             _ => {}
                                         }
                                     }

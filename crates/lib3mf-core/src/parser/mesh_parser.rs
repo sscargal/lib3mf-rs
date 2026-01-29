@@ -17,7 +17,7 @@ pub fn parse_mesh<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Mesh> {
                     let min_length = get_attribute_f32(&e, b"minlength").unwrap_or(0.0);
                     let precision = get_attribute_f32(&e, b"precision").unwrap_or(0.0);
                     let clipping_mode = if let Some(s) = get_attribute(&e, b"clippingmode") {
-                        match s.as_str() {
+                        match s.as_ref() {
                             "inside" => ClippingMode::Inside,
                             "outside" => ClippingMode::Outside,
                             _ => ClippingMode::None,

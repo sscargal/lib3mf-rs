@@ -40,6 +40,16 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
             println!("  Instances: {}", stats.geometry.instance_count);
             println!("  Vertices: {}", stats.geometry.vertex_count);
             println!("  Triangles: {}", stats.geometry.triangle_count);
+            if let Some(bbox) = stats.geometry.bounding_box {
+                println!("  Bounding Box: Min {:?}, Max {:?}", bbox.min, bbox.max);
+            }
+            println!("  Surface Area: {:.2}", stats.geometry.surface_area);
+            println!("  Volume: {:.2}", stats.geometry.volume);
+
+            println!("\nSystem Info:");
+            println!("  Architecture: {}", stats.system_info.architecture);
+            println!("  CPUs (Threads): {}", stats.system_info.num_cpus);
+            println!("  SIMD Features: {}", stats.system_info.simd_features.join(", "));
 
             println!("Materials:");
             println!("  Base Groups: {}", stats.materials.base_materials_count);
@@ -409,11 +419,17 @@ pub fn benchmark(path: PathBuf) -> anyhow::Result<()> {
     let total = start.elapsed();
 
     println!("Results:");
+    println!("  System: {} ({} CPUs), SIMD: {}", 
+        stats.system_info.architecture, 
+        stats.system_info.num_cpus,
+        stats.system_info.simd_features.join(", ")
+    );
     println!("  Zip Open: {:?}", t_zip);
     println!("  XML Parse: {:?}", t_parse);
     println!("  Stats Calc: {:?}", t_stats);
     println!("  Total: {:?}", total);
     println!("  Triangles: {}", stats.geometry.triangle_count);
+    println!("  Area: {:.2}, Volume: {:.2}", stats.geometry.surface_area, stats.geometry.volume);
 
     Ok(())
 }

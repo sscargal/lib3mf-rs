@@ -6,11 +6,14 @@ edition = "2024"
 [dependencies]
 aes-gcm = "0.10.3"
 base64 = "0.22.1"
+cpufeatures = "0.2.17"
 glam = { version = "0.31.0", features = ["serde"] }
 hmac = "0.12.1"
 indexmap = { version = "2.13.0", features = ["serde"] }
+lexical-core = "1.0.6"
 quick-xml = "0.39.0"
 rand = "0.8.5"
+rayon = "1.11.0"
 rsa = { version = "0.9.10", features = ["sha2"] }
 serde = { version = "1.0.228", features = ["derive"] }
 sha1 = "0.10.6"

@@ -1,8 +1,9 @@
 use crate::error::{Lib3mfError, Result};
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::reader::Reader;
+use std::borrow::Cow;
 use std::io::BufRead;
-use std::str::FromStr;
+use lexical_core;
 
 pub struct XmlParser<R: BufRead> {
     pub reader: Reader<R>,
@@ -63,52 +64,55 @@ impl<R: BufRead> XmlParser<R> {
 }
 
 // Helper functions for attribute parsing
-pub fn get_attribute(e: &BytesStart, name: &[u8]) -> Option<String> {
-    e.attributes()
-        .find(|a| a.as_ref().map(|a| a.key.as_ref() == name).unwrap_or(false))
-        .map(|a| {
-            let a = a.unwrap();
-            String::from_utf8_lossy(&a.value).to_string()
-        })
+pub fn get_attribute<'a>(e: &'a BytesStart, name: &[u8]) -> Option<Cow<'a, str>> {
+    e.try_get_attribute(name).ok().flatten().map(|a| {
+        a.unescape_value()
+            .unwrap_or_else(|_| String::from_utf8_lossy(&a.value).into_owned().into())
+    })
 }
 
 pub fn get_attribute_f32(e: &BytesStart, name: &[u8]) -> Result<f32> {
-    let val = get_attribute(e, name).ok_or_else(|| {
+    let attr = e.try_get_attribute(name).ok().flatten().ok_or_else(|| {
         Lib3mfError::Validation(format!(
             "Missing attribute: {}",
             String::from_utf8_lossy(name)
         ))
     })?;
-    f32::from_str(&val).map_err(|_| {
+    lexical_core::parse::<f32>(attr.value.as_ref()).map_err(|_| {
         Lib3mfError::Validation(format!(
             "Invalid float for attribute {}: {}",
             String::from_utf8_lossy(name),
-            val
+            String::from_utf8_lossy(&attr.value)
         ))
     })
 }
 
 pub fn get_attribute_u32(e: &BytesStart, name: &[u8]) -> Result<u32> {
-    let val = get_attribute(e, name).ok_or_else(|| {
+    let attr = e.try_get_attribute(name).ok().flatten().ok_or_else(|| {
         Lib3mfError::Validation(format!(
             "Missing attribute: {}",
             String::from_utf8_lossy(name)
         ))
     })?;
-    u32::from_str(&val).map_err(|_| {
+    lexical_core::parse::<u32>(attr.value.as_ref()).map_err(|_| {
         Lib3mfError::Validation(format!(
             "Invalid integer for attribute {}: {}",
             String::from_utf8_lossy(name),
-            val
+            String::from_utf8_lossy(&attr.value)
         ))
     })
 }
 
 pub fn get_attribute_u32_opt(e: &BytesStart, name: &[u8]) -> Result<Option<u32>> {
-    match get_attribute(e, name) {
-        Some(val) => u32::from_str(&val)
+    match e.try_get_attribute(name).ok().flatten() {
+        Some(attr) => lexical_core::parse::<u32>(attr.value.as_ref())
             .map(Some)
-            .map_err(|_| Lib3mfError::Validation(format!("Invalid integer: {}", val))),
+            .map_err(|_| {
+                Lib3mfError::Validation(format!(
+                    "Invalid integer: {}",
+                    String::from_utf8_lossy(&attr.value)
+                ))
+            }),
         None => Ok(None),
     }
 }

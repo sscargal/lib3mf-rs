@@ -1,6 +1,7 @@
 use crate::model::Unit;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use crate::utils::hardware::HardwareCapabilities;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelStats {
@@ -11,6 +12,7 @@ pub struct ModelStats {
     pub materials: MaterialsStats,
     pub production: ProductionStats,
     pub vendor: VendorData,
+    pub system_info: HardwareCapabilities,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -25,8 +27,16 @@ pub struct GeometryStats {
     pub instance_count: usize,
     pub triangle_count: u64,
     pub vertex_count: u64,
-    // pub bounds: BoundingBox, // To be implemented
+    pub bounding_box: Option<BoundingBox>,
+    pub surface_area: f64,
+    pub volume: f64,
     pub is_manifold: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct BoundingBox {
+    pub min: [f32; 3],
+    pub max: [f32; 3],
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

@@ -18,6 +18,25 @@ impl Model {
                 Geometry::Mesh(mesh) => {
                     geom_stats.vertex_count += mesh.vertices.len() as u64;
                     geom_stats.triangle_count += mesh.triangles.len() as u64;
+
+                    // Update AABB
+                    if let Some(mesh_aabb) = mesh.compute_aabb() {
+                        if let Some(total_aabb) = &mut geom_stats.bounding_box {
+                            total_aabb.min[0] = total_aabb.min[0].min(mesh_aabb.min[0]);
+                            total_aabb.min[1] = total_aabb.min[1].min(mesh_aabb.min[1]);
+                            total_aabb.min[2] = total_aabb.min[2].min(mesh_aabb.min[2]);
+                            total_aabb.max[0] = total_aabb.max[0].max(mesh_aabb.max[0]);
+                            total_aabb.max[1] = total_aabb.max[1].max(mesh_aabb.max[1]);
+                            total_aabb.max[2] = total_aabb.max[2].max(mesh_aabb.max[2]);
+                        } else {
+                            geom_stats.bounding_box = Some(mesh_aabb);
+                        }
+                    }
+
+                    // Update Area and Volume
+                    let (area, volume) = mesh.compute_area_and_volume();
+                    geom_stats.surface_area += area;
+                    geom_stats.volume += volume;
                 }
                 Geometry::Components(_comps) => {
                     // Components themselves don't add vertices directly, they reference other objects.
@@ -82,6 +101,7 @@ impl Model {
             materials: materials_stats,
             production: prod_stats,
             vendor: vendor_data,
+            system_info: crate::utils::hardware::detect_capabilities(),
         })
     }
 }

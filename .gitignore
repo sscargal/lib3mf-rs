@@ -5,3 +5,52 @@ Cargo.lock
 .vscode
 *.swp
 .DS_Store
+
+# --- AI coding agents: local state, logs, scratchpads ---
+
+# Generic agent state
+.ai/
+.agent/
+.agent-data/
+.agent-cache/
+.agent_logs/
+*.agent.log
+*.agent.tmp
+
+# Claude Code / Claude-style agents
+claude.md
+CLAUDE.md
+claude.local.md
+claude-skills.json
+claude-skills/
+.claude/
+.claude-cache/
+.claude-history/
+.claude-logs/
+
+# GitHub Copilot & other VS Code extensions
+# (most state lives in global VS Code dirs, but ignore any project-local cache)
+.vscode/copilot.secret.*
+.vscode/copilot-history/
+.vscode/copilot-cache/
+
+# Cursor / AI IDEs
+.cursor/
+.cursor-history/
+.cursor-tmp/
+.cursor-cache/
+
+# Gemini / local agent sandboxes
+.gemini/
+.gemini-cache/
+.gemini-history/
+.gemini-sessions/
+GEMINI.md
+
+# Misc agent outputs (transcripts, temp notes)
+*.agent-notes.md
+*.agent-session.json
+*.agent-context.json
+ai-notes/
+ai-scratch/
+

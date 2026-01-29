@@ -26,7 +26,7 @@ pub fn parse_base_materials<R: BufRead>(
                 })?;
 
                 materials.push(BaseMaterial {
-                    name,
+                    name: name.into_owned(),
                     display_color,
                 });
             }

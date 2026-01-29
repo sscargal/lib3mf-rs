@@ -19,7 +19,7 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
             Event::Start(e) => match e.name().as_ref() {
                 b"model" => {
                     if let Some(unit_str) = get_attribute(&e, b"unit") {
-                        model.unit = match unit_str.as_str() {
+                        model.unit = match unit_str.as_ref() {
                             "micron" => Unit::Micron,
                             "millimeter" => Unit::Millimeter,
                             "centimeter" => Unit::Centimeter,
@@ -29,11 +29,12 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
                             _ => Unit::Millimeter, // Default or warn?
                         };
                     }
-                    model.language = get_attribute(&e, b"xml:lang");
+                    model.language = get_attribute(&e, b"xml:lang").map(|s| s.into_owned());
                 }
                 b"metadata" => {
                     let name = get_attribute(&e, b"name")
-                        .ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?;
+                        .ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?
+                        .into_owned();
                     let content = parser.read_text_content()?;
                     model.metadata.insert(name, content);
                 }
@@ -47,7 +48,7 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
                 if e.name().as_ref() == b"metadata" {
                     let name = get_attribute(&e, b"name")
                         .ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?;
-                    model.metadata.insert(name, String::new());
+                    model.metadata.insert(name.into_owned(), String::new());
                 }
             }
             Event::End(e) if e.name().as_ref() == b"model" => break,
@@ -67,8 +68,8 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                 match local_name.as_ref() {
                     b"object" => {
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
-                        let name = get_attribute(&e, b"name");
-                        let part_number = get_attribute(&e, b"partnumber");
+                        let name = get_attribute(&e, b"name").map(|s| s.into_owned());
+                        let part_number = get_attribute(&e, b"partnumber").map(|s| s.into_owned());
                         let pid = get_attribute_u32(&e, b"pid")
                             .map(crate::model::ResourceId)
                             .ok();
@@ -88,7 +89,7 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                             .ok();
 
                         let _obj_type =
-                            get_attribute(&e, b"type").unwrap_or_else(|| "model".to_string());
+                            get_attribute(&e, b"type").unwrap_or_else(|| "model".into());
 
                         let geometry_content = parse_object_geometry(parser)?;
 

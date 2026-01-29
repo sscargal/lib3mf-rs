@@ -26,7 +26,8 @@ pub fn parse_model_streaming<R: BufRead, V: ModelVisitor>(
                     }
                     b"metadata" => {
                         let name = get_attribute(&e, b"name")
-                            .ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?;
+                            .ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?
+                            .into_owned();
                         let content = parser.read_text_content()?;
                         visitor.on_metadata(&name, &content)?;
                     }
@@ -47,7 +48,7 @@ pub fn parse_model_streaming<R: BufRead, V: ModelVisitor>(
                 if e.name().as_ref() == b"metadata" {
                     let name = get_attribute(&e, b"name")
                         .ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?;
-                    visitor.on_metadata(&name, "")?;
+                    visitor.on_metadata(name.as_ref(), "")?;
                 }
             }
             Event::End(e) if e.name().as_ref() == b"model" => break,

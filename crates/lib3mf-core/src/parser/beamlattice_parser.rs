@@ -61,7 +61,7 @@ fn parse_beams<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<Beam>> {
                 let p2 = get_attribute_u32(&e, b"p2").ok();
 
                 let cap_mode = if let Some(s) = get_attribute(&e, b"cap") {
-                    match s.as_str() {
+                    match s.as_ref() {
                         "sphere" => CapMode::Sphere,
                         "hemisphere" => CapMode::Hemisphere,
                         "butt" => CapMode::Butt,
@@ -99,8 +99,8 @@ fn parse_beam_sets<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<BeamSet>
         let event = parser.read_next_event()?;
         match event {
             Event::Start(e) if e.name().as_ref() == b"beamset" => {
-                let name = get_attribute(&e, b"name");
-                let identifier = get_attribute(&e, b"identifier");
+                let name = get_attribute(&e, b"name").map(|s| s.into_owned());
+                let identifier = get_attribute(&e, b"identifier").map(|s| s.into_owned());
                 let refs = parse_refs(parser)?;
                 sets.push(BeamSet {
                     name,
@@ -109,8 +109,8 @@ fn parse_beam_sets<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<BeamSet>
                 });
             }
             Event::Empty(e) if e.name().as_ref() == b"beamset" => {
-                let name = get_attribute(&e, b"name");
-                let identifier = get_attribute(&e, b"identifier");
+                let name = get_attribute(&e, b"name").map(|s| s.into_owned());
+                let identifier = get_attribute(&e, b"identifier").map(|s| s.into_owned());
                 sets.push(BeamSet {
                     name,
                     identifier,

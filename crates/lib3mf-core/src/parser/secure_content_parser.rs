@@ -2,6 +2,7 @@ use crate::error::{Lib3mfError, Result};
 use crate::model::{AccessRight, Consumer, KeyStore, ResourceDataGroup};
 use crate::parser::xml_parser::{XmlParser, get_attribute};
 use quick_xml::events::Event;
+use std::borrow::Cow;
 use std::io::BufRead;
 
 pub fn parse_keystore_content<R: BufRead>(
@@ -20,9 +21,10 @@ pub fn parse_keystore_content<R: BufRead>(
                 match local_name.as_ref() {
                     b"consumer" => {
                         let id = get_attribute(&e, b"consumerid")
-                            .ok_or(Lib3mfError::Validation("Missing consumerid".to_string()))?;
-                        let key_id = get_attribute(&e, b"keyid");
-                        let key_value = get_attribute(&e, b"keyvalue");
+                            .ok_or(Lib3mfError::Validation("Missing consumerid".to_string()))?
+                            .into_owned();
+                        let key_id = get_attribute(&e, b"keyid").map(|s: Cow<str>| s.into_owned());
+                        let key_value = get_attribute(&e, b"keyvalue").map(|s: Cow<str>| s.into_owned());
 
                         store.consumers.push(Consumer {
                             id,
@@ -75,7 +77,8 @@ fn parse_resource_data_group<R: BufRead>(
                 match e.local_name().as_ref() {
                     b"accessright" => {
                         let consumer_id = get_attribute(&e, b"consumerid")
-                            .ok_or(Lib3mfError::Validation("Missing consumerid".to_string()))?;
+                            .ok_or(Lib3mfError::Validation("Missing consumerid".to_string()))?
+                            .into_owned();
                         // Parse children (wrappedkey)
                         let (wrapped_key, algorithm) = parse_access_right_content(parser)?;
 
@@ -114,7 +117,7 @@ fn parse_access_right_content<R: BufRead>(parser: &mut XmlParser<R>) -> Result<(
                     b"wrappedkey" => {
                         // Attribute "algorithm" might be here?
                         if let Some(alg) = get_attribute(&e, b"encryptionalgorithm") {
-                            algorithm = alg;
+                            algorithm = alg.into_owned();
                         }
 
                         let text = parser.read_text_content()?;

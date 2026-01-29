@@ -2,6 +2,7 @@ use crate::error::{Lib3mfError, Result};
 use crate::model::{Polygon, Segment, Slice, SliceRef, SliceStack, Vertex2D};
 use crate::parser::xml_parser::{XmlParser, get_attribute, get_attribute_f32, get_attribute_u32};
 use quick_xml::events::Event;
+use std::borrow::Cow;
 use std::io::BufRead;
 
 // parse_slice_stack removed (used content version directly)
@@ -27,7 +28,7 @@ pub fn parse_slice_stack_content<R: BufRead>(
                     // Start or Empty.
                     let stack_id =
                         crate::model::ResourceId(get_attribute_u32(&e, b"slicestackid")?);
-                    let path = get_attribute(&e, b"slicepath").unwrap_or_default();
+                    let path = get_attribute(&e, b"slicepath").map(|s: Cow<str>| s.into_owned()).unwrap_or_default();
                     refs.push(SliceRef {
                         slice_stack_id: stack_id,
                         slice_path: path,
@@ -39,7 +40,7 @@ pub fn parse_slice_stack_content<R: BufRead>(
                 if e.local_name().as_ref() == b"sliceref" {
                     let stack_id =
                         crate::model::ResourceId(get_attribute_u32(&e, b"slicestackid")?);
-                    let path = get_attribute(&e, b"slicepath").unwrap_or_default();
+                    let path = get_attribute(&e, b"slicepath").map(|s: Cow<str>| s.into_owned()).unwrap_or_default();
                     refs.push(SliceRef {
                         slice_stack_id: stack_id,
                         slice_path: path,
