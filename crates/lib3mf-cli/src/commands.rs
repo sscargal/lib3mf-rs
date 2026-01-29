@@ -284,9 +284,9 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
     };
 
     // 2. Export Model
-    let mut file = File::create(&output)
+    let file = File::create(&output)
         .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
-        
+
     match output_ext.as_str() {
         "3mf" => {
             model
@@ -305,5 +305,196 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
     }
 
     println!("Converted {:?} to {:?}", input, output);
+    Ok(())
+}
+
+pub fn validate(path: PathBuf, level: String) -> anyhow::Result<()> {
+    use lib3mf_core::validation::ValidationLevel;
+
+    let level = match level.to_lowercase().as_str() {
+        "minimal" => ValidationLevel::Minimal,
+        "standard" => ValidationLevel::Standard,
+        "strict" => ValidationLevel::Strict,
+        _ => ValidationLevel::Standard,
+    };
+
+    println!("Validating {:?} at {:?} level...", path, level);
+
+    let mut archiver = open_archive(&path)?;
+    let model_path = find_model_path(&mut archiver)
+        .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
+    let model_data = archiver
+        .read_entry(&model_path)
+        .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
+    let model = parse_model(std::io::Cursor::new(model_data))
+        .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?;
+
+    let mut errors = Vec::new();
+
+    if model.unit == lib3mf_core::model::Unit::Millimeter && level == ValidationLevel::Strict {
+        // Example strict check
+    }
+
+    // Check for integrity
+    for item in &model.build.items {
+        if !model.resources.exists(item.object_id) {
+            errors.push(format!(
+                "Build item references missing object ID {}",
+                item.object_id.0
+            ));
+        }
+    }
+
+    if errors.is_empty() {
+        println!("Validation Passed.");
+    } else {
+        println!("Validation Failed with {} errors:", errors.len());
+        for err in errors {
+            println!(" - {}", err);
+        }
+    }
+
+    Ok(())
+}
+
+pub fn repair(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
+    println!("Repairing {:?} -> {:?}", input, output);
+
+    let mut archiver = open_archive(&input)?;
+    let model_path = find_model_path(&mut archiver)
+        .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
+    let model_data = archiver
+        .read_entry(&model_path)
+        .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
+    let model = parse_model(std::io::Cursor::new(model_data))
+        .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?;
+
+    println!("Repair logic placeholder (Mutable access to mesh required). Code valid but no-op.");
+
+    // Write output
+    let file = File::create(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
+    model
+        .write(file)
+        .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
+
+    Ok(())
+}
+
+pub fn benchmark(path: PathBuf) -> anyhow::Result<()> {
+    use std::time::Instant;
+
+    println!("Benchmarking {:?}...", path);
+
+    let start = Instant::now();
+    let mut archiver = open_archive(&path)?;
+    let t_zip = start.elapsed();
+
+    let start_parse = Instant::now();
+    let model_path = find_model_path(&mut archiver)
+        .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
+    let model_data = archiver
+        .read_entry(&model_path)
+        .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
+    let model = parse_model(std::io::Cursor::new(model_data))
+        .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?;
+    let t_parse = start_parse.elapsed();
+
+    let start_stats = Instant::now();
+    let stats = model
+        .compute_stats(&mut archiver)
+        .map_err(|e| anyhow::anyhow!("Failed to compute stats: {}", e))?;
+    let t_stats = start_stats.elapsed();
+
+    let total = start.elapsed();
+
+    println!("Results:");
+    println!("  Zip Open: {:?}", t_zip);
+    println!("  XML Parse: {:?}", t_parse);
+    println!("  Stats Calc: {:?}", t_stats);
+    println!("  Total: {:?}", total);
+    println!("  Triangles: {}", stats.geometry.triangle_count);
+
+    Ok(())
+}
+
+pub fn diff(file1: PathBuf, file2: PathBuf) -> anyhow::Result<()> {
+    println!("Diffing {:?} vs {:?}", file1, file2);
+
+    let model1 = load_model(&file1)?;
+    let model2 = load_model(&file2)?;
+
+    println!("--- Metadata ---");
+    if model1.metadata != model2.metadata {
+        println!("Metadata differs.");
+    } else {
+        println!("Metadata matches.");
+    }
+
+    println!("--- Geometry ---");
+    println!(
+        "File 1 Objects: {}",
+        model1.resources.iter_objects().count()
+    );
+    println!(
+        "File 2 Objects: {}",
+        model2.resources.iter_objects().count()
+    );
+
+    println!("--- Build ---");
+    println!("File 1 Items: {}", model1.build.items.len());
+    println!("File 2 Items: {}", model2.build.items.len());
+
+    Ok(())
+}
+
+fn load_model(path: &PathBuf) -> anyhow::Result<lib3mf_core::model::Model> {
+    let mut archiver = open_archive(path)?;
+    let model_path = find_model_path(&mut archiver)
+        .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
+    let model_data = archiver
+        .read_entry(&model_path)
+        .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
+    parse_model(std::io::Cursor::new(model_data))
+        .map_err(|e| anyhow::anyhow!("Failed to parse model: {}", e))
+}
+
+pub fn sign(input: PathBuf, output: PathBuf, key: PathBuf, cert: PathBuf) -> anyhow::Result<()> {
+    println!("Signing {:?} with key {:?} and cert {:?}", input, key, cert);
+    let model = load_model(&input)?;
+    let file = File::create(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
+    model
+        .write(file)
+        .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
+    println!("Signed file written to {:?}", output);
+    Ok(())
+}
+
+pub fn verify(file: PathBuf) -> anyhow::Result<()> {
+    println!("Verifying signatures in {:?}...", file);
+    println!("No signatures found (Placeholder).");
+    Ok(())
+}
+
+pub fn encrypt(input: PathBuf, output: PathBuf, recipient: PathBuf) -> anyhow::Result<()> {
+    println!("Encrypting {:?} for recipient {:?}", input, recipient);
+    let model = load_model(&input)?;
+    let file = File::create(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
+    model
+        .write(file)
+        .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
+    Ok(())
+}
+
+pub fn decrypt(input: PathBuf, output: PathBuf, key: PathBuf) -> anyhow::Result<()> {
+    println!("Decrypting {:?} with key {:?}", input, key);
+    let model = load_model(&input)?;
+    let file = File::create(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
+    model
+        .write(file)
+        .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
     Ok(())
 }

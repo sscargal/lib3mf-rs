@@ -1,5 +1,5 @@
-pub mod stl;
 pub mod obj;
+pub mod stl;
 
 use lib3mf_core::error::Result;
 use lib3mf_core::model::Model;
