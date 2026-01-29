@@ -9,6 +9,7 @@ pub struct Relationship {
     pub id: String,
     pub rel_type: String,
     pub target: String,
+    pub target_mode: String,
 }
 
 /// Represents an OPC Content Type override or default.
@@ -39,6 +40,7 @@ pub fn parse_relationships(xml_content: &[u8]) -> Result<Vec<Relationship>> {
                     let mut id = String::new();
                     let mut rel_type = String::new();
                     let mut target = String::new();
+                    let mut target_mode = "Internal".to_string(); // Default
 
                     for attr in e.attributes() {
                         let attr = attr.map_err(|e| Lib3mfError::Validation(e.to_string()))?;
@@ -46,6 +48,7 @@ pub fn parse_relationships(xml_content: &[u8]) -> Result<Vec<Relationship>> {
                             b"Id" => id = String::from_utf8_lossy(&attr.value).to_string(),
                             b"Type" => rel_type = String::from_utf8_lossy(&attr.value).to_string(),
                             b"Target" => target = String::from_utf8_lossy(&attr.value).to_string(),
+                            b"TargetMode" => target_mode = String::from_utf8_lossy(&attr.value).to_string(),
                             _ => {}
                         }
                     }
@@ -53,6 +56,7 @@ pub fn parse_relationships(xml_content: &[u8]) -> Result<Vec<Relationship>> {
                         id,
                         rel_type,
                         target,
+                        target_mode,
                     });
                 }
             }

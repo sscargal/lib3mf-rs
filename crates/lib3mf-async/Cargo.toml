@@ -4,3 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+async-trait = "0.1.89"
+async_zip = { version = "0.0.18", features = ["tokio"] }
+futures-lite = "2.6.1"
+lib3mf-core = { version = "0.1.0", path = "../lib3mf-core" }
+thiserror = "2.0.18"
+tokio = { version = "1.49.0", features = ["full"] }
+tokio-util = { version = "0.7.18", features = ["compat"] }
+uuid = "1.20.0"
