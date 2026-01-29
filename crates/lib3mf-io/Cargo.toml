@@ -1,0 +1,12 @@
+[package]
+name = "lib3mf-io"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lib3mf-core = { path = "../lib3mf-core" }
+thiserror = "1.0"
+byteorder = "1.5"
+glam = "0.31.0"
+
+

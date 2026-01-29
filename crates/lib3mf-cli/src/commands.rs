@@ -243,3 +243,67 @@ mod node {
         }
     }
 }
+
+pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
+    let input_ext = input
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let output_ext = output
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    // 1. Load Model
+    let model = match input_ext.as_str() {
+        "3mf" => {
+            let mut archiver = open_archive(&input)?;
+            let model_path = find_model_path(&mut archiver)
+                .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
+            let model_data = archiver
+                .read_entry(&model_path)
+                .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
+            parse_model(std::io::Cursor::new(model_data))
+                .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?
+        }
+        "stl" => {
+            let file = File::open(&input)
+                .map_err(|e| anyhow::anyhow!("Failed to open STL input: {}", e))?;
+            lib3mf_io::stl::StlImporter::read(file)
+                .map_err(|e| anyhow::anyhow!("Failed to import STL: {}", e))?
+        }
+        "obj" => {
+            let file = File::open(&input)
+                .map_err(|e| anyhow::anyhow!("Failed to open OBJ input: {}", e))?;
+            lib3mf_io::obj::ObjImporter::read(file)
+                .map_err(|e| anyhow::anyhow!("Failed to import OBJ: {}", e))?
+        }
+        _ => return Err(anyhow::anyhow!("Unsupported input format: {}", input_ext)),
+    };
+
+    // 2. Export Model
+    let mut file = File::create(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
+        
+    match output_ext.as_str() {
+        "3mf" => {
+            model
+                .write(file)
+                .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
+        }
+        "stl" => {
+            lib3mf_io::stl::StlExporter::write(&model, file)
+                .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
+        }
+        "obj" => {
+            lib3mf_io::obj::ObjExporter::write(&model, file)
+                .map_err(|e| anyhow::anyhow!("Failed to export OBJ: {}", e))?;
+        }
+        _ => return Err(anyhow::anyhow!("Unsupported output format: {}", output_ext)),
+    }
+
+    println!("Converted {:?} to {:?}", input, output);
+    Ok(())
+}

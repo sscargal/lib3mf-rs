@@ -68,6 +68,13 @@ enum Commands {
         /// Output 3MF file
         output: PathBuf,
     },
+    /// Convert between 3D formats (3MF, STL, OBJ)
+    Convert {
+        /// Input file
+        input: PathBuf,
+        /// Output file
+        output: PathBuf,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -95,6 +102,9 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Copy { input, output } => {
             commands::copy(input, output)?;
+        }
+        Commands::Convert { input, output } => {
+            commands::convert(input, output)?;
         }
     }
 
