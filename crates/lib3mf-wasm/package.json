@@ -1,0 +1,11 @@
+{
+  "name": "lib3mf-wasm-dev",
+  "version": "0.1.0",
+  "description": "Dev scripts for lib3mf-wasm",
+  "scripts": {
+    "build": "wasm-pack build --target web",
+    "test": "wasm-pack test --headless --firefox"
+  },
+  "author": "Steve",
+  "license": "MIT"
+}

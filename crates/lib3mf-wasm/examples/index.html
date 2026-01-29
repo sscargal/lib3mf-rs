@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lib3mf-rs WASM Example</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .drop-zone { border: 2px dashed #ccc; padding: 2rem; text-align: center; margin: 1rem 0; cursor: pointer; }
+        .drop-zone:hover { border-color: #666; background: #f9f9f9; }
+        #output { background: #f0f0f0; padding: 1rem; border-radius: 4px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Lib3mf-rs WASM Hello World</h1>
+    <p>Upload a .3mf file to parse it using the Rust WASM library.</p>
+
+    <div id="drop-zone" class="drop-zone">
+        Drop .3mf file here or click to select
+    </div>
+    <input type="file" id="file-input" style="display: none" accept=".3mf">
+
+    <div id="output">Waiting for file...</div>
+
+    <script type="module">
+        import init, { WasmModel } from './pkg/lib3mf_wasm.js';
+
+        async function run() {
+            try {
+                await init();
+                document.getElementById('output').textContent = "WASM module loaded successfully. Ready to process files.";
+            } catch (e) {
+                console.error("Failed to load WASM:", e);
+                document.getElementById('output').textContent = "Error loading WASM module: " + e;
+            }
+        }
+
+        run();
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#007bff';
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = '#ccc';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#ccc';
+            if (e.dataTransfer.files.length > 0) {
+                processFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
+            }
+        });
+
+        async function processFile(file) {
+            const output = document.getElementById('output');
+            output.textContent = `Processing ${file.name}...`;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+
+                const start = performance.now();
+                const model = WasmModel.from_bytes(bytes);
+                const end = performance.now();
+
+                const stats = `
+Parsed successfully in ${(end - start).toFixed(2)}ms!
+Unit: ${model.unit()}
+Object Count: ${model.object_count()}
+                `.trim();
+
+                output.textContent = stats;
+            } catch (e) {
+                console.error(e);
+                output.textContent = `Error parsing file: ${e}`;
+            }
+        }
+    </script>
+</body>
+</html>
