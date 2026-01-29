@@ -48,7 +48,9 @@ pub fn parse_relationships(xml_content: &[u8]) -> Result<Vec<Relationship>> {
                             b"Id" => id = String::from_utf8_lossy(&attr.value).to_string(),
                             b"Type" => rel_type = String::from_utf8_lossy(&attr.value).to_string(),
                             b"Target" => target = String::from_utf8_lossy(&attr.value).to_string(),
-                            b"TargetMode" => target_mode = String::from_utf8_lossy(&attr.value).to_string(),
+                            b"TargetMode" => {
+                                target_mode = String::from_utf8_lossy(&attr.value).to_string()
+                            }
                             _ => {}
                         }
                     }

@@ -3,11 +3,10 @@ use crate::archive::AsyncArchiveReader;
 use lib3mf_core::model::Model;
 use lib3mf_core::error::{Lib3mfError, Result};
 use lib3mf_core::parser::model_parser::parse_model;
-use lib3mf_core::archive::opc::{Relationship, ContentType, parse_relationships};
+use lib3mf_core::archive::opc::{Relationship, parse_relationships};
 use std::path::Path;
 use tokio::fs::File;
 use std::io::Cursor;
-use uuid::Uuid;
 
 /// Asynchronously loads a 3MF model from a file.
 pub async fn load_model_async<P: AsRef<Path>>(path: P) -> Result<Model> {

@@ -1,4 +1,4 @@
-use crate::archive::{ArchiveReader, parse_relationships};
+use crate::archive::{opc::parse_relationships, ArchiveReader};
 use crate::error::{Lib3mfError, Result};
 
 /// Locates the path of the 3D model file within the archive.

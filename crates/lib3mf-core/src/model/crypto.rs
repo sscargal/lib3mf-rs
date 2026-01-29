@@ -34,7 +34,7 @@ pub struct Reference {
     pub digest_method: DigestMethod,
     pub digest_value: DigestValue,
     // Transforms are optional in 3MF restricted profile (usually C14N is implicit or specified)
-    pub transforms: Option<Vec<Transform>>, 
+    pub transforms: Option<Vec<Transform>>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

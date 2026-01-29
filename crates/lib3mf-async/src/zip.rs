@@ -26,7 +26,7 @@ impl<R: AsyncRead + AsyncSeek + Unpin> AsyncZipArchive<R> {
         // And returns Base<Compat<Buf>>.
         // This matches the Alias<Buf>.
         let zip = ZipFileReader::new(compat_reader).await
-            .map_err(|e| Lib3mfError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+            .map_err(|e| Lib3mfError::Io(std::io::Error::other(e.to_string())))?;
         Ok(Self { reader: zip })
     }
 }
@@ -36,16 +36,16 @@ impl<R: AsyncRead + AsyncSeek + Unpin + Send + Sync> AsyncArchiveReader for Asyn
     async fn read_entry(&mut self, name: &str) -> Result<Vec<u8>> {
         let entries = self.reader.file().entries();
         let index = entries.iter().position(|e: &StoredZipEntry| e.filename().as_str().ok() == Some(name))
-             .ok_or_else(|| Lib3mfError::ResourceNotFound(0))?;
+             .ok_or(Lib3mfError::ResourceNotFound(0))?;
              
         let mut reader = self.reader.reader_with_entry(index).await
-             .map_err(|e| Lib3mfError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+             .map_err(|e| Lib3mfError::Io(std::io::Error::other(e.to_string())))?;
              
         let mut buffer = Vec::new();
         // reader implements futures::io::AsyncRead. 
         // We imported futures_lite::io::AsyncReadExt so read_to_end should work.
         reader.read_to_end(&mut buffer).await
-            .map_err(|e| Lib3mfError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+            .map_err(|e| Lib3mfError::Io(std::io::Error::other(e.to_string())))?;
         
         Ok(buffer)
     }

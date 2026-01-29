@@ -3,7 +3,7 @@ pub mod opc;
 pub mod zip_archive;
 
 pub use model_locator::*;
-pub use opc::*;
+// pub use opc::*; // Clippy says unused
 pub use zip_archive::*;
 
 use crate::error::Result;

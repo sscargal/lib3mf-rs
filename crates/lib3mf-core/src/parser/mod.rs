@@ -8,6 +8,8 @@ pub mod mesh_parser;
 pub mod model_parser;
 pub mod secure_content_parser;
 pub mod slice_parser;
+pub mod streaming;
+pub mod visitor;
 pub mod volumetric_parser;
 pub mod xml_parser;
 
