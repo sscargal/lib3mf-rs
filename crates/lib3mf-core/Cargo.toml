@@ -21,3 +21,9 @@ zip = { version = "7.2.0", features = ["deflate", "time"] }
 
 [dev-dependencies]
 anyhow = "1.0.100"
+proptest = "1.4"
+criterion = "0.5"
+
+[[bench]]
+name = "core_bench"
+harness = false

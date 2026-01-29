@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// A resource representing a 3D object/mesh or components.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Object {
     pub id: ResourceId,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -20,7 +20,7 @@ pub struct Object {
     pub geometry: Geometry,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Geometry {
     Mesh(Mesh),
     Components(Components),
@@ -28,12 +28,12 @@ pub enum Geometry {
     VolumetricStack(ResourceId),
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Components {
     pub components: Vec<Component>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Component {
     pub object_id: ResourceId,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -51,7 +51,7 @@ fn is_identity(transform: &glam::Mat4) -> bool {
 }
 
 /// A triangle mesh.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub triangles: Vec<Triangle>,
@@ -59,7 +59,7 @@ pub struct Mesh {
     pub beam_lattice: Option<BeamLattice>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct BeamLattice {
     #[serde(default)]
     pub min_length: f32,
@@ -80,7 +80,7 @@ pub enum ClippingMode {
     Outside,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Beam {
     pub v1: u32,
     pub v2: u32,
@@ -103,7 +103,7 @@ pub enum CapMode {
     Butt,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct BeamSet {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -133,7 +133,7 @@ impl Mesh {
 }
 
 /// A single point in 3D space.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
 pub struct Vertex {
     pub x: f32,
     pub y: f32,
@@ -151,7 +151,7 @@ impl From<Vec3> for Vertex {
 }
 
 /// A triangle defined by three vertex indices.
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
 pub struct Triangle {
     /// Index of the first vertex.
     pub v1: u32,

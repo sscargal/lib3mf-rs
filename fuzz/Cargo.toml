@@ -1,0 +1,18 @@
+[package]
+name = "lib3mf-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+lib3mf-core = { path = "../crates/lib3mf-core" }
+
+[[bin]]
+name = "parse_model"
+path = "fuzz_targets/parse_model.rs"
+test = false
+doc = false

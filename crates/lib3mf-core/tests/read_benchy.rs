@@ -1,4 +1,7 @@
-use lib3mf_core::archive::{ArchiveReader, ZipArchiver, find_model_path, parse_content_types};
+use lib3mf_core::archive::{
+    ArchiveReader, ZipArchiver, find_model_path,
+    opc::{ContentType, parse_content_types},
+};
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -45,10 +48,10 @@ fn test_read_benchy() {
         println!("Content Types: {:?}", content_types);
 
         let has_3d_model_type = content_types.iter().any(|ct| match ct {
-            lib3mf_core::archive::ContentType::Default { content_type, .. } => {
+            ContentType::Default { content_type, .. } => {
                 content_type == "application/vnd.ms-package.3dmanufacturing-3dmodel+xml"
             }
-            lib3mf_core::archive::ContentType::Override { content_type, .. } => {
+            ContentType::Override { content_type, .. } => {
                 content_type == "application/vnd.ms-package.3dmanufacturing-3dmodel+xml"
             }
         });
