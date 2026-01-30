@@ -1,6 +1,6 @@
 # lib3mf-rs
 
-![CI](https://github.com/stevescargall/lib3mf-rs/workflows/CI/badge.svg)
+![CI](https://github.com/sscargal/lib3mf-rs/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 `lib3mf-rs` is a pure Rust implementation of the [3D Manufacturing Format (3MF)](https://3mf.io/) standard. `lib3mf-rs` provides a memory-safe, high-performance library and CLI tools for reading, analyzing, and processing 3MF files. It provides 3MF reading and writing capabilities, as well as conversion and validation tools for input and output data. lib3mf runs on Windows, Linux, and MacOS and offers a clean and easy-to-use API. It complements the [existing C++ implementation](https://github.com/3MFConsortium/lib3mf).
