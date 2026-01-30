@@ -18,7 +18,7 @@ Cargo.lock
 *.agent.log
 *.agent.tmp
 AGENTS.md
-skills/
+/skills
 SKILL.md
 
 # Claude Code / Claude-style agents
