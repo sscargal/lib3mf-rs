@@ -4,7 +4,7 @@ use lib3mf_core::parser::parse_model;
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Seek, Write};
 use std::path::PathBuf;
 
 #[derive(Clone, ValueEnum, Debug, PartialEq)]
@@ -14,22 +14,110 @@ pub enum OutputFormat {
     Tree,
 }
 
+enum ModelSource {
+    Archive(ZipArchiver<File>, lib3mf_core::model::Model),
+    Raw(lib3mf_core::model::Model),
+}
+
+fn open_model(path: &PathBuf) -> anyhow::Result<ModelSource> {
+    let mut file =
+        File::open(path).map_err(|e| anyhow::anyhow!("Failed to open file {:?}: {}", path, e))?;
+
+    let mut magic = [0u8; 4];
+    let is_zip = file.read_exact(&mut magic).is_ok() && &magic == b"PK\x03\x04";
+    file.rewind()?;
+
+    if is_zip {
+        let mut archiver = ZipArchiver::new(file)
+            .map_err(|e| anyhow::anyhow!("Failed to open zip archive: {}", e))?;
+        let model_path = find_model_path(&mut archiver)
+            .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
+        let model_data = archiver
+            .read_entry(&model_path)
+            .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
+        let model = parse_model(std::io::Cursor::new(model_data))
+            .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?;
+        Ok(ModelSource::Archive(archiver, model))
+    } else {
+        let ext = path
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        match ext.as_str() {
+            "stl" => {
+                let model = lib3mf_converters::stl::StlImporter::read(file)
+                    .map_err(|e| anyhow::anyhow!("Failed to import STL: {}", e))?;
+                Ok(ModelSource::Raw(model))
+            }
+            "obj" => {
+                let model = lib3mf_converters::obj::ObjImporter::read(file)
+                    .map_err(|e| anyhow::anyhow!("Failed to import OBJ: {}", e))?;
+                Ok(ModelSource::Raw(model))
+            }
+            _ => Err(anyhow::anyhow!(
+                "Unsupported format: {} (and not a ZIP/3MF archive)",
+                ext
+            )),
+        }
+    }
+}
+
 pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
-    let mut archiver = open_archive(&path)?;
-    let model_path = find_model_path(&mut archiver)
-        .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
-    let model_data = archiver
-        .read_entry(&model_path)
-        .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
-    let model = parse_model(std::io::Cursor::new(model_data))
-        .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?;
-    let stats = model
-        .compute_stats(&mut archiver)
-        .map_err(|e| anyhow::anyhow!("Failed to compute stats: {}", e))?;
+    let mut source = open_model(&path)?;
+    let stats = match source {
+        ModelSource::Archive(ref mut archiver, ref model) => model
+            .compute_stats(archiver)
+            .map_err(|e| anyhow::anyhow!("Failed to compute stats: {}", e))?,
+        ModelSource::Raw(ref model) => {
+            struct NoArchive;
+            impl std::io::Read for NoArchive {
+                fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                    Ok(0)
+                }
+            }
+            impl std::io::Seek for NoArchive {
+                fn seek(&mut self, _: std::io::SeekFrom) -> std::io::Result<u64> {
+                    Ok(0)
+                }
+            }
+            impl lib3mf_core::archive::ArchiveReader for NoArchive {
+                fn read_entry(&mut self, _: &str) -> lib3mf_core::error::Result<Vec<u8>> {
+                    Err(lib3mf_core::error::Lib3mfError::Io(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        "Raw format",
+                    )))
+                }
+                fn entry_exists(&mut self, _: &str) -> bool {
+                    false
+                }
+                fn list_entries(&mut self) -> lib3mf_core::error::Result<Vec<String>> {
+                    Ok(vec![])
+                }
+            }
+            model
+                .compute_stats(&mut NoArchive)
+                .map_err(|e| anyhow::anyhow!("Failed to compute stats: {}", e))?
+        }
+    };
 
     match format {
         OutputFormat::Json => {
             println!("{}", serde_json::to_string_pretty(&stats)?);
+        }
+        OutputFormat::Tree => {
+            println!("Model Hierarchy for {:?}", path);
+            match source {
+                ModelSource::Archive(mut archiver, model) => {
+                    let mut resolver =
+                        lib3mf_core::model::resolver::PartResolver::new(&mut archiver, model);
+                    print_model_hierarchy_resolved(&mut resolver);
+                }
+                ModelSource::Raw(model) => {
+                    print_model_hierarchy(&model);
+                }
+            }
         }
         _ => {
             println!("Stats for {:?}", path);
@@ -83,10 +171,18 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
 }
 
 pub fn list(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
-    let mut archiver = open_archive(&path)?;
-    let entries = archiver
-        .list_entries()
-        .map_err(|e| anyhow::anyhow!("Failed to list entries: {}", e))?;
+    let source = open_model(&path)?;
+
+    let entries = match source {
+        ModelSource::Archive(mut archiver, _) => archiver
+            .list_entries()
+            .map_err(|e| anyhow::anyhow!("Failed to list entries: {}", e))?,
+        ModelSource::Raw(_) => vec![path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("model")
+            .to_string()],
+    };
 
     match format {
         OutputFormat::Json => {
@@ -240,6 +336,174 @@ fn print_tree(paths: &[String]) {
     node::print_nodes(&tree, "");
 }
 
+fn print_model_hierarchy(model: &lib3mf_core::model::Model) {
+    let mut tree: BTreeMap<String, node::Node> = BTreeMap::new();
+
+    for (i, item) in model.build.items.iter().enumerate() {
+        let obj_name = model
+            .resources
+            .get_object(item.object_id)
+            .and_then(|obj| obj.name.clone())
+            .unwrap_or_else(|| format!("Object {}", item.object_id.0));
+
+        let name = format!(
+            "Build Item {} [{}] (ID: {})",
+            i + 1,
+            obj_name,
+            item.object_id.0
+        );
+        let node = tree.entry(name).or_insert_with(node::Node::new);
+
+        // Recurse into objects
+        add_object_to_tree(model, item.object_id, node);
+    }
+
+    node::print_nodes(&tree, "");
+}
+
+fn add_object_to_tree(
+    model: &lib3mf_core::model::Model,
+    id: lib3mf_core::model::ResourceId,
+    parent: &mut node::Node,
+) {
+    if let Some(obj) = model.resources.get_object(id) {
+        match &obj.geometry {
+            lib3mf_core::model::Geometry::Mesh(mesh) => {
+                let info = format!(
+                    "Mesh: {} vertices, {} triangles",
+                    mesh.vertices.len(),
+                    mesh.triangles.len()
+                );
+                parent.children.insert(info, node::Node::new());
+            }
+            lib3mf_core::model::Geometry::Components(comps) => {
+                for (i, comp) in comps.components.iter().enumerate() {
+                    let child_obj_name = model
+                        .resources
+                        .get_object(comp.object_id)
+                        .and_then(|obj| obj.name.clone())
+                        .unwrap_or_else(|| format!("Object {}", comp.object_id.0));
+
+                    let name = format!(
+                        "Component {} [{}] (ID: {})",
+                        i + 1,
+                        child_obj_name,
+                        comp.object_id.0
+                    );
+                    let node = parent.children.entry(name).or_insert_with(node::Node::new);
+                    add_object_to_tree(model, comp.object_id, node);
+                }
+            }
+            _ => {
+                parent
+                    .children
+                    .insert("Unknown Geometry".to_string(), node::Node::new());
+            }
+        }
+    }
+}
+
+fn print_model_hierarchy_resolved<A: ArchiveReader>(
+    resolver: &mut lib3mf_core::model::resolver::PartResolver<A>,
+) {
+    let mut tree: BTreeMap<String, node::Node> = BTreeMap::new();
+
+    let build_items = resolver.get_root_model().build.items.clone();
+
+    for (i, item) in build_items.iter().enumerate() {
+        let (obj_name, obj_id) = {
+            let res = resolver
+                .resolve_object(item.object_id, None)
+                .unwrap_or(None);
+            match res {
+                Some((_model, obj)) => (
+                    obj.name
+                        .clone()
+                        .unwrap_or_else(|| format!("Object {}", obj.id.0)),
+                    obj.id,
+                ),
+                None => (
+                    format!("Missing Object {}", item.object_id.0),
+                    item.object_id,
+                ),
+            }
+        };
+
+        let name = format!("Build Item {} [{}] (ID: {})", i + 1, obj_name, obj_id.0);
+        let node = tree.entry(name).or_insert_with(node::Node::new);
+
+        // Recurse into objects
+        add_object_to_tree_resolved(resolver, obj_id, None, node);
+    }
+
+    node::print_nodes(&tree, "");
+}
+
+fn add_object_to_tree_resolved<A: ArchiveReader>(
+    resolver: &mut lib3mf_core::model::resolver::PartResolver<A>,
+    id: lib3mf_core::model::ResourceId,
+    path: Option<&str>,
+    parent: &mut node::Node,
+) {
+    let components = {
+        let resolved = resolver.resolve_object(id, path).unwrap_or(None);
+        if let Some((_model, obj)) = resolved {
+            match &obj.geometry {
+                lib3mf_core::model::Geometry::Mesh(mesh) => {
+                    let info = format!(
+                        "Mesh: {} vertices, {} triangles",
+                        mesh.vertices.len(),
+                        mesh.triangles.len()
+                    );
+                    parent.children.insert(info, node::Node::new());
+                    None
+                }
+                lib3mf_core::model::Geometry::Components(comps) => Some(comps.components.clone()),
+                _ => {
+                    parent
+                        .children
+                        .insert("Unknown Geometry".to_string(), node::Node::new());
+                    None
+                }
+            }
+        } else {
+            None
+        }
+    };
+
+    if let Some(comps) = components {
+        for (i, comp) in comps.iter().enumerate() {
+            let next_path = comp.path.as_deref().or(path);
+            let (child_obj_name, child_obj_id) = {
+                let res = resolver
+                    .resolve_object(comp.object_id, next_path)
+                    .unwrap_or(None);
+                match res {
+                    Some((_model, obj)) => (
+                        obj.name
+                            .clone()
+                            .unwrap_or_else(|| format!("Object {}", obj.id.0)),
+                        obj.id,
+                    ),
+                    None => (
+                        format!("Missing Object {}", comp.object_id.0),
+                        comp.object_id,
+                    ),
+                }
+            };
+
+            let name = format!(
+                "Component {} [{}] (ID: {})",
+                i + 1,
+                child_obj_name,
+                child_obj_id.0
+            );
+            let node = parent.children.entry(name).or_insert_with(node::Node::new);
+            add_object_to_tree_resolved(resolver, child_obj_id, next_path, node);
+        }
+    }
+}
+
 mod node {
     use std::collections::BTreeMap;
 
@@ -270,11 +534,6 @@ mod node {
 }
 
 pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
-    let input_ext = input
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
     let output_ext = output
         .extension()
         .and_then(|e| e.to_str())
@@ -282,31 +541,7 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
         .to_lowercase();
 
     // 1. Load Model
-    let model = match input_ext.as_str() {
-        "3mf" => {
-            let mut archiver = open_archive(&input)?;
-            let model_path = find_model_path(&mut archiver)
-                .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
-            let model_data = archiver
-                .read_entry(&model_path)
-                .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
-            parse_model(std::io::Cursor::new(model_data))
-                .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?
-        }
-        "stl" => {
-            let file = File::open(&input)
-                .map_err(|e| anyhow::anyhow!("Failed to open STL input: {}", e))?;
-            lib3mf_converters::stl::StlImporter::read(file)
-                .map_err(|e| anyhow::anyhow!("Failed to import STL: {}", e))?
-        }
-        "obj" => {
-            let file = File::open(&input)
-                .map_err(|e| anyhow::anyhow!("Failed to open OBJ input: {}", e))?;
-            lib3mf_converters::obj::ObjImporter::read(file)
-                .map_err(|e| anyhow::anyhow!("Failed to import OBJ: {}", e))?
-        }
-        _ => return Err(anyhow::anyhow!("Unsupported input format: {}", input_ext)),
-    };
+    let model = load_model(&input)?;
 
     // 2. Export Model
     let file = File::create(&output)
@@ -336,27 +571,20 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
 pub fn validate(path: PathBuf, level: String) -> anyhow::Result<()> {
     use lib3mf_core::validation::ValidationLevel;
 
-    let level = match level.to_lowercase().as_str() {
+    let level_enum = match level.to_lowercase().as_str() {
         "minimal" => ValidationLevel::Minimal,
         "standard" => ValidationLevel::Standard,
         "strict" => ValidationLevel::Strict,
         _ => ValidationLevel::Standard,
     };
 
-    println!("Validating {:?} at {:?} level...", path, level);
+    println!("Validating {:?} at {:?} level...", path, level_enum);
 
-    let mut archiver = open_archive(&path)?;
-    let model_path = find_model_path(&mut archiver)
-        .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
-    let model_data = archiver
-        .read_entry(&model_path)
-        .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
-    let model = parse_model(std::io::Cursor::new(model_data))
-        .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?;
+    let model = load_model(&path)?;
 
     let mut errors = Vec::new();
 
-    if model.unit == lib3mf_core::model::Unit::Millimeter && level == ValidationLevel::Strict {
+    if model.unit == lib3mf_core::model::Unit::Millimeter && level_enum == ValidationLevel::Strict {
         // Example strict check
     }
 
@@ -528,14 +756,10 @@ pub fn diff(file1: PathBuf, file2: PathBuf, format: &str) -> anyhow::Result<()> 
 }
 
 fn load_model(path: &PathBuf) -> anyhow::Result<lib3mf_core::model::Model> {
-    let mut archiver = open_archive(path)?;
-    let model_path = find_model_path(&mut archiver)
-        .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
-    let model_data = archiver
-        .read_entry(&model_path)
-        .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
-    parse_model(std::io::Cursor::new(model_data))
-        .map_err(|e| anyhow::anyhow!("Failed to parse model: {}", e))
+    match open_model(path)? {
+        ModelSource::Archive(_, model) => Ok(model),
+        ModelSource::Raw(model) => Ok(model),
+    }
 }
 
 pub fn sign(input: PathBuf, output: PathBuf, key: PathBuf, cert: PathBuf) -> anyhow::Result<()> {

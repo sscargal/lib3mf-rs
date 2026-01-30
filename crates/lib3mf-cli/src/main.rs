@@ -50,6 +50,10 @@ enum Commands {
         /// Output format
         #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
         format: OutputFormat,
+
+        /// Shortcut for --format tree
+        #[arg(long, short)]
+        tree: bool,
     },
     /// List all entries in the 3MF archive
     ///
@@ -72,6 +76,10 @@ enum Commands {
         /// Output format (text, json, tree)
         #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
         format: OutputFormat,
+
+        /// Shortcut for --format tree
+        #[arg(long, short)]
+        tree: bool,
     },
     /// Inspect OPC Relationships and Content Types
     ///
@@ -358,10 +366,12 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Stats { file, format } => {
+        Commands::Stats { file, format, tree } => {
+            let format = if tree { OutputFormat::Tree } else { format };
             commands::stats(file, format)?;
         }
-        Commands::List { file, format } => {
+        Commands::List { file, format, tree } => {
+            let format = if tree { OutputFormat::Tree } else { format };
             commands::list(file, format)?;
         }
         Commands::Rels { file, format } => {
