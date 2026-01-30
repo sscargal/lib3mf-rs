@@ -31,7 +31,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("  Vertices: {}", stats.geometry.vertex_count);
 
     if stats.geometry.object_count > 0 && stats.geometry.triangle_count == 0 {
-        println!("\nNote: This model appears to use components. Vertex/Triangle counts currently only reflect unique mesh geometry.");
+        println!(
+            "\nNote: This model appears to use components. Vertex/Triangle counts currently only reflect unique mesh geometry."
+        );
     }
 
     Ok(())

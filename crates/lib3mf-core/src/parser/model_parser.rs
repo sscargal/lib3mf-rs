@@ -136,7 +136,9 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
                         let matid = crate::model::ResourceId(get_attribute_u32(&e, b"matid")?);
                         let matindices_str = get_attribute(&e, b"matindices").ok_or_else(|| {
-                            Lib3mfError::Validation("compositematerials missing matindices".to_string())
+                            Lib3mfError::Validation(
+                                "compositematerials missing matindices".to_string(),
+                            )
                         })?;
                         let indices = matindices_str
                             .split_whitespace()
@@ -158,14 +160,19 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                             .split_whitespace()
                             .map(|s| {
                                 s.parse::<u32>()
-                                    .map_err(|_| Lib3mfError::Validation("Invalid pid value".to_string()))
+                                    .map_err(|_| {
+                                        Lib3mfError::Validation("Invalid pid value".to_string())
+                                    })
                                     .map(crate::model::ResourceId)
                             })
                             .collect::<Result<Vec<crate::model::ResourceId>>>()?;
 
-                        let blendmethods_str = get_attribute(&e, b"blendmethods").ok_or_else(|| {
-                            Lib3mfError::Validation("multiproperties missing blendmethods".to_string())
-                        })?;
+                        let blendmethods_str =
+                            get_attribute(&e, b"blendmethods").ok_or_else(|| {
+                                Lib3mfError::Validation(
+                                    "multiproperties missing blendmethods".to_string(),
+                                )
+                            })?;
                         let blend_methods = blendmethods_str
                             .split_whitespace()
                             .map(|s| match s {

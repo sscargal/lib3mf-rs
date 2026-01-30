@@ -17,7 +17,10 @@ impl Model {
                 "xmlns",
                 "http://schemas.microsoft.com/3dmanufacturing/core/2015/02",
             )
-            .attr("xmlns:p", "http://schemas.microsoft.com/3dmanufacturing/production/2015/06");
+            .attr(
+                "xmlns:p",
+                "http://schemas.microsoft.com/3dmanufacturing/production/2015/06",
+            );
 
         // Add typical namespaces if needed (e.g. production, slice) - strictly core for now
         root.write_start()?;

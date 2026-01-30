@@ -63,8 +63,9 @@ pub fn parse_composite_materials<R: BufRead>(
                 let values = values_str
                     .split_whitespace()
                     .map(|s| {
-                        s.parse::<f32>()
-                            .map_err(|_| Lib3mfError::Validation("Invalid composite value".to_string()))
+                        s.parse::<f32>().map_err(|_| {
+                            Lib3mfError::Validation("Invalid composite value".to_string())
+                        })
                     })
                     .collect::<Result<Vec<f32>>>()?;
                 composites.push(Composite { values });
@@ -98,14 +99,14 @@ pub fn parse_multi_properties<R: BufRead>(
     loop {
         match parser.read_next_event()? {
             Event::Start(e) | Event::Empty(e) if e.name().as_ref() == b"multi" => {
-                let pindices_str = get_attribute(&e, b"pindices").ok_or_else(|| {
-                    Lib3mfError::Validation("multi missing pindices".to_string())
-                })?;
+                let pindices_str = get_attribute(&e, b"pindices")
+                    .ok_or_else(|| Lib3mfError::Validation("multi missing pindices".to_string()))?;
                 let pindices = pindices_str
                     .split_whitespace()
                     .map(|s| {
-                        s.parse::<u32>()
-                            .map_err(|_| Lib3mfError::Validation("Invalid pindex value".to_string()))
+                        s.parse::<u32>().map_err(|_| {
+                            Lib3mfError::Validation("Invalid pindex value".to_string())
+                        })
                     })
                     .collect::<Result<Vec<u32>>>()?;
                 multis.push(Multi { pindices });
@@ -196,4 +197,3 @@ pub fn parse_color_group<R: BufRead>(
 
     Ok(ColorGroup { id, colors })
 }
-

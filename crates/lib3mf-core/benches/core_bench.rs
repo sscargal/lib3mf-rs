@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use lib3mf_core::parser::model_parser::parse_model;
 use std::io::Cursor;
 
@@ -6,9 +6,9 @@ fn bench_parse_benchy(c: &mut Criterion) {
     let data = include_bytes!("../../../models/Benchy.3mf");
     // Note: Benchy.3mf is a ZIP, but parse_model expects the unzipped .model content.
     // However, for benchmarking, we can just benchmark the parsing of a large enough unzipped slice
-    // or keep it simple for now. 
+    // or keep it simple for now.
     // In actual usage, we'd unzip first.
-    
+
     // Let's assume we have a raw model file for pure parser benchmarking.
     // For now, we'll benchmark with a mock large XML or just the root part.
     let root_model = r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -34,9 +34,11 @@ fn bench_parse_benchy(c: &mut Criterion) {
     </build>
 </model>"#;
 
-    c.bench_function("parse_root_model", |b| b.iter(|| {
-        let _ = parse_model(Cursor::new(root_model));
-    }));
+    c.bench_function("parse_root_model", |b| {
+        b.iter(|| {
+            let _ = parse_model(Cursor::new(root_model));
+        })
+    });
 }
 
 criterion_group!(benches, bench_parse_benchy);

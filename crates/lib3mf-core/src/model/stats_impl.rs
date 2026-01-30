@@ -32,13 +32,15 @@ impl Model {
 
         if let Some(app) = &generator
             && (app.contains("Bambu") || app.contains("Orca"))
+            && resolver
+                .archive_mut()
+                .entry_exists("Metadata/model_settings.config")
+            && let Ok(content) = resolver
+                .archive_mut()
+                .read_entry("Metadata/model_settings.config")
+            && let Ok(plates) = parse_model_settings(&content)
         {
-            if resolver.archive_mut().entry_exists("Metadata/model_settings.config")
-                && let Ok(content) = resolver.archive_mut().read_entry("Metadata/model_settings.config")
-                && let Ok(plates) = parse_model_settings(&content)
-            {
-                vendor_data.plates = plates;
-            }
+            vendor_data.plates = plates;
         }
 
         // 4. Material Stats
@@ -73,15 +75,22 @@ impl Model {
         let (geom, path_to_use) = {
             let resolved = resolver.resolve_object(id, path)?;
             if let Some((_model, object)) = resolved {
-                // Determine the next path to use for children. 
-                // If this object was found in a specific path, children inherit it 
+                // Determine the next path to use for children.
+                // If this object was found in a specific path, children inherit it
                 // UNLESS they specify their own.
-                let current_path = if path.is_none() || path == Some("ROOT") || path == Some("/3D/3dmodel.model") || path == Some("3D/3dmodel.model") {
+                let current_path = if path.is_none()
+                    || path == Some("ROOT")
+                    || path == Some("/3D/3dmodel.model")
+                    || path == Some("3D/3dmodel.model")
+                {
                     None
                 } else {
                     path
                 };
-                (Some(object.geometry.clone()), current_path.map(|s| s.to_string()))
+                (
+                    Some(object.geometry.clone()),
+                    current_path.map(|s| s.to_string()),
+                )
             } else {
                 (None, None)
             }
@@ -116,11 +125,11 @@ impl Model {
                 }
                 Geometry::Components(comps) => {
                     for comp in comps.components {
-                        // Priority: 
+                        // Priority:
                         // 1. component's own path
                         // 2. path inherited from parent (path_to_use)
                         let next_path = comp.path.as_deref().or(path_to_use.as_deref());
-                        
+
                         self.accumulate_object_stats(
                             comp.object_id,
                             next_path,

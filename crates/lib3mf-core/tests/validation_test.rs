@@ -1,5 +1,7 @@
 use lib3mf_core::model::{Geometry, Mesh, Model, Object, ResourceId};
-use lib3mf_core::validation::{validate_geometry, ValidationLevel, ValidationReport, ValidationSeverity};
+use lib3mf_core::validation::{
+    ValidationLevel, ValidationReport, ValidationSeverity, validate_geometry,
+};
 
 fn create_cube() -> Mesh {
     let mut mesh = Mesh::new();
@@ -62,7 +64,10 @@ fn test_perfect_cube() {
 
     assert!(!report.has_errors(), "Perfect cube should have no errors");
     assert!(
-        !report.items.iter().any(|i| i.severity == ValidationSeverity::Warning),
+        !report
+            .items
+            .iter()
+            .any(|i| i.severity == ValidationSeverity::Warning),
         "Perfect cube should have no warnings"
     );
 }
@@ -74,7 +79,7 @@ fn test_missing_face() {
     // Remove last two triangles (Left face)
     mesh.triangles.pop();
     mesh.triangles.pop();
-    
+
     let object = make_object(mesh);
     model.resources.add_object(object).unwrap();
 
@@ -83,8 +88,9 @@ fn test_missing_face() {
 
     // Should detect boundary edges (code 4002)
     assert!(
-        report.items.iter().any(|i| i.code == 4002), 
-        "Should detect boundary edges (4002). Got: {:?}", report.items
+        report.items.iter().any(|i| i.code == 4002),
+        "Should detect boundary edges (4002). Got: {:?}",
+        report.items
     );
 }
 
@@ -109,8 +115,9 @@ fn test_flipped_face() {
 
     // Should detect orientation mismatch (code 4004)
     assert!(
-        report.items.iter().any(|i| i.code == 4004), 
-        "Should detect orientation mismatch (4004). Got: {:?}", report.items
+        report.items.iter().any(|i| i.code == 4004),
+        "Should detect orientation mismatch (4004). Got: {:?}",
+        report.items
     );
 }
 
@@ -118,7 +125,7 @@ fn test_flipped_face() {
 fn test_degenerate_face() {
     let mut model = Model::default();
     let mut mesh = create_cube();
-    
+
     // Add degenerate triangle (area 0, collinear)
     // 0=(0,0,0), 1=(1,0,0). Add 8=(2,0,0).
     mesh.add_vertex(2.0, 0.0, 0.0); // 8
@@ -129,10 +136,11 @@ fn test_degenerate_face() {
 
     let mut report = ValidationReport::default();
     validate_geometry(&model, ValidationLevel::Paranoid, &mut report);
-    
+
     // Should detect zero area triangle (code 4005)
     assert!(
-        report.items.iter().any(|i| i.code == 4005), 
-        "Should detect zero area triangle (4005). Got: {:?}", report.items
+        report.items.iter().any(|i| i.code == 4005),
+        "Should detect zero area triangle (4005). Got: {:?}",
+        report.items
     );
 }

@@ -191,4 +191,8 @@ impl ResourceCollection {
     pub fn iter_objects(&self) -> impl Iterator<Item = &Object> {
         self.objects.values()
     }
+
+    pub fn iter_objects_mut(&mut self) -> impl Iterator<Item = &mut Object> {
+        self.objects.values_mut()
+    }
 }

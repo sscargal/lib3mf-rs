@@ -57,9 +57,18 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
             println!("Materials:");
             println!("  Base Groups: {}", stats.materials.base_materials_count);
             println!("  Color Groups: {}", stats.materials.color_groups_count);
-            println!("  Texture 2D Groups: {}", stats.materials.texture_2d_groups_count);
-            println!("  Composite Materials: {}", stats.materials.composite_materials_count);
-            println!("  Multi Properties: {}", stats.materials.multi_properties_count);
+            println!(
+                "  Texture 2D Groups: {}",
+                stats.materials.texture_2d_groups_count
+            );
+            println!(
+                "  Composite Materials: {}",
+                stats.materials.composite_materials_count
+            );
+            println!(
+                "  Multi Properties: {}",
+                stats.materials.multi_properties_count
+            );
 
             if !stats.vendor.plates.is_empty() {
                 println!("Vendor Data (Bambu):");
@@ -374,6 +383,8 @@ pub fn validate(path: PathBuf, level: String) -> anyhow::Result<()> {
 }
 
 pub fn repair(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
+    use lib3mf_core::model::{Geometry, MeshRepair, RepairOptions};
+
     println!("Repairing {:?} -> {:?}", input, output);
 
     let mut archiver = open_archive(&input)?;
@@ -382,10 +393,32 @@ pub fn repair(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
     let model_data = archiver
         .read_entry(&model_path)
         .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
-    let model = parse_model(std::io::Cursor::new(model_data))
+    let mut model = parse_model(std::io::Cursor::new(model_data))
         .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?;
 
-    println!("Repair logic placeholder (Mutable access to mesh required). Code valid but no-op.");
+    let options = RepairOptions::default();
+    println!("Repair Options: {:?}", options);
+
+    let mut total_vertices_removed = 0;
+    let mut total_triangles_removed = 0;
+
+    for object in model.resources.iter_objects_mut() {
+        if let Geometry::Mesh(mesh) = &mut object.geometry {
+            let stats = mesh.repair(options);
+            if stats.vertices_removed > 0 || stats.triangles_removed > 0 {
+                println!(
+                    "Repaired Object {}: Removed {} vertices, {} triangles",
+                    object.id.0, stats.vertices_removed, stats.triangles_removed
+                );
+                total_vertices_removed += stats.vertices_removed;
+                total_triangles_removed += stats.triangles_removed;
+            }
+        }
+    }
+
+    println!("Total Repair Stats:");
+    println!("  Vertices Removed: {}", total_vertices_removed);
+    println!("  Triangles Removed: {}", total_triangles_removed);
 
     // Write output
     let file = File::create(&output)

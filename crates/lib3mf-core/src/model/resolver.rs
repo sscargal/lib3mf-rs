@@ -21,7 +21,11 @@ impl<'a, A: ArchiveReader> PartResolver<'a, A> {
         Self { archive, models }
     }
 
-    pub fn resolve_object(&mut self, id: ResourceId, path: Option<&str>) -> Result<Option<(&Model, &Object)>> {
+    pub fn resolve_object(
+        &mut self,
+        id: ResourceId,
+        path: Option<&str>,
+    ) -> Result<Option<(&Model, &Object)>> {
         let part_path = match path {
             Some(p) => {
                 let p = p.trim_start_matches('/');
@@ -33,18 +37,18 @@ impl<'a, A: ArchiveReader> PartResolver<'a, A> {
             }
             None => ROOT_PATH,
         };
-        
+
         if !self.models.contains_key(part_path) {
             // Try normalized version
             let data = self.archive.read_entry(part_path).or_else(|_| {
                 let alt = format!("/{}", part_path);
                 self.archive.read_entry(&alt)
             })?;
-            
+
             let model = parse_model(Cursor::new(data))?;
             self.models.insert(part_path.to_string(), model);
         }
-        
+
         let model = self.models.get(part_path).unwrap();
         Ok(model.resources.get_object(id).map(|obj| (model, obj)))
     }
