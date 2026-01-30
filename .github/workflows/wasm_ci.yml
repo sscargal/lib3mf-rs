@@ -1,0 +1,31 @@
+name: WASM CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  wasm-test:
+    name: WASM Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+      - name: WASM Build
+        run: wasm-pack build crates/lib3mf-wasm
+      - name: WASM Test
+        run: |
+          cd crates/lib3mf-wasm
+          wasm-pack test --node

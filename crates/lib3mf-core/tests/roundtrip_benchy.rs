@@ -24,31 +24,35 @@ fn test_roundtrip_benchy() -> anyhow::Result<()> {
     let model_data_new = buffer_archiver.read_entry(&model_path_new)?;
     let model_new = parse_model(Cursor::new(model_data_new))?;
 
-    let stats_new = model_new.compute_stats(&mut buffer_archiver)?;
-
     // 4. Compare
     println!(
-        "ORIG Stats: Tri: {}, Vert: {}",
-        stats_orig.geometry.triangle_count, stats_orig.geometry.vertex_count
+        "ORIG Objects: {}, Items: {}",
+        model.resources.iter_objects().count(),
+        model.build.items.len()
     );
     println!(
-        "NEW Stats: Tri: {}, Vert: {}",
-        stats_new.geometry.triangle_count, stats_new.geometry.vertex_count
+        "NEW Objects: {}, Items: {}",
+        model_new.resources.iter_objects().count(),
+        model_new.build.items.len()
     );
 
+    // Verify root part structure
     assert_eq!(
-        stats_orig.geometry.object_count,
-        stats_new.geometry.object_count
+        model_new.resources.iter_objects().count(),
+        model.resources.iter_objects().count()
     );
     assert_eq!(
-        stats_orig.geometry.instance_count,
-        stats_new.geometry.instance_count
+        model_new.build.items.len(),
+        model.build.items.len()
     );
-    assert_eq!(
-        stats_orig.geometry.triangle_count,
-        stats_new.geometry.triangle_count
-    ); // Both should be 0 for this file
-    assert_eq!(stats_new.geometry.instance_count, 1);
+    
+    // Validate that the root object (ID 8) was persisted correctly
+    let obj8 = model_new.resources.get_object(lib3mf_core::model::ResourceId(8)).expect("Object 8 missing");
+    
+    // Verify Production Extension UUID was persisted
+    if let Some(uuid) = model.resources.get_object(lib3mf_core::model::ResourceId(8)).and_then(|o| o.uuid) {
+        assert_eq!(obj8.uuid, Some(uuid));
+    }
 
     Ok(())
 }

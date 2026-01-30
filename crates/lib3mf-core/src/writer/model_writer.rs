@@ -15,8 +15,9 @@ impl Model {
             .attr("xml:lang", self.language.as_deref().unwrap_or("en-US"))
             .attr(
                 "xmlns",
-                "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel",
-            );
+                "http://schemas.microsoft.com/3dmanufacturing/core/2015/02",
+            )
+            .attr("xmlns:p", "http://schemas.microsoft.com/3dmanufacturing/production/2015/06");
 
         // Add typical namespaces if needed (e.g. production, slice) - strictly core for now
         root.write_start()?;
@@ -40,6 +41,9 @@ impl Model {
 
             if let Some(pid) = obj.part_number.as_ref() {
                 obj_elem = obj_elem.attr("partnumber", pid);
+            }
+            if let Some(uuid) = obj.uuid.as_ref() {
+                obj_elem = obj_elem.attr("p:UUID", &uuid.to_string());
             }
             if let Some(name) = obj.name.as_ref() {
                 obj_elem = obj_elem.attr("name", name);
@@ -71,6 +75,13 @@ impl Model {
                         let mut comp = xml
                             .start_element("component")
                             .attr("objectid", &c.object_id.0.to_string());
+
+                        if let Some(path) = c.path.as_ref() {
+                            comp = comp.attr("p:path", path);
+                        }
+                        if let Some(uuid) = c.uuid.as_ref() {
+                            comp = comp.attr("p:UUID", &uuid.to_string());
+                        }
 
                         if c.transform != glam::Mat4::IDENTITY {
                             comp = comp.attr("transform", &transform_str);

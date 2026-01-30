@@ -3,7 +3,7 @@ use crate::utils::hardware::HardwareCapabilities;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ModelStats {
     pub unit: Unit,
     pub generator: Option<String>,
@@ -33,7 +33,7 @@ pub struct GeometryStats {
     pub is_manifold: bool,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct BoundingBox {
     pub min: [f32; 3],
     pub max: [f32; 3],
@@ -81,13 +81,13 @@ pub struct VendorData {
     pub print_time_estimate: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FilamentInfo {
     pub type_: String,
     pub color: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PlateInfo {
     pub id: u32,
     pub name: Option<String>,

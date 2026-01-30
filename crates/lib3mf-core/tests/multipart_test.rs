@@ -1,4 +1,4 @@
-use lib3mf_core::archive::ZipArchiver;
+use lib3mf_core::archive::{ArchiveReader, ZipArchiver};
 use lib3mf_core::parser::model_parser::parse_model;
 use std::fs::File;
 use std::io::Cursor;
