@@ -246,6 +246,29 @@ impl Mesh {
 
         (area, volume)
     }
+
+    pub fn compute_triangle_area(&self, triangle: &Triangle) -> f64 {
+        let v1 = glam::Vec3::new(
+            self.vertices[triangle.v1 as usize].x,
+            self.vertices[triangle.v1 as usize].y,
+            self.vertices[triangle.v1 as usize].z,
+        );
+        let v2 = glam::Vec3::new(
+            self.vertices[triangle.v2 as usize].x,
+            self.vertices[triangle.v2 as usize].y,
+            self.vertices[triangle.v2 as usize].z,
+        );
+        let v3 = glam::Vec3::new(
+            self.vertices[triangle.v3 as usize].x,
+            self.vertices[triangle.v3 as usize].y,
+            self.vertices[triangle.v3 as usize].z,
+        );
+
+        let edge1 = v2 - v1;
+        let edge2 = v3 - v1;
+        let cross = edge1.cross(edge2);
+        0.5 * cross.length() as f64
+    }
 }
 
 /// A single point in 3D space.

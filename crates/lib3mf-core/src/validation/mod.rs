@@ -22,4 +22,5 @@ pub enum ValidationLevel {
 }
 
 // Re-exports
+pub use geometry::validate_geometry;
 pub use report::{ValidationReport, ValidationSeverity};

@@ -58,3 +58,49 @@ pub struct ColorGroup {
     pub id: ResourceId,
     pub colors: Vec<Color>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Texture2DGroup {
+    pub id: ResourceId,
+    pub texture_id: ResourceId,
+    pub coords: Vec<Texture2DCoord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Texture2DCoord {
+    pub u: f32,
+    pub v: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompositeMaterials {
+    pub id: ResourceId,
+    pub base_material_id: ResourceId,
+    pub indices: Vec<u32>,
+    pub composites: Vec<Composite>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Composite {
+    pub values: Vec<f32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MultiProperties {
+    pub id: ResourceId,
+    pub pids: Vec<ResourceId>,
+    pub blend_methods: Vec<BlendMethod>,
+    pub multis: Vec<Multi>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Multi {
+    pub pindices: Vec<u32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BlendMethod {
+    NoBlend,
+    Mix,
+    Multiply,
+}

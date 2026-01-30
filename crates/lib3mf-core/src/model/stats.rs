@@ -19,6 +19,9 @@ pub struct ModelStats {
 pub struct MaterialsStats {
     pub base_materials_count: usize,
     pub color_groups_count: usize,
+    pub texture_2d_groups_count: usize,
+    pub composite_materials_count: usize,
+    pub multi_properties_count: usize,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

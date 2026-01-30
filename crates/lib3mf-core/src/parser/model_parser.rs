@@ -2,7 +2,10 @@ use crate::error::{Lib3mfError, Result};
 use crate::model::{Geometry, Model, Object, Unit};
 use crate::parser::build_parser::parse_build;
 use crate::parser::component_parser::parse_components;
-use crate::parser::material_parser::{parse_base_materials, parse_color_group};
+use crate::parser::material_parser::{
+    parse_base_materials, parse_color_group, parse_composite_materials, parse_multi_properties,
+    parse_texture_2d_group,
+};
 use crate::parser::mesh_parser::parse_mesh;
 use crate::parser::slice_parser::parse_slice_stack_content;
 use crate::parser::volumetric_parser::parse_volumetric_stack_content;
@@ -122,6 +125,61 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
                         let group = parse_color_group(parser, id)?;
                         model.resources.add_color_group(group)?;
+                    }
+                    b"texture2dgroup" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let texid = crate::model::ResourceId(get_attribute_u32(&e, b"texid")?);
+                        let group = parse_texture_2d_group(parser, id, texid)?;
+                        model.resources.add_texture_2d_group(group)?;
+                    }
+                    b"compositematerials" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let matid = crate::model::ResourceId(get_attribute_u32(&e, b"matid")?);
+                        let matindices_str = get_attribute(&e, b"matindices").ok_or_else(|| {
+                            Lib3mfError::Validation("compositematerials missing matindices".to_string())
+                        })?;
+                        let indices = matindices_str
+                            .split_whitespace()
+                            .map(|s| {
+                                s.parse::<u32>().map_err(|_| {
+                                    Lib3mfError::Validation("Invalid matindices value".to_string())
+                                })
+                            })
+                            .collect::<Result<Vec<u32>>>()?;
+                        let group = parse_composite_materials(parser, id, matid, indices)?;
+                        model.resources.add_composite_materials(group)?;
+                    }
+                    b"multiproperties" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let pids_str = get_attribute(&e, b"pids").ok_or_else(|| {
+                            Lib3mfError::Validation("multiproperties missing pids".to_string())
+                        })?;
+                        let pids = pids_str
+                            .split_whitespace()
+                            .map(|s| {
+                                s.parse::<u32>()
+                                    .map_err(|_| Lib3mfError::Validation("Invalid pid value".to_string()))
+                                    .map(crate::model::ResourceId)
+                            })
+                            .collect::<Result<Vec<crate::model::ResourceId>>>()?;
+
+                        let blendmethods_str = get_attribute(&e, b"blendmethods").ok_or_else(|| {
+                            Lib3mfError::Validation("multiproperties missing blendmethods".to_string())
+                        })?;
+                        let blend_methods = blendmethods_str
+                            .split_whitespace()
+                            .map(|s| match s {
+                                "mix" => Ok(crate::model::BlendMethod::Mix),
+                                "multiply" => Ok(crate::model::BlendMethod::Multiply),
+                                _ => Err(Lib3mfError::Validation(format!(
+                                    "Invalid blend method: {}",
+                                    s
+                                ))),
+                            })
+                            .collect::<Result<Vec<crate::model::BlendMethod>>>()?;
+
+                        let group = parse_multi_properties(parser, id, pids, blend_methods)?;
+                        model.resources.add_multi_properties(group)?;
                     }
                     b"slicestack" => {
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);

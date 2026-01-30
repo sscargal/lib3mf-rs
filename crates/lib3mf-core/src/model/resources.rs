@@ -1,5 +1,8 @@
 use crate::error::{Lib3mfError, Result};
-use crate::model::{BaseMaterialsGroup, ColorGroup, KeyStore, Object, SliceStack, VolumetricStack};
+use crate::model::{
+    BaseMaterialsGroup, ColorGroup, CompositeMaterials, KeyStore, MultiProperties, Object,
+    SliceStack, Texture2DGroup, VolumetricStack,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -15,6 +18,9 @@ pub struct ResourceCollection {
     color_groups: HashMap<ResourceId, ColorGroup>,
     slice_stacks: HashMap<ResourceId, SliceStack>,
     volumetric_stacks: HashMap<ResourceId, VolumetricStack>,
+    texture_2d_groups: HashMap<ResourceId, Texture2DGroup>,
+    composite_materials: HashMap<ResourceId, CompositeMaterials>,
+    multi_properties: HashMap<ResourceId, MultiProperties>,
     pub key_store: Option<KeyStore>, // Usually one KeyStore per model/part
 }
 
@@ -29,6 +35,9 @@ impl ResourceCollection {
             || self.color_groups.contains_key(&id)
             || self.slice_stacks.contains_key(&id)
             || self.volumetric_stacks.contains_key(&id)
+            || self.texture_2d_groups.contains_key(&id)
+            || self.composite_materials.contains_key(&id)
+            || self.multi_properties.contains_key(&id)
     }
 
     pub fn add_object(&mut self, object: Object) -> Result<()> {
@@ -110,6 +119,51 @@ impl ResourceCollection {
         self.volumetric_stacks.get(&id)
     }
 
+    pub fn add_texture_2d_group(&mut self, group: Texture2DGroup) -> Result<()> {
+        if self.exists(group.id) {
+            return Err(Lib3mfError::Validation(format!(
+                "Duplicate resource ID: {}",
+                group.id.0
+            )));
+        }
+        self.texture_2d_groups.insert(group.id, group);
+        Ok(())
+    }
+
+    pub fn get_texture_2d_group(&self, id: ResourceId) -> Option<&Texture2DGroup> {
+        self.texture_2d_groups.get(&id)
+    }
+
+    pub fn add_composite_materials(&mut self, group: CompositeMaterials) -> Result<()> {
+        if self.exists(group.id) {
+            return Err(Lib3mfError::Validation(format!(
+                "Duplicate resource ID: {}",
+                group.id.0
+            )));
+        }
+        self.composite_materials.insert(group.id, group);
+        Ok(())
+    }
+
+    pub fn get_composite_materials(&self, id: ResourceId) -> Option<&CompositeMaterials> {
+        self.composite_materials.get(&id)
+    }
+
+    pub fn add_multi_properties(&mut self, group: MultiProperties) -> Result<()> {
+        if self.exists(group.id) {
+            return Err(Lib3mfError::Validation(format!(
+                "Duplicate resource ID: {}",
+                group.id.0
+            )));
+        }
+        self.multi_properties.insert(group.id, group);
+        Ok(())
+    }
+
+    pub fn get_multi_properties(&self, id: ResourceId) -> Option<&MultiProperties> {
+        self.multi_properties.get(&id)
+    }
+
     pub fn base_material_groups_count(&self) -> usize {
         self.base_materials.len()
     }
@@ -120,6 +174,18 @@ impl ResourceCollection {
 
     pub fn volumetric_stacks_count(&self) -> usize {
         self.volumetric_stacks.len()
+    }
+
+    pub fn texture_2d_groups_count(&self) -> usize {
+        self.texture_2d_groups.len()
+    }
+
+    pub fn composite_materials_count(&self) -> usize {
+        self.composite_materials.len()
+    }
+
+    pub fn multi_properties_count(&self) -> usize {
+        self.multi_properties.len()
     }
 
     pub fn iter_objects(&self) -> impl Iterator<Item = &Object> {

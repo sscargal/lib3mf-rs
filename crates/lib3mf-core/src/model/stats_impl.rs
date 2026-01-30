@@ -45,6 +45,9 @@ impl Model {
         let materials_stats = MaterialsStats {
             base_materials_count: self.resources.base_material_groups_count(),
             color_groups_count: self.resources.color_groups_count(),
+            texture_2d_groups_count: self.resources.texture_2d_groups_count(),
+            composite_materials_count: self.resources.composite_materials_count(),
+            multi_properties_count: self.resources.multi_properties_count(),
         };
 
         Ok(ModelStats {

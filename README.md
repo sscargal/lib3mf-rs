@@ -8,7 +8,7 @@
 ## Features
 
 - **Pure Rust**: No C++ bindings, memory-safe.
-- **Robust Parsing**: Validation of XML structure and relationships.
+- **Robust Parsing**: Validation of XML structure and relationships. Includes "Paranoid" mode for geometry checks (manifoldness, non-degenerate).
 - **Model Statistics**: Compute geometry counts (vertices, triangles) and instance counts.
 - **Vendor Extensions**: Native support for **Bambu Studio** project files (recognizing plates and metadata).
 - **CLI Tool**: Inspect 3MF files directly from the command line.
@@ -62,7 +62,7 @@ cargo build --release
 The `3mf` CLI tool allows you to inspect and analyze 3MF files.
 
 #### 1. Quick Stats
-Get a summary of the model, including geometry counts and vendor metadata (like Bambu Studio plates).
+Get a summary of the model, including geometry counts, advanced materials (textures, composites), and vendor metadata (like Bambu Studio plates).
 
 ```bash
 cargo run -p lib3mf-cli -- stats path/to/model.3mf
@@ -132,6 +132,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+### Code Examples
+
+Check the `examples/` directory (inside `crates/lib3mf-core`) for more advanced usage patterns. Run them with:
+
+```bash
+cargo run -p lib3mf-core --example <example_name>
+```
+
+- `advanced_materials`: Parsing Texture 2D, Composite Materials, and Multi Properties.
+- `geometry_validation`: Demonstrates how to use "Paranoid" validation to find non-manifold edges and degenerate faces.
 
 ## Running Tests
 

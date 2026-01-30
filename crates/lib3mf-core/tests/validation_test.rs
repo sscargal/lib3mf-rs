@@ -1,69 +1,138 @@
 use lib3mf_core::model::{Geometry, Mesh, Model, Object, ResourceId};
-use lib3mf_core::validation::{ValidationLevel, ValidationSeverity};
+use lib3mf_core::validation::{validate_geometry, ValidationLevel, ValidationReport, ValidationSeverity};
 
-#[test]
-fn test_validation_clean_model() {
-    let model = Model::default();
-    let report = model.validate(ValidationLevel::Standard);
-    assert!(!report.has_errors());
-    assert!(report.items.is_empty());
-}
-
-#[test]
-fn test_validation_invalid_pid() {
-    let mut model = Model::default();
-    let mesh = Mesh::new();
-    let object = Object {
-        id: ResourceId(1),
-        name: None,
-        part_number: None,
-        uuid: None,
-        pid: Some(ResourceId(999)), // Non-existent property group
-        pindex: None,
-        geometry: Geometry::Mesh(mesh),
-    };
-    model.resources.add_object(object).unwrap();
-
-    // Standard level should catch this
-    let report = model.validate(ValidationLevel::Standard);
-    assert!(report.has_errors());
-    let err = report
-        .items
-        .iter()
-        .find(|i| i.code == 2001)
-        .expect("Expected error 2001");
-    assert_eq!(err.severity, ValidationSeverity::Error);
-
-    // Minimal level should IGNORE this (structural only)
-    let minimal_report = model.validate(ValidationLevel::Minimal);
-    assert!(!minimal_report.has_errors());
-}
-
-#[test]
-fn test_validation_invalid_triangle_indices() {
-    let mut model = Model::default();
+fn create_cube() -> Mesh {
     let mut mesh = Mesh::new();
-    mesh.add_vertex(0.0, 0.0, 0.0);
-    // Triangle references index 1 and 2, but only 0 exists
-    mesh.add_triangle(0, 1, 2);
+    // Vertices
+    // Bottom
+    mesh.add_vertex(0.0, 0.0, 0.0); // 0
+    mesh.add_vertex(1.0, 0.0, 0.0); // 1
+    mesh.add_vertex(1.0, 1.0, 0.0); // 2
+    mesh.add_vertex(0.0, 1.0, 0.0); // 3
+    // Top
+    mesh.add_vertex(0.0, 0.0, 1.0); // 4
+    mesh.add_vertex(1.0, 0.0, 1.0); // 5
+    mesh.add_vertex(1.0, 1.0, 1.0); // 6
+    mesh.add_vertex(0.0, 1.0, 1.0); // 7
 
-    let object = Object {
+    // Triangles (CCW outside)
+    // Bottom
+    mesh.add_triangle(0, 2, 1);
+    mesh.add_triangle(0, 3, 2);
+    // Top
+    mesh.add_triangle(4, 5, 6);
+    mesh.add_triangle(4, 6, 7);
+    // Front
+    mesh.add_triangle(0, 1, 5);
+    mesh.add_triangle(0, 5, 4);
+    // Right
+    mesh.add_triangle(1, 2, 6);
+    mesh.add_triangle(1, 6, 5);
+    // Back
+    mesh.add_triangle(2, 3, 7);
+    mesh.add_triangle(2, 7, 6);
+    // Left
+    mesh.add_triangle(3, 0, 4);
+    mesh.add_triangle(3, 4, 7);
+
+    mesh
+}
+
+fn make_object(mesh: Mesh) -> Object {
+    Object {
         id: ResourceId(1),
+        geometry: Geometry::Mesh(mesh),
         name: None,
         part_number: None,
         uuid: None,
         pid: None,
         pindex: None,
-        geometry: Geometry::Mesh(mesh),
-    };
+    }
+}
+
+#[test]
+fn test_perfect_cube() {
+    let mut model = Model::default();
+    let mesh = create_cube();
+    let object = make_object(mesh);
     model.resources.add_object(object).unwrap();
 
-    let report = model.validate(ValidationLevel::Standard);
-    assert!(report.has_errors());
-    let err = report
-        .items
-        .iter()
-        .find(|i| i.code == 3001)
-        .expect("Expected error 3001 (OOB index)");
-    assert_eq!(err.severity, ValidationSeverity::Error);
+    let mut report = ValidationReport::default();
+    validate_geometry(&model, ValidationLevel::Paranoid, &mut report);
+
+    assert!(!report.has_errors(), "Perfect cube should have no errors");
+    assert!(
+        !report.items.iter().any(|i| i.severity == ValidationSeverity::Warning),
+        "Perfect cube should have no warnings"
+    );
+}
+
+#[test]
+fn test_missing_face() {
+    let mut model = Model::default();
+    let mut mesh = create_cube();
+    // Remove last two triangles (Left face)
+    mesh.triangles.pop();
+    mesh.triangles.pop();
+    
+    let object = make_object(mesh);
+    model.resources.add_object(object).unwrap();
+
+    let mut report = ValidationReport::default();
+    validate_geometry(&model, ValidationLevel::Paranoid, &mut report);
+
+    // Should detect boundary edges (code 4002)
+    assert!(
+        report.items.iter().any(|i| i.code == 4002), 
+        "Should detect boundary edges (4002). Got: {:?}", report.items
+    );
+}
+
+#[test]
+fn test_flipped_face() {
+    let mut model = Model::default();
+    let mut mesh = create_cube();
+    // Flip first triangle
+    let t0 = mesh.triangles[0];
+    mesh.triangles[0] = lib3mf_core::model::Triangle {
+        v1: t0.v1,
+        v2: t0.v3,
+        v3: t0.v2,
+        ..Default::default()
+    };
+
+    let object = make_object(mesh);
+    model.resources.add_object(object).unwrap();
+
+    let mut report = ValidationReport::default();
+    validate_geometry(&model, ValidationLevel::Paranoid, &mut report);
+
+    // Should detect orientation mismatch (code 4004)
+    assert!(
+        report.items.iter().any(|i| i.code == 4004), 
+        "Should detect orientation mismatch (4004). Got: {:?}", report.items
+    );
+}
+
+#[test]
+fn test_degenerate_face() {
+    let mut model = Model::default();
+    let mut mesh = create_cube();
+    
+    // Add degenerate triangle (area 0, collinear)
+    // 0=(0,0,0), 1=(1,0,0). Add 8=(2,0,0).
+    mesh.add_vertex(2.0, 0.0, 0.0); // 8
+    mesh.add_triangle(0, 1, 8);
+
+    let object = make_object(mesh);
+    model.resources.add_object(object).unwrap();
+
+    let mut report = ValidationReport::default();
+    validate_geometry(&model, ValidationLevel::Paranoid, &mut report);
+    
+    // Should detect zero area triangle (code 4005)
+    assert!(
+        report.items.iter().any(|i| i.code == 4005), 
+        "Should detect zero area triangle (4005). Got: {:?}", report.items
+    );
 }

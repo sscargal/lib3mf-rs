@@ -29,6 +29,12 @@ pub struct Model {
     /// The build definition, containing instances of objects to be printed.
     #[serde(default)]
     pub build: Build,
+
+    /// Binary attachments (Textures, Thumbnails, etc.) stored by package path.
+    /// Key: Path in archive (e.g., "Metadata/thumbnail.png", "3D/Textures/diffuse.png")
+    /// Value: Binary content
+    #[serde(skip)]
+    pub attachments: HashMap<String, Vec<u8>>,
 }
 
 impl Model {
@@ -52,7 +58,7 @@ impl Model {
 
         // Paranoid: Geometry validation
         if level >= ValidationLevel::Paranoid {
-            geometry::validate_geometry(self, &mut report);
+            geometry::validate_geometry(self, level, &mut report);
         }
 
         report
@@ -67,6 +73,7 @@ impl Default for Model {
             metadata: HashMap::new(),
             resources: ResourceCollection::default(),
             build: Build::default(),
+            attachments: HashMap::new(),
         }
     }
 }

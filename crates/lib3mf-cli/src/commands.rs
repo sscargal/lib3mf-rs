@@ -57,6 +57,9 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
             println!("Materials:");
             println!("  Base Groups: {}", stats.materials.base_materials_count);
             println!("  Color Groups: {}", stats.materials.color_groups_count);
+            println!("  Texture 2D Groups: {}", stats.materials.texture_2d_groups_count);
+            println!("  Composite Materials: {}", stats.materials.composite_materials_count);
+            println!("  Multi Properties: {}", stats.materials.multi_properties_count);
 
             if !stats.vendor.plates.is_empty() {
                 println!("Vendor Data (Bambu):");
