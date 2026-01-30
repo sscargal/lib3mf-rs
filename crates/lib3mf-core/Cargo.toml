@@ -1,33 +1,41 @@
 [package]
 name = "lib3mf-core"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = "Core implementation of the 3D Manufacturing Format (3MF) in Rust"
 
 [dependencies]
 aes-gcm = "0.10.3"
+anyhow.workspace = true
+byteorder.workspace = true
+glam.workspace = true
+quick-xml = { version = "0.37.0", features = ["serialize"] }
+serde.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, optional = true }
+uuid.workspace = true
+zip = "2.2.0"
+rsa.workspace = true
+sha2.workspace = true
+sha1.workspace = true
 base64 = "0.22.1"
-cpufeatures = "0.2.17"
-glam = { version = "0.31.0", features = ["serde"] }
-hmac = "0.12.1"
-indexmap = { version = "2.13.0", features = ["serde"] }
-lexical-core = "1.0.6"
-quick-xml = "0.39.0"
-rand = "0.8.5"
-rayon = "1.11.0"
-rsa = { version = "0.9.10", features = ["sha2"] }
-serde = { version = "1.0.228", features = ["derive"] }
-sha1 = "0.10.6"
-sha2 = { version = "0.10.9", features = ["oid"] }
-thiserror = "2.0.18"
-uuid = { version = "1.20.0", features = ["v4", "serde"] }
-x509-parser = "0.18.0"
-zip = { version = "7.2.0", features = ["deflate", "time"] }
+rayon.workspace = true
+x509-parser.workspace = true
+rand.workspace = true
+lexical-core.workspace = true
 
 [dev-dependencies]
-anyhow = "1.0.100"
-proptest = "1.4"
-criterion = "0.5"
+proptest = "1.6.0"
+criterion.workspace = true
 
 [[bench]]
 name = "core_bench"
 harness = false
+
+[features]
+default = []
+async = ["dep:tokio"]

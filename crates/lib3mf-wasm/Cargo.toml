@@ -1,12 +1,16 @@
 [package]
 name = "lib3mf-wasm"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WebAssembly bindings for lib3mf-rs"
 
 [dependencies]
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1"
-lib3mf-core = { path = "../lib3mf-core" }
+lib3mf-core.workspace = true
 
 [dependencies.js-sys]
 version = "0.3"

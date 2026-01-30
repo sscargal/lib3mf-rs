@@ -6,6 +6,15 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(name = "3mf")]
 #[command(about = "A CLI tool for analyzing and processing 3MF files", long_about = None)]
+#[cfg_attr(
+    debug_assertions,
+    command(version = concat!(
+        env!("CARGO_PKG_VERSION"),
+        "\ncommit: ", env!("VERGEN_GIT_SHA"),
+        "\ndate:  ", env!("VERGEN_GIT_COMMIT_TIMESTAMP")
+    ))
+)]
+#[cfg_attr(not(debug_assertions), command(version = env!("CARGO_PKG_VERSION")))]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

@@ -34,7 +34,7 @@ fn bench_parse_benchy(c: &mut Criterion) {
     </build>
 </model>"#;
 
-    c.bench_function("parse_root_model", |b| {
+    c.bench_function("parse_root_model", |b: &mut criterion::Bencher| {
         b.iter(|| {
             let _ = parse_model(Cursor::new(root_model));
         })

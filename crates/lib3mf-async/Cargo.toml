@@ -1,17 +1,21 @@
 [package]
 name = "lib3mf-async"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Asynchronous I/O support for lib3mf-rs"
 
 [dependencies]
 async-trait = "0.1.89"
 async_zip = { version = "0.0.18", features = ["tokio", "deflate"] }
 futures-lite = "2.6.1"
-lib3mf-core = { version = "0.1.0", path = "../lib3mf-core" }
-thiserror = "2.0.18"
-tokio = { version = "1.49.0", features = ["full"] }
+lib3mf-core.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
 tokio-util = { version = "0.7.18", features = ["compat"] }
-uuid = "1.20.0"
+uuid.workspace = true
 
 [dev-dependencies]
-anyhow = "1.0"
+anyhow.workspace = true

@@ -4,6 +4,35 @@ members = [
     "crates/*",
 ]
 
+[workspace.package]
+version = "0.1.0"
+authors = ["Steve Scargall <steve@example.com>"]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sscargal/lib3mf-rs"
+homepage = "https://github.com/sscargal/lib3mf-rs"
+documentation = "https://docs.rs/lib3mf-core"
+readme = "README.md"
+
+[workspace.dependencies]
+lib3mf-core = { path = "crates/lib3mf-core", version = "0.1.0" }
+lib3mf-converters = { path = "crates/lib3mf-converters", version = "0.1.0" }
+anyhow = "1.0"
+byteorder = "1.5"
+glam = { version = "0.31.0", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "2.0.18"
+tokio = { version = "1.49.0", features = ["full"] }
+uuid = { version = "1.20.0", features = ["v4", "serde"] }
+rayon = "1.10"
+sha1 = "0.10"
+x509-parser = "0.16"
+rsa = { version = "0.9.10", features = ["sha2"] }
+sha2 = "0.10"
+rand = "0.8"
+lexical-core = "0.8"
+criterion = "0.5"
+
 
 
 [profile.release]

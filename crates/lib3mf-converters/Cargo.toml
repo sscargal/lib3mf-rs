@@ -1,13 +1,17 @@
 [package]
 name = "lib3mf-converters"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "STL and OBJ converters for lib3mf-rs"
 
 [dependencies]
-lib3mf-core = { path = "../lib3mf-core" }
-thiserror = "2.0.18"
-byteorder = "1.5.0"
-glam = "0.31.0"
+lib3mf-core.workspace = true
+thiserror.workspace = true
+byteorder.workspace = true
+glam.workspace = true
 
 [dev-dependencies]
-anyhow = "1.0"
+anyhow.workspace = true
