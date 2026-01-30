@@ -11,7 +11,7 @@ use x509_parser::prelude::FromDer;
 ///
 /// `public_key`: The RSA public key to use for verification.
 /// `content_resolver`: A closure that takes a URI and returns the content bytes.
-/// `signed_info_bytes`: The RAW canonicalized bytes of the <SignedInfo> element.
+/// `signed_info_bytes`: The RAW canonicalized bytes of the `<SignedInfo>` element.
 ///                      Note: This is critical. The parser must extract the exact bytes used for signing.
 ///                      3MF usually requires C14N. If we don't have a C14N library,
 ///                      we must rely on the raw bytes from the file matching the canonical form

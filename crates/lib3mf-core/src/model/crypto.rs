@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Represents an XML-DSIG Signature element.
-/// Namespace: http://www.w3.org/2000/09/xmldsig#
+/// Namespace: <http://www.w3.org/2000/09/xmldsig#>
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Signature {
     pub signed_info: SignedInfo,

@@ -44,31 +44,28 @@ fn test_parse_secure_content() -> anyhow::Result<()> {
     // Advance to <keystore>.
     // Call parse_content.
 
-    loop {
-        match parser.read_next_event()? {
-            quick_xml::events::Event::Start(e) => {
-                if e.local_name().as_ref() == b"keystore" {
-                    // Start parsing content
-                    // No uuid in sample XML, use random
-                    let ks = parse_keystore_content(&mut parser, Uuid::new_v4())?;
+    while let Ok(event) = parser.read_next_event() {
+        if let quick_xml::events::Event::Start(e) = event
+            && e.local_name().as_ref() == b"keystore"
+        {
+            // Start parsing content
+            // No uuid in sample XML, use random
+            let ks = parse_keystore_content(&mut parser, Uuid::new_v4())?;
 
-                    assert_eq!(ks.consumers.len(), 1);
-                    assert_eq!(ks.consumers[0].id, "consumer-1");
+            assert_eq!(ks.consumers.len(), 1);
+            assert_eq!(ks.consumers[0].id, "consumer-1");
 
-                    assert_eq!(ks.resource_data_groups.len(), 1);
-                    let grp = &ks.resource_data_groups[0];
-                    assert_eq!(
-                        grp.key_uuid,
-                        Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000")?
-                    );
+            assert_eq!(ks.resource_data_groups.len(), 1);
+            let grp = &ks.resource_data_groups[0];
+            assert_eq!(
+                grp.key_uuid,
+                Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000")?
+            );
 
-                    assert_eq!(grp.access_rights.len(), 1);
-                    assert_eq!(grp.access_rights[0].consumer_id, "consumer-1");
-                    assert_eq!(grp.access_rights[0].wrapped_key, b"Base64EncodedKeyData");
-                    break;
-                }
-            }
-            _ => {}
+            assert_eq!(grp.access_rights.len(), 1);
+            assert_eq!(grp.access_rights[0].consumer_id, "consumer-1");
+            assert_eq!(grp.access_rights[0].wrapped_key, b"Base64EncodedKeyData");
+            break;
         }
     }
 

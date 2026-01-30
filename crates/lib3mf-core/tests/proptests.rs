@@ -32,7 +32,7 @@ proptest! {
 
         // Serialize and deserialize logic would go here if we exposed it directly via FromStr/Display
         // For now, just ensuring Debug/Clone works
-        let cloned = unit.clone();
+        let cloned = unit;
         prop_assert_eq!(unit, cloned);
     }
 }

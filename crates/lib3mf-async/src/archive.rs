@@ -5,7 +5,7 @@ use lib3mf_core::error::Result;
 #[async_trait]
 pub trait AsyncArchiveReader: Send + Sync {
     /// Read the content of an entry by name.
-    /// Returns the full content as a Vec<u8>.
+    /// Returns the full content as a `Vec<u8>`.
     async fn read_entry(&mut self, name: &str) -> Result<Vec<u8>>;
 
     /// Check if an entry exists.

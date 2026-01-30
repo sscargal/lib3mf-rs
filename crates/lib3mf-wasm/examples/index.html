@@ -1,94 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lib3mf-rs WASM Example</title>
+    <title>lib3mf-wasm Example</title>
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-        .drop-zone { border: 2px dashed #ccc; padding: 2rem; text-align: center; margin: 1rem 0; cursor: pointer; }
-        .drop-zone:hover { border-color: #666; background: #f9f9f9; }
-        #output { background: #f0f0f0; padding: 1rem; border-radius: 4px; white-space: pre-wrap; }
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .drop-zone {
+            border: 2px dashed #ccc;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .drop-zone.hover {
+            border-color: #333;
+            background: #f9f9f9;
+        }
+
+        pre {
+            background: #eee;
+            padding: 10px;
+            overflow-x: auto;
+        }
+
+        .error {
+            color: red;
+        }
     </style>
 </head>
+
 <body>
-    <h1>Lib3mf-rs WASM Hello World</h1>
-    <p>Upload a .3mf file to parse it using the Rust WASM library.</p>
+    <h1>lib3mf-wasm Example</h1>
+    <p>Upload a <code>.3mf</code> file to inspect it using Rust compiled to WebAssembly.</p>
 
     <div id="drop-zone" class="drop-zone">
-        Drop .3mf file here or click to select
+        Drag & Drop a .3mf file here or click to upload
+        <input type="file" id="file-input" accept=".3mf" style="display: none;">
     </div>
-    <input type="file" id="file-input" style="display: none" accept=".3mf">
 
-    <div id="output">Waiting for file...</div>
+    <div id="output-area" style="display: none;">
+        <h3>Model Information</h3>
+        <pre id="stats-output"></pre>
+    </div>
 
     <script type="module">
-        import init, { WasmModel } from './pkg/lib3mf_wasm.js';
+        import init, { WasmModel } from '../pkg/lib3mf_wasm.js';
 
         async function run() {
-            try {
-                await init();
-                document.getElementById('output').textContent = "WASM module loaded successfully. Ready to process files.";
-            } catch (e) {
-                console.error("Failed to load WASM:", e);
-                document.getElementById('output').textContent = "Error loading WASM module: " + e;
+            // Initialize WASM module
+            await init();
+            console.log('WASM initialized');
+
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const outputArea = document.getElementById('output-area');
+            const statsOutput = document.getElementById('stats-output');
+
+            dropZone.onclick = () => fileInput.click();
+
+            dropZone.ondragover = (e) => {
+                e.preventDefault();
+                dropZone.classList.add('hover');
+            };
+
+            dropZone.ondragleave = () => dropZone.classList.remove('hover');
+
+            dropZone.ondrop = (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('hover');
+                if (e.dataTransfer.files.length) {
+                    processFile(e.dataTransfer.files[0]);
+                }
+            };
+
+            fileInput.onchange = (e) => {
+                if (e.target.files.length) {
+                    processFile(e.target.files[0]);
+                }
+            };
+
+            async function processFile(file) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+
+                    // Call Rust WASM
+                    const model = WasmModel.from_bytes(uint8Array);
+
+                    outputArea.style.display = 'block';
+                    statsOutput.innerText = [
+                        `File Name: ${file.name}`,
+                        `Unit:      ${model.unit()}`,
+                        `Objects:   ${model.object_count()}`
+                    ].join('\n');
+
+                    // Note: Always free the model if it's a structural wrapper
+                    // model.free();
+                } catch (err) {
+                    outputArea.style.display = 'block';
+                    statsOutput.innerHTML = `<span class="error">Error: ${err}</span>`;
+                }
             }
         }
 
         run();
-
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-
-        dropZone.addEventListener('click', () => fileInput.click());
-
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.style.borderColor = '#007bff';
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.style.borderColor = '#ccc';
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.style.borderColor = '#ccc';
-            if (e.dataTransfer.files.length > 0) {
-                processFile(e.dataTransfer.files[0]);
-            }
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                processFile(e.target.files[0]);
-            }
-        });
-
-        async function processFile(file) {
-            const output = document.getElementById('output');
-            output.textContent = `Processing ${file.name}...`;
-
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const bytes = new Uint8Array(arrayBuffer);
-
-                const start = performance.now();
-                const model = WasmModel.from_bytes(bytes);
-                const end = performance.now();
-
-                const stats = `
-Parsed successfully in ${(end - start).toFixed(2)}ms!
-Unit: ${model.unit()}
-Object Count: ${model.object_count()}
-                `.trim();
-
-                output.textContent = stats;
-            } catch (e) {
-                console.error(e);
-                output.textContent = `Error parsing file: ${e}`;
-            }
-        }
     </script>
 </body>
+
 </html>

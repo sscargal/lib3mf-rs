@@ -11,7 +11,7 @@ use zip::write::FileOptions;
 /// - Writing the model stream(s)
 /// - Writing attachments (Textures, Thumbnails)
 /// - Generatirng the correct OPC relationships (.rels)
-/// - Generating [Content_Types].xml
+/// - Generating `[Content_Types].xml`
 pub struct PackageWriter<W: Write + Seek> {
     zip: ZipWriter<W>,
     options: FileOptions<'static, ()>,

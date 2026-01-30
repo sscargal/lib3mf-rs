@@ -1,27 +1,33 @@
 use lib3mf_async::loader::load_model_async;
-use std::error::Error;
+use std::path::Path;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> anyhow::Result<()> {
+    println!("--- Async Model Loading Example ---");
+
+    // We'll try to load Benchy.3mf from the models directory.
     let path = "models/Benchy.3mf";
 
-    if !std::path::Path::new(path).exists() {
+    if !Path::new(path).exists() {
         println!(
-            "Please run this example from the repo root and ensure 'models/Benchy.3mf' exists."
+            "Please run this example from the repo root and ensure '{}' exists.",
+            path
         );
         return Ok(());
     }
 
-    println!("Asynchronously loading {}...", path);
+    println!("Loading {} asynchronously using tokio...", path);
 
-    let start = std::time::Instant::now();
+    // load_model_async handles opening the file, unzipping (async),
+    // and parsing (spawn_blocking) internally.
     let model = load_model_async(path).await?;
-    let duration = start.elapsed();
 
-    println!("Successfully loaded model in {:?}", duration);
-    println!("  Unit: {:?}", model.unit);
-    println!("  Objects: {}", model.resources.iter_objects().count());
-    println!("  Build Items: {}", model.build.items.len());
+    println!("SUCCESS: Model loaded asynchronously.");
+    println!("Statistics:");
+    println!("  Unit:     {:?}", model.unit);
+    println!("  Metadata: {} entries", model.metadata.len());
+    println!("  Objects:  {}", model.resources.iter_objects().count());
+    println!("  Items:    {}", model.build.items.len());
 
     Ok(())
 }

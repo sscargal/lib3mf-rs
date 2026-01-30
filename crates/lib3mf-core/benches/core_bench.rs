@@ -3,7 +3,7 @@ use lib3mf_core::parser::model_parser::parse_model;
 use std::io::Cursor;
 
 fn bench_parse_benchy(c: &mut Criterion) {
-    let data = include_bytes!("../../../models/Benchy.3mf");
+    let _data = include_bytes!("../../../models/Benchy.3mf");
     // Note: Benchy.3mf is a ZIP, but parse_model expects the unzipped .model content.
     // However, for benchmarking, we can just benchmark the parsing of a large enough unzipped slice
     // or keep it simple for now.

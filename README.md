@@ -147,17 +147,45 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Code Examples
 
-Check the `examples/` directory (inside `crates/lib3mf-core`) for more advanced usage patterns. Run them with:
+You can run any of the examples using `cargo run -p <crate> --example <name>`.
+
+#### `lib3mf-core`
+Core 3MF logic, specifications, and SPEC-defined extensions.
 
 ```bash
-cargo run -p lib3mf-core --example <example_name>
+cargo run -p lib3mf-core --example create_cube
 ```
 
 - `advanced_materials`: Parsing Texture 2D, Composite Materials, and Multi Properties.
-- `geometry_validation`: Demonstrates how to use "Paranoid" validation to find non-manifold edges and degenerate faces.
-- `geometry_repair`: Demonstrates how to programmatically repair a mesh by stitching vertices and removing degenerate faces.
-- `secure_content`: Verify digital signatures and handle encrypted content.
-- `model_diff`: Programmatically compare two 3MF models to find differences in metadata and resources.
+- `geometry_validation`: Using "Paranoid" validation to find non-manifold edges.
+- `geometry_repair`: Programmatically repairing a mesh (stitching, degenerate removal).
+- `secure_content`: Digital signatures and encrypted content handling.
+- `model_diff`: Structural comparison between two 3MF models.
+- `create_cube`: Building a 3MF model from scratch.
+- `components_transform`: Efficient object instancing using components.
+- `metadata_properties`: Managing standard and custom model metadata.
+- `beam_lattice_ext`: Creating structural designs with the Beam Lattice extension.
+- `slice_data`: Defining geometry using 2D slice stacks (DLP/SLA printing).
+- `streaming_stats`: SAX-style parser for massive files with constant memory.
+
+#### `lib3mf-converters`
+Format conversion and external data processing.
+
+```bash
+cargo run -p lib3mf-converters --example stl_conversion
+```
+
+- `stl_conversion`: Roundtrip between STL and 3MF `Model` structure.
+- `obj_conversion`: Roundtrip between Wavefront OBJ and 3MF.
+
+#### `lib3mf-async`
+High-performance asynchronous I/O.
+
+```bash
+cargo run -p lib3mf-async --example async_load
+```
+
+- `async_load`: Non-blocking 3MF loading using `tokio` and `async-zip`.
 
 ## Running Tests
 
@@ -174,7 +202,7 @@ lib3mf-rs/
 ├── crates/             # Workspace members
 │   ├── lib3mf-core/    # Main library implementation
 │   ├── lib3mf-cli/     # Command-line interface
-│   ├── lib3mf-io/      # Format converters (STL, OBJ)
+│   ├── lib3mf-converters/      # Format converters (STL, OBJ)
 │   ├── lib3mf-wasm/    # WebAssembly bindings
 │   └── lib3mf-async/   # Async I/O (In Progress)
 ├── docs/               # Documentation
