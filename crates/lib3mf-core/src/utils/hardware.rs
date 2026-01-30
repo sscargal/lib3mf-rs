@@ -12,13 +12,27 @@ pub fn detect_capabilities() -> HardwareCapabilities {
 
     #[cfg(target_arch = "x86_64")]
     {
-        if std::is_x86_feature_detected!("sse") { features.push("sse".to_string()); }
-        if std::is_x86_feature_detected!("sse2") { features.push("sse2".to_string()); }
-        if std::is_x86_feature_detected!("sse3") { features.push("sse3".to_string()); }
-        if std::is_x86_feature_detected!("sse4.1") { features.push("sse4.1".to_string()); }
-        if std::is_x86_feature_detected!("sse4.2") { features.push("sse4.2".to_string()); }
-        if std::is_x86_feature_detected!("avx") { features.push("avx".to_string()); }
-        if std::is_x86_feature_detected!("avx2") { features.push("avx2".to_string()); }
+        if std::is_x86_feature_detected!("sse") {
+            features.push("sse".to_string());
+        }
+        if std::is_x86_feature_detected!("sse2") {
+            features.push("sse2".to_string());
+        }
+        if std::is_x86_feature_detected!("sse3") {
+            features.push("sse3".to_string());
+        }
+        if std::is_x86_feature_detected!("sse4.1") {
+            features.push("sse4.1".to_string());
+        }
+        if std::is_x86_feature_detected!("sse4.2") {
+            features.push("sse4.2".to_string());
+        }
+        if std::is_x86_feature_detected!("avx") {
+            features.push("avx".to_string());
+        }
+        if std::is_x86_feature_detected!("avx2") {
+            features.push("avx2".to_string());
+        }
     }
 
     #[cfg(target_arch = "aarch64")]

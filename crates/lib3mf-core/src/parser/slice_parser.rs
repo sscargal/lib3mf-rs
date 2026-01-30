@@ -28,7 +28,9 @@ pub fn parse_slice_stack_content<R: BufRead>(
                     // Start or Empty.
                     let stack_id =
                         crate::model::ResourceId(get_attribute_u32(&e, b"slicestackid")?);
-                    let path = get_attribute(&e, b"slicepath").map(|s: Cow<str>| s.into_owned()).unwrap_or_default();
+                    let path = get_attribute(&e, b"slicepath")
+                        .map(|s: Cow<str>| s.into_owned())
+                        .unwrap_or_default();
                     refs.push(SliceRef {
                         slice_stack_id: stack_id,
                         slice_path: path,
@@ -40,7 +42,9 @@ pub fn parse_slice_stack_content<R: BufRead>(
                 if e.local_name().as_ref() == b"sliceref" {
                     let stack_id =
                         crate::model::ResourceId(get_attribute_u32(&e, b"slicestackid")?);
-                    let path = get_attribute(&e, b"slicepath").map(|s: Cow<str>| s.into_owned()).unwrap_or_default();
+                    let path = get_attribute(&e, b"slicepath")
+                        .map(|s: Cow<str>| s.into_owned())
+                        .unwrap_or_default();
                     refs.push(SliceRef {
                         slice_stack_id: stack_id,
                         slice_path: path,

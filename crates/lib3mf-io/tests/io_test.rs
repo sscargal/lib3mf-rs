@@ -1,5 +1,5 @@
 use lib3mf_core::model::resources::ResourceId;
-use lib3mf_core::model::{BuildItem, Mesh, Model, Triangle, Vertex};
+use lib3mf_core::model::{BuildItem, Mesh, Model};
 use lib3mf_io::obj::{ObjExporter, ObjImporter};
 use lib3mf_io::stl::{StlExporter, StlImporter};
 use std::io::Cursor;

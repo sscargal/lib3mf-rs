@@ -24,7 +24,8 @@ pub fn parse_keystore_content<R: BufRead>(
                             .ok_or(Lib3mfError::Validation("Missing consumerid".to_string()))?
                             .into_owned();
                         let key_id = get_attribute(&e, b"keyid").map(|s: Cow<str>| s.into_owned());
-                        let key_value = get_attribute(&e, b"keyvalue").map(|s: Cow<str>| s.into_owned());
+                        let key_value =
+                            get_attribute(&e, b"keyvalue").map(|s: Cow<str>| s.into_owned());
 
                         store.consumers.push(Consumer {
                             id,

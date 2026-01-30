@@ -10,14 +10,14 @@ fn bench_core(c: &mut Criterion) {
     d.pop(); // crates
     d.pop(); // lib3mf-rs
     let repo_root = d.clone();
-    
+
     let benchy_path = repo_root.join("models/Benchy.3mf");
     let deadpool_path = repo_root.join("models/Deadpool_3_Mask.3mf");
 
     // --- Benchy Benchmarks ---
     if benchy_path.exists() {
         let file_bytes = std::fs::read(&benchy_path).expect("Failed to read Benchy.3mf");
-        
+
         // Full workflow (Zip + XML)
         c.bench_function("parse_benchy_zip_xml", |b| {
             b.iter(|| {
@@ -51,7 +51,7 @@ fn bench_core(c: &mut Criterion) {
     // --- Deadpool Benchmarks (Larger) ---
     if deadpool_path.exists() {
         let file_bytes = std::fs::read(&deadpool_path).expect("Failed to read Deadpool");
-        
+
         c.bench_function("parse_deadpool_zip_xml", |b| {
             b.iter(|| {
                 let mut archiver = ZipArchiver::new(Cursor::new(&file_bytes)).unwrap();

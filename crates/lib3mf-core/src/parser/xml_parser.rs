@@ -1,9 +1,9 @@
 use crate::error::{Lib3mfError, Result};
+use lexical_core;
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::reader::Reader;
 use std::borrow::Cow;
 use std::io::BufRead;
-use lexical_core;
 
 pub struct XmlParser<R: BufRead> {
     pub reader: Reader<R>,

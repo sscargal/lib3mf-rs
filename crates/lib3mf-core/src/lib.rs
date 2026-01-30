@@ -3,9 +3,9 @@ pub mod crypto;
 pub mod error;
 pub mod model;
 pub mod parser;
+pub mod utils;
 pub mod validation;
 pub mod writer;
-pub mod utils;
 
 pub use error::{Lib3mfError, Result};
 pub use model::*;

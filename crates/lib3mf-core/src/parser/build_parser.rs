@@ -21,7 +21,8 @@ pub fn parse_build<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Build> {
                     Mat4::IDENTITY
                 };
 
-                let part_number = get_attribute(&e, b"partnumber").map(|s: Cow<str>| s.into_owned());
+                let part_number =
+                    get_attribute(&e, b"partnumber").map(|s: Cow<str>| s.into_owned());
                 let uuid = crate::parser::xml_parser::get_attribute_uuid(&e)?;
                 // Try "path" or "p:path"
                 let path = get_attribute(&e, b"path")

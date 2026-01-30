@@ -37,7 +37,10 @@ pub fn parse_volumetric_stack_content<R: BufRead>(
                             get_attribute_u32(&e, b"volumetricstackid").map(ResourceId)?;
                         let path = get_attribute(&e, b"path").unwrap_or_default();
                         let end_tag = e.name().as_ref().to_vec();
-                        stack.refs.push(VolumetricRef { stack_id, path: path.into_owned() });
+                        stack.refs.push(VolumetricRef {
+                            stack_id,
+                            path: path.into_owned(),
+                        });
                         parser.read_to_end(&end_tag)?;
                     }
                     _ => {}

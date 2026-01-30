@@ -1,7 +1,7 @@
 use crate::model::Unit;
+use crate::utils::hardware::HardwareCapabilities;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::utils::hardware::HardwareCapabilities;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelStats {

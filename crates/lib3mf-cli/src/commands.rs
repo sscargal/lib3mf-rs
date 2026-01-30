@@ -49,7 +49,10 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
             println!("\nSystem Info:");
             println!("  Architecture: {}", stats.system_info.architecture);
             println!("  CPUs (Threads): {}", stats.system_info.num_cpus);
-            println!("  SIMD Features: {}", stats.system_info.simd_features.join(", "));
+            println!(
+                "  SIMD Features: {}",
+                stats.system_info.simd_features.join(", ")
+            );
 
             println!("Materials:");
             println!("  Base Groups: {}", stats.materials.base_materials_count);
@@ -419,8 +422,9 @@ pub fn benchmark(path: PathBuf) -> anyhow::Result<()> {
     let total = start.elapsed();
 
     println!("Results:");
-    println!("  System: {} ({} CPUs), SIMD: {}", 
-        stats.system_info.architecture, 
+    println!(
+        "  System: {} ({} CPUs), SIMD: {}",
+        stats.system_info.architecture,
         stats.system_info.num_cpus,
         stats.system_info.simd_features.join(", ")
     );
@@ -429,7 +433,10 @@ pub fn benchmark(path: PathBuf) -> anyhow::Result<()> {
     println!("  Stats Calc: {:?}", t_stats);
     println!("  Total: {:?}", total);
     println!("  Triangles: {}", stats.geometry.triangle_count);
-    println!("  Area: {:.2}, Volume: {:.2}", stats.geometry.surface_area, stats.geometry.volume);
+    println!(
+        "  Area: {:.2}, Volume: {:.2}",
+        stats.geometry.surface_area, stats.geometry.volume
+    );
 
     Ok(())
 }
