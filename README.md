@@ -97,7 +97,14 @@ Extract specific files (like thumbnails or internal config) from the archive.
 cargo run -p lib3mf-cli -- extract path/to/model.3mf "Auxiliaries/.thumbnails/thumbnail_small.png" --output thumb.png
 ```
 
-#### 5. Copy (Roundtrip)
+#### 5. Compare Models
+Compare two 3MF files to find structural or metadata differences.
+
+```bash
+cargo run -p lib3mf-cli -- diff v1.3mf v2.3mf
+```
+
+#### 6. Copy (Roundtrip)
 Read a 3MF file and write it back to a new file. Validates the read/write cycle.
 
 ```bash
@@ -150,6 +157,7 @@ cargo run -p lib3mf-core --example <example_name>
 - `geometry_validation`: Demonstrates how to use "Paranoid" validation to find non-manifold edges and degenerate faces.
 - `geometry_repair`: Demonstrates how to programmatically repair a mesh by stitching vertices and removing degenerate faces.
 - `secure_content`: Verify digital signatures and handle encrypted content.
+- `model_diff`: Programmatically compare two 3MF models to find differences in metadata and resources.
 
 ## Running Tests
 

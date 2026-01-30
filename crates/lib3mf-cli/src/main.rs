@@ -339,6 +339,9 @@ enum Commands {
         file1: PathBuf,
         /// Second file
         file2: PathBuf,
+        /// Output format (text, json)
+        #[arg(long, default_value = "text")]
+        format: String,
     },
 }
 
@@ -401,8 +404,12 @@ fn main() -> anyhow::Result<()> {
         Commands::Benchmark { file } => {
             commands::benchmark(file)?;
         }
-        Commands::Diff { file1, file2 } => {
-            commands::diff(file1, file2)?;
+        Commands::Diff {
+            file1,
+            file2,
+            format,
+        } => {
+            commands::diff(file1, file2, &format)?;
         }
     }
 

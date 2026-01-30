@@ -477,32 +477,52 @@ pub fn benchmark(path: PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn diff(file1: PathBuf, file2: PathBuf) -> anyhow::Result<()> {
-    println!("Diffing {:?} vs {:?}", file1, file2);
+pub fn diff(file1: PathBuf, file2: PathBuf, format: &str) -> anyhow::Result<()> {
+    println!("Comparing {:?} and {:?}...", file1, file2);
 
-    let model1 = load_model(&file1)?;
-    let model2 = load_model(&file2)?;
+    let model_a = load_model(&file1)?;
+    let model_b = load_model(&file2)?;
 
-    println!("--- Metadata ---");
-    if model1.metadata != model2.metadata {
-        println!("Metadata differs.");
+    let diff = lib3mf_core::utils::diff::compare_models(&model_a, &model_b);
+
+    if format == "json" {
+        println!("{}", serde_json::to_string_pretty(&diff)?);
+    } else if diff.is_empty() {
+        println!("Models are identical.");
     } else {
-        println!("Metadata matches.");
+        println!("Differences found:");
+        if !diff.metadata_diffs.is_empty() {
+            println!("  Metadata:");
+            for d in &diff.metadata_diffs {
+                println!("    - {:?}: {:?} -> {:?}", d.key, d.old_value, d.new_value);
+            }
+        }
+        if !diff.resource_diffs.is_empty() {
+            println!("  Resources:");
+            for d in &diff.resource_diffs {
+                match d {
+                    lib3mf_core::utils::diff::ResourceDiff::Added { id, type_name } => {
+                        println!("    + Added ID {}: {}", id, type_name)
+                    }
+                    lib3mf_core::utils::diff::ResourceDiff::Removed { id, type_name } => {
+                        println!("    - Removed ID {}: {}", id, type_name)
+                    }
+                    lib3mf_core::utils::diff::ResourceDiff::Changed { id, details } => {
+                        println!("    * Changed ID {}:", id);
+                        for det in details {
+                            println!("      . {}", det);
+                        }
+                    }
+                }
+            }
+        }
+        if !diff.build_diffs.is_empty() {
+            println!("  Build Items:");
+            for d in &diff.build_diffs {
+                println!("    - {:?}", d);
+            }
+        }
     }
-
-    println!("--- Geometry ---");
-    println!(
-        "File 1 Objects: {}",
-        model1.resources.iter_objects().count()
-    );
-    println!(
-        "File 2 Objects: {}",
-        model2.resources.iter_objects().count()
-    );
-
-    println!("--- Build ---");
-    println!("File 1 Items: {}", model1.build.items.len());
-    println!("File 2 Items: {}", model2.build.items.len());
 
     Ok(())
 }
