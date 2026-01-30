@@ -271,6 +271,40 @@ fn parse_key_info<R: BufRead>(parser: &mut XmlParser<R>) -> Result<KeyInfo> {
                 b"KeyValue" => {
                     info.key_value = Some(parse_key_value(parser)?);
                 }
+                b"X509Data" => {
+                    info.x509_data = Some(parse_x509_data(parser)?);
+                }
+                _ => {
+                    parser.read_to_end(&raw_name)?;
+                }
+            }
+        }
+    }
+}
+
+fn parse_x509_data<R: BufRead>(parser: &mut XmlParser<R>) -> Result<X509Data> {
+    let mut data = X509Data::default();
+    loop {
+        let evt_info = match parser.read_next_event()? {
+            Event::Start(e) => Some((e.local_name().as_ref().to_vec(), e.name().as_ref().to_vec())),
+            Event::End(e) if e.local_name().as_ref() == b"X509Data" => return Ok(data),
+            Event::Eof => {
+                return Err(Lib3mfError::Validation(
+                    "Unexpected EOF in X509Data".to_string(),
+                ));
+            }
+            _ => None,
+        };
+
+        if let Some((local_name, raw_name)) = evt_info {
+            match local_name.as_slice() {
+                b"X509Certificate" => {
+                    // X509Certificate is a text string (Base64)
+                    let val = parser.read_text_content()?;
+                    // Clean up whitespace?
+                    let cleaned = val.chars().filter(|c| !c.is_whitespace()).collect();
+                    data.certificate = Some(cleaned);
+                }
                 _ => {
                     parser.read_to_end(&raw_name)?;
                 }

@@ -5,6 +5,7 @@ use rsa::RsaPublicKey;
 use rsa::signature::Verifier;
 use sha1::Sha1;
 use sha2::{Digest, Sha256};
+use x509_parser::prelude::FromDer;
 
 /// Verifies a 3MF XML digital signature.
 ///
@@ -102,4 +103,64 @@ where
     }
 
     Ok(())
+}
+
+/// Verify signature by extracting key from KeyInfo if possible.
+pub fn verify_signature_extended<F>(
+    signature: &Signature,
+    content_resolver: F,
+    signed_info_bytes: &[u8],
+) -> Result<bool>
+where
+    F: Fn(&str) -> Result<Vec<u8>>,
+{
+    let key = extract_key_from_signature(signature)?;
+    verify_signature(signature, &key, content_resolver, signed_info_bytes)
+}
+
+pub fn extract_key_from_signature(signature: &Signature) -> Result<RsaPublicKey> {
+    if let Some(info) = &signature.key_info {
+        // 1. Try KeyValue (RSA)
+        if let Some(kv) = &info.key_value
+            && let Some(rsa_val) = &kv.rsa_key_value
+        {
+            let n_bytes = BASE64_STANDARD
+                .decode(&rsa_val.modulus)
+                .map_err(|e| Lib3mfError::Validation(format!("Invalid modulus base64: {}", e)))?;
+            let e_bytes = BASE64_STANDARD
+                .decode(&rsa_val.exponent)
+                .map_err(|e| Lib3mfError::Validation(format!("Invalid exponent base64: {}", e)))?;
+
+            let n = rsa::BigUint::from_bytes_be(&n_bytes);
+            let e = rsa::BigUint::from_bytes_be(&e_bytes);
+
+            return RsaPublicKey::new(n, e).map_err(|e| {
+                Lib3mfError::Validation(format!("Invalid RSA key components: {}", e))
+            });
+        }
+
+        // 2. Try X509Data
+        if let Some(x509) = &info.x509_data
+            && let Some(cert_b64) = &x509.certificate
+        {
+            // Remove potential headers/whitespace
+            let clean_b64: String = cert_b64.chars().filter(|c| !c.is_whitespace()).collect();
+            let cert_der = BASE64_STANDARD
+                .decode(&clean_b64)
+                .map_err(|e| Lib3mfError::Validation(format!("Invalid X509 base64: {}", e)))?;
+
+            let (_, cert) = x509_parser::certificate::X509Certificate::from_der(&cert_der)
+                .map_err(|e| Lib3mfError::Validation(format!("Invalid X509 certificate: {}", e)))?;
+
+            // Extract SPKI
+            // rsa crate can parse PKCS#1 or PKCS#8. SPKI is usually PKCS#8 compatible (public key info).
+            // cert.tbs_certificate.subject_pki contains the SPKI
+            use rsa::pkcs8::DecodePublicKey;
+            return RsaPublicKey::from_public_key_der(cert.tbs_certificate.subject_pki.raw)
+                .map_err(|e| Lib3mfError::Validation(format!("Invalid RSA key in cert: {}", e)));
+        }
+    }
+    Err(Lib3mfError::Validation(
+        "No usable KeyValue or X509Certificate found in KeyInfo".into(),
+    ))
 }

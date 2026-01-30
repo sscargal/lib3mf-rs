@@ -532,7 +532,144 @@ pub fn sign(input: PathBuf, output: PathBuf, key: PathBuf, cert: PathBuf) -> any
 
 pub fn verify(file: PathBuf) -> anyhow::Result<()> {
     println!("Verifying signatures in {:?}...", file);
-    println!("No signatures found (Placeholder).");
+    let mut archiver = open_archive(&file)?;
+
+    // 1. Read Global Relationships to find signatures
+    let rels_data = archiver.read_entry("_rels/.rels").unwrap_or_default();
+    if rels_data.is_empty() {
+        println!("No relationships found. File is not signed.");
+        return Ok(());
+    }
+
+    let rels = opc::parse_relationships(&rels_data)?;
+    let sig_rels: Vec<_> = rels.iter().filter(|r|        r.rel_type == "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel/relationship/signature"
+        || r.rel_type.ends_with("/signature") // Loose check
+    ).collect();
+
+    if sig_rels.is_empty() {
+        println!("No signature relationships found.");
+        return Ok(());
+    }
+
+    println!("Found {} signatures to verify.", sig_rels.len());
+
+    for rel in sig_rels {
+        println!("Verifying signature: {}", rel.target);
+        // Target is usually absolute path like "/Metadata/sig.xml"
+        let target_path = rel.target.trim_start_matches('/');
+
+        let sig_xml_bytes = match archiver.read_entry(target_path) {
+            Ok(b) => b,
+            Err(e) => {
+                println!("  [ERROR] Failed to read signature part: {}", e);
+                continue;
+            }
+        };
+
+        // Parse Signature
+        let sig_xml_str = String::from_utf8_lossy(&sig_xml_bytes);
+        // We use Cursor wrapping String for parser
+        let mut sig_parser = lib3mf_core::parser::xml_parser::XmlParser::new(std::io::Cursor::new(
+            sig_xml_bytes.clone(),
+        ));
+        let signature = match lib3mf_core::parser::crypto_parser::parse_signature(&mut sig_parser) {
+            Ok(s) => s,
+            Err(e) => {
+                println!("  [ERROR] Failed to parse signature XML: {}", e);
+                continue;
+            }
+        };
+
+        // Canonicalize SignedInfo
+        // We need the Bytes of SignedInfo.
+        // Option 1: Re-read file and extract substring (risky if not formatted same).
+        // Option 2: Use Canonicalizer on the original bytes to extract subtree.
+        let signed_info_c14n = match lib3mf_core::utils::c14n::Canonicalizer::canonicalize_subtree(
+            &sig_xml_str,
+            "SignedInfo",
+        ) {
+            Ok(b) => b,
+            Err(e) => {
+                println!("  [ERROR] Failed to extract/canonicalize SignedInfo: {}", e);
+                continue;
+            }
+        };
+
+        // Prepare Content Resolver
+        // This closure allows the verifier to fetch the bytes of parts referenced by the signature.
+        // We need to clone the archive reader or access it safely.
+        // Archiver is mut... tricky with closure if capturing mut ref.
+        // But we iterate sequentially. We can pass a closure that reads from a shared ref or re-opens?
+        // Actually, we can just pre-read referenced parts? No, References are inside Signature.
+        // Ideally, we pass a closure. But `archiver` is needed.
+        // Simpler: Read all entries into a Map? No, memory.
+        // We can use a ref cell or mutex for archiver?
+        // Or better: `verify_signature_extended` takes a closure.
+        // The closure can't mutate archiver easily if archiver requires mut.
+        // `ZipArchiver::read_entry` takes `&mut self`.
+        // We can close and re-open? Inefficient.
+
+        // Hack: Read all referenced parts needed by THIS signature before calling verify?
+        // But verify_signature calls the resolver.
+        // Let's implement a wrapper struct or use RefCell.
+        // `archiver` is `ZipArchiver<File>`.
+        // Let's defer resolver implementation by collecting references first?
+        // `verify_signature` logic iterates references and calls resolver.
+        // If we duplicate the "resolve" logic:
+        // 1. Collect URIs from signature.
+        // 2. Read all contents into a Map.
+        // 3. Pass Map lookup to verifier.
+
+        let mut content_map = BTreeMap::new();
+        for ref_item in &signature.signed_info.references {
+            let uri = &ref_item.uri;
+            if uri.is_empty() {
+                continue;
+            } // Implicit reference to something?
+            let part_path = uri.trim_start_matches('/');
+            match archiver.read_entry(part_path) {
+                Ok(data) => {
+                    content_map.insert(uri.clone(), data);
+                }
+                Err(e) => println!("  [WARNING] Could not read referenced part {}: {}", uri, e),
+            }
+        }
+
+        let resolver = |uri: &str| -> lib3mf_core::error::Result<Vec<u8>> {
+            content_map.get(uri).cloned().ok_or_else(|| {
+                lib3mf_core::error::Lib3mfError::Validation(format!("Content not found: {}", uri))
+            })
+        };
+
+        match lib3mf_core::crypto::verification::verify_signature_extended(
+            &signature,
+            resolver,
+            &signed_info_c14n,
+        ) {
+            Ok(valid) => {
+                if valid {
+                    println!("  [PASS] Signature is VALD.");
+                    // Check certificate trust if present
+                    if let Some(mut ki) = signature.key_info {
+                        if let Some(x509) = ki.x509_data.take() {
+                            if let Some(_cert_str) = x509.certificate {
+                                println!(
+                                    "  [INFO] Signed by X.509 Certificate (Trust check pending)"
+                                );
+                                // TODO: Validate chain
+                            }
+                        } else {
+                            println!("  [INFO] Signed by Raw Key (Self-signed equivalent)");
+                        }
+                    }
+                } else {
+                    println!("  [FAIL] Signature is INVALID (Verification returned false).");
+                }
+            }
+            Err(e) => println!("  [FAIL] Verification Error: {}", e),
+        }
+    }
+
     Ok(())
 }
 

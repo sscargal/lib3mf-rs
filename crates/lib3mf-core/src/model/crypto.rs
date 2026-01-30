@@ -62,10 +62,15 @@ pub struct SignatureValue {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct KeyInfo {
-    // Could be KeyValue, KeyName, X509Data...
     // For 3MF, usually KeyName (UUID) or KeyValue (RSA Public Key)
     pub key_name: Option<String>,
     pub key_value: Option<KeyValue>,
+    pub x509_data: Option<X509Data>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct X509Data {
+    pub certificate: Option<String>, // Base64 encoded PEM/DER
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -77,4 +82,14 @@ pub struct KeyValue {
 pub struct RSAKeyValue {
     pub modulus: String,
     pub exponent: String,
+}
+
+// Helper types for Keystore mapping
+#[derive(Debug, Clone)]
+pub struct CertificateInfo {
+    pub subject: String,
+    pub issuer: String,
+    pub serial_number: String,
+    // Real parsed data could be stored if we hold the X509Certificate object,
+    // but usually we just parse on demand from the PEM/DER bytes.
 }

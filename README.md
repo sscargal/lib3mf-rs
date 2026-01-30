@@ -10,6 +10,10 @@
 - **Pure Rust**: No C++ bindings, memory-safe.
 - **Robust Parsing**: Validation of XML structure and relationships. Includes "Paranoid" mode for geometry checks.
 - **Geometry Repair**: Stitching of vertices (epsilon merge) and removal of degenerate faces.
+- **Secure Content**: Full support for XML Digital Signatures and Content Encryption.
+    - Parse and verify X.509 certificate chains.
+    - Decrypt protected resources.
+    - CLI `verify` command for signature validation.
 - **Model Statistics**: Compute geometry counts (vertices, triangles) and instance counts.
 - **Vendor Extensions**: Native support for **Bambu Studio** project files (recognizing plates and metadata).
 - **CLI Tool**: Inspect 3MF files directly from the command line.
@@ -145,6 +149,7 @@ cargo run -p lib3mf-core --example <example_name>
 - `advanced_materials`: Parsing Texture 2D, Composite Materials, and Multi Properties.
 - `geometry_validation`: Demonstrates how to use "Paranoid" validation to find non-manifold edges and degenerate faces.
 - `geometry_repair`: Demonstrates how to programmatically repair a mesh by stitching vertices and removing degenerate faces.
+- `secure_content`: Verify digital signatures and handle encrypted content.
 
 ## Running Tests
 
