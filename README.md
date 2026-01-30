@@ -3,7 +3,7 @@
 ![CI](https://github.com/stevescargall/lib3mf-rs/workflows/CI/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-A pure Rust implementation of the [3D Manufacturing Format (3MF)](https://3mf.io/) standard. `lib3mf-rs` provides a memory-safe, high-performance library and CLI tools for reading, analyzing, and processing 3MF files.
+`lib3mf-rs` is a pure Rust implementation of the [3D Manufacturing Format (3MF)](https://3mf.io/) standard. `lib3mf-rs` provides a memory-safe, high-performance library and CLI tools for reading, analyzing, and processing 3MF files. It provides 3MF reading and writing capabilities, as well as conversion and validation tools for input and output data. lib3mf runs on Windows, Linux, and MacOS and offers a clean and easy-to-use API. It complements the [existing C++ implementation](https://github.com/3MFConsortium/lib3mf).
 
 ## Features
 
@@ -13,10 +13,28 @@ A pure Rust implementation of the [3D Manufacturing Format (3MF)](https://3mf.io
 - **Vendor Extensions**: Native support for **Bambu Studio** project files (recognizing plates and metadata).
 - **CLI Tool**: Inspect 3MF files directly from the command line.
 
-## usage
+## Specification Compliance
+
+`lib3mf-rs` implements the following 3MF specifications:
+
+- 3MF Core Specification v1.4.0
+- Beam Lattice Extension v1.2.0
+- Boolean Operations Extension v1.1.1
+- Displacement Extension v1.0.0
+- Materials and Properties Extension v1.2.1
+- Production Extension v1.1.2
+- Secure Content Extension v1.0.2
+- Slice Extension v1.0.2
+- Volumetric Extension v0.8.0
+
+`lib3mf-rs` has limited support for vendor extensions, such as:
+
+- Bambu Studio 3MF project files
+
+## Usage
 
 ### Prerequisites
-- [Rust](https://rustup.rs/) (latest stable)
+- [Rust](https://rust-lang.org/) (latest stable, v1.93 or later)
 
 ### Building from Source
 
@@ -117,7 +135,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Running Tests
 
-We have a comprehensive test suite covering spec compliance and vendor integrations (Bambu Studio).
+We have a comprehensive test suite covering spec compliance and vendor integrations.
 
 ```bash
 cargo test
@@ -136,7 +154,6 @@ lib3mf-rs/
 ├── docs/               # Documentation
 ├── examples/           # Code examples
 ├── fuzz/               # Fuzzing targets
-├── tests/              # Integration tests
 └── CONTRIBUTING.md     # Developer guide
 ```
 
@@ -145,5 +162,3 @@ See the `README.md` in each subdirectory for more details.
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, testing guide, and architecture overview.
-Please read [AGENTS.md](AGENTS.md) for AI agent protocols.
-

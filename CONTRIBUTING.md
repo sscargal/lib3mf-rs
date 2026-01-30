@@ -21,7 +21,7 @@ This project is a Rust workspace containing several crates:
 
 2.  **Clone the Repository**:
     ```bash
-    git clone https://github.com/yourusername/lib3mf-rs.git
+    git clone https://github.com/sscargal/lib3mf-rs.git
     cd lib3mf-rs
     ```
 
