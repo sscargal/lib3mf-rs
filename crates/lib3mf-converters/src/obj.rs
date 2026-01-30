@@ -124,36 +124,35 @@ impl ObjExporter {
         let mut vertex_offset = 1;
 
         for item in &model.build.items {
-            if let Some(object) = model.resources.get_object(item.object_id) {
-                if let lib3mf_core::model::Geometry::Mesh(mesh) = &object.geometry {
-                    let transform = item.transform;
+            if let Some(object) = model.resources.get_object(item.object_id)
+                && let lib3mf_core::model::Geometry::Mesh(mesh) = &object.geometry
+            {
+                let transform = item.transform;
 
-                    writeln!(writer, "g {}", object.name.as_deref().unwrap_or("Object"))
-                        .map_err(Lib3mfError::Io)?;
+                writeln!(writer, "g {}", object.name.as_deref().unwrap_or("Object"))
+                    .map_err(Lib3mfError::Io)?;
 
-                    // Write vertices
-                    for v in &mesh.vertices {
-                        let p = transform.transform_point3(glam::Vec3::new(v.x, v.y, v.z));
-                        writeln!(writer, "v {} {} {}", p.x, p.y, p.z).map_err(Lib3mfError::Io)?;
-                    }
-
-                    // Write faces
-                    for tri in &mesh.triangles {
-                        writeln!(
-                            writer,
-                            "f {} {} {}",
-                            tri.v1 + vertex_offset,
-                            tri.v2 + vertex_offset,
-                            tri.v3 + vertex_offset
-                        )
-                        .map_err(Lib3mfError::Io)?;
-                    }
-
-                    vertex_offset += mesh.vertices.len() as u32;
+                // Write vertices
+                for v in &mesh.vertices {
+                    let p = transform.transform_point3(glam::Vec3::new(v.x, v.y, v.z));
+                    writeln!(writer, "v {} {} {}", p.x, p.y, p.z).map_err(Lib3mfError::Io)?;
                 }
+
+                // Write faces
+                for tri in &mesh.triangles {
+                    writeln!(
+                        writer,
+                        "f {} {} {}",
+                        tri.v1 + vertex_offset,
+                        tri.v2 + vertex_offset,
+                        tri.v3 + vertex_offset
+                    )
+                    .map_err(Lib3mfError::Io)?;
+                }
+
+                vertex_offset += mesh.vertices.len() as u32;
             }
         }
-
         Ok(())
     }
 }

@@ -1,5 +1,5 @@
-use lib3mf_core::model::{Model, Unit};
 use lib3mf_converters::stl::{StlExporter, StlImporter};
+use lib3mf_core::model::{Model, Unit};
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 

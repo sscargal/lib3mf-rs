@@ -102,24 +102,24 @@ impl StlExporter {
         let mut triangles: Vec<(glam::Vec3, glam::Vec3, glam::Vec3)> = Vec::new(); // v1, v2, v3
 
         for item in &model.build.items {
-            if let Some(object) = model.resources.get_object(item.object_id) {
-                if let lib3mf_core::model::Geometry::Mesh(mesh) = &object.geometry {
-                    let transform = item.transform;
+            if let Some(object) = model.resources.get_object(item.object_id)
+                && let lib3mf_core::model::Geometry::Mesh(mesh) = &object.geometry
+            {
+                let transform = item.transform;
 
-                    for tri in &mesh.triangles {
-                        let v1_local = mesh.vertices[tri.v1 as usize];
-                        let v2_local = mesh.vertices[tri.v2 as usize];
-                        let v3_local = mesh.vertices[tri.v3 as usize];
+                for tri in &mesh.triangles {
+                    let v1_local = mesh.vertices[tri.v1 as usize];
+                    let v2_local = mesh.vertices[tri.v2 as usize];
+                    let v3_local = mesh.vertices[tri.v3 as usize];
 
-                        let v1 = transform
-                            .transform_point3(glam::Vec3::new(v1_local.x, v1_local.y, v1_local.z));
-                        let v2 = transform
-                            .transform_point3(glam::Vec3::new(v2_local.x, v2_local.y, v2_local.z));
-                        let v3 = transform
-                            .transform_point3(glam::Vec3::new(v3_local.x, v3_local.y, v3_local.z));
+                    let v1 = transform
+                        .transform_point3(glam::Vec3::new(v1_local.x, v1_local.y, v1_local.z));
+                    let v2 = transform
+                        .transform_point3(glam::Vec3::new(v2_local.x, v2_local.y, v2_local.z));
+                    let v3 = transform
+                        .transform_point3(glam::Vec3::new(v3_local.x, v3_local.y, v3_local.z));
 
-                        triangles.push((v1, v2, v3));
-                    }
+                    triangles.push((v1, v2, v3));
                 }
             }
         }

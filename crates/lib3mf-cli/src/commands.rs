@@ -296,13 +296,13 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
         "stl" => {
             let file = File::open(&input)
                 .map_err(|e| anyhow::anyhow!("Failed to open STL input: {}", e))?;
-            lib3mf_io::stl::StlImporter::read(file)
+            lib3mf_converters::stl::StlImporter::read(file)
                 .map_err(|e| anyhow::anyhow!("Failed to import STL: {}", e))?
         }
         "obj" => {
             let file = File::open(&input)
                 .map_err(|e| anyhow::anyhow!("Failed to open OBJ input: {}", e))?;
-            lib3mf_io::obj::ObjImporter::read(file)
+            lib3mf_converters::obj::ObjImporter::read(file)
                 .map_err(|e| anyhow::anyhow!("Failed to import OBJ: {}", e))?
         }
         _ => return Err(anyhow::anyhow!("Unsupported input format: {}", input_ext)),
@@ -319,11 +319,11 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
                 .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
         }
         "stl" => {
-            lib3mf_io::stl::StlExporter::write(&model, file)
+            lib3mf_converters::stl::StlExporter::write(&model, file)
                 .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
         }
         "obj" => {
-            lib3mf_io::obj::ObjExporter::write(&model, file)
+            lib3mf_converters::obj::ObjExporter::write(&model, file)
                 .map_err(|e| anyhow::anyhow!("Failed to export OBJ: {}", e))?;
         }
         _ => return Err(anyhow::anyhow!("Unsupported output format: {}", output_ext)),
