@@ -6,86 +6,40 @@ use crate::parser::bambu_config::parse_model_settings;
 
 impl Model {
     pub fn compute_stats(&self, archiver: &mut impl ArchiveReader) -> Result<ModelStats> {
-        // 1. Geometry Stats
-        // Count resources objects
-        let mut geom_stats = GeometryStats {
-            object_count: self.resources.iter_objects().count(),
-            ..Default::default()
-        };
+        let mut resolver = crate::model::resolver::PartResolver::new(archiver, self.clone());
+        let mut geom_stats = GeometryStats::default();
 
-        for obj in self.resources.iter_objects() {
-            match &obj.geometry {
-                Geometry::Mesh(mesh) => {
-                    geom_stats.vertex_count += mesh.vertices.len() as u64;
-                    geom_stats.triangle_count += mesh.triangles.len() as u64;
-
-                    // Update AABB
-                    if let Some(mesh_aabb) = mesh.compute_aabb() {
-                        if let Some(total_aabb) = &mut geom_stats.bounding_box {
-                            total_aabb.min[0] = total_aabb.min[0].min(mesh_aabb.min[0]);
-                            total_aabb.min[1] = total_aabb.min[1].min(mesh_aabb.min[1]);
-                            total_aabb.min[2] = total_aabb.min[2].min(mesh_aabb.min[2]);
-                            total_aabb.max[0] = total_aabb.max[0].max(mesh_aabb.max[0]);
-                            total_aabb.max[1] = total_aabb.max[1].max(mesh_aabb.max[1]);
-                            total_aabb.max[2] = total_aabb.max[2].max(mesh_aabb.max[2]);
-                        } else {
-                            geom_stats.bounding_box = Some(mesh_aabb);
-                        }
-                    }
-
-                    // Update Area and Volume
-                    let (area, volume) = mesh.compute_area_and_volume();
-                    geom_stats.surface_area += area;
-                    geom_stats.volume += volume;
-                }
-                Geometry::Components(_comps) => {
-                    // Components themselves don't add vertices directly, they reference other objects.
-                    // If we wanted "total instanced polygons", we'd traverse.
-                    // For "unique geometry", we just count the mesh objects above.
-                    // For now, standard stats usually report unique geometry count.
-                }
-
-                Geometry::SliceStack(_id) => {
-                    // SliceStack stats not strictly "geometry" (mesh/production) in the same way.
-                    // Could count slices or polygons if we resolved it.
-                }
-                Geometry::VolumetricStack(_id) => {
-                    // Volumetric stats
-                }
-            }
+        // 1. Process Build Items (Entry points)
+        for item in &self.build.items {
+            geom_stats.instance_count += 1;
+            self.accumulate_object_stats(
+                item.object_id,
+                item.path.as_deref(),
+                item.transform,
+                &mut resolver,
+                &mut geom_stats,
+            )?;
         }
-
-        // Count build items
-        geom_stats.instance_count = self.build.items.len();
-        // TODO: For accurate instance count, we should recursively count components too?
-        // Usually instance count refers to top-level build items.
 
         // 2. Production Stats
         let prod_stats = ProductionStats {
-            uuid_count: 0, // Placeholder, would need to walk all UUID fields
+            uuid_count: 0, // Placeholder
         };
 
         // 3. Vendor Data
         let mut vendor_data = VendorData::default();
-
-        // Detect Generator
         let generator = self.metadata.get("Application").cloned();
 
-        // Bambu/Prusa specific metadata
         if let Some(app) = &generator
             && (app.contains("Bambu") || app.contains("Orca"))
         {
-            // Try to read Metadata/model_settings.config
-            if archiver.entry_exists("Metadata/model_settings.config")
-                && let Ok(content) = archiver.read_entry("Metadata/model_settings.config")
+            if resolver.archive_mut().entry_exists("Metadata/model_settings.config")
+                && let Ok(content) = resolver.archive_mut().read_entry("Metadata/model_settings.config")
                 && let Ok(plates) = parse_model_settings(&content)
             {
                 vendor_data.plates = plates;
             }
         }
-
-        // Extract Printer Model if available (Bambu uses separate config, usually machine_settings)
-        // For now, simpler metadata checks or placeholder.
 
         // 4. Material Stats
         let materials_stats = MaterialsStats {
@@ -103,5 +57,79 @@ impl Model {
             vendor: vendor_data,
             system_info: crate::utils::hardware::detect_capabilities(),
         })
+    }
+
+    fn accumulate_object_stats(
+        &self,
+        id: crate::model::ResourceId,
+        path: Option<&str>,
+        transform: glam::Mat4,
+        resolver: &mut crate::model::resolver::PartResolver<impl ArchiveReader>,
+        stats: &mut GeometryStats,
+    ) -> Result<()> {
+        let (geom, path_to_use) = {
+            let resolved = resolver.resolve_object(id, path)?;
+            if let Some((_model, object)) = resolved {
+                // Determine the next path to use for children. 
+                // If this object was found in a specific path, children inherit it 
+                // UNLESS they specify their own.
+                let current_path = if path.is_none() || path == Some("ROOT") || path == Some("/3D/3dmodel.model") || path == Some("3D/3dmodel.model") {
+                    None
+                } else {
+                    path
+                };
+                (Some(object.geometry.clone()), current_path.map(|s| s.to_string()))
+            } else {
+                (None, None)
+            }
+        };
+
+        if let Some(geometry) = geom {
+            match geometry {
+                Geometry::Mesh(mesh) => {
+                    stats.object_count += 1;
+                    stats.vertex_count += mesh.vertices.len() as u64;
+                    stats.triangle_count += mesh.triangles.len() as u64;
+
+                    if let Some(mesh_aabb) = mesh.compute_aabb() {
+                        let transformed_aabb = mesh_aabb.transform(transform);
+                        if let Some(total_aabb) = &mut stats.bounding_box {
+                            total_aabb.min[0] = total_aabb.min[0].min(transformed_aabb.min[0]);
+                            total_aabb.min[1] = total_aabb.min[1].min(transformed_aabb.min[1]);
+                            total_aabb.min[2] = total_aabb.min[2].min(transformed_aabb.min[2]);
+                            total_aabb.max[0] = total_aabb.max[0].max(transformed_aabb.max[0]);
+                            total_aabb.max[1] = total_aabb.max[1].max(transformed_aabb.max[1]);
+                            total_aabb.max[2] = total_aabb.max[2].max(transformed_aabb.max[2]);
+                        } else {
+                            stats.bounding_box = Some(transformed_aabb);
+                        }
+                    }
+
+                    let (area, volume) = mesh.compute_area_and_volume();
+                    let scale_det = transform.determinant().abs() as f64;
+                    let area_scale = scale_det.powf(2.0 / 3.0);
+                    stats.surface_area += area * area_scale;
+                    stats.volume += volume * scale_det;
+                }
+                Geometry::Components(comps) => {
+                    for comp in comps.components {
+                        // Priority: 
+                        // 1. component's own path
+                        // 2. path inherited from parent (path_to_use)
+                        let next_path = comp.path.as_deref().or(path_to_use.as_deref());
+                        
+                        self.accumulate_object_stats(
+                            comp.object_id,
+                            next_path,
+                            transform * comp.transform,
+                            resolver,
+                            stats,
+                        )?;
+                    }
+                }
+                _ => {}
+            }
+        }
+        Ok(())
     }
 }

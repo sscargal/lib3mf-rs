@@ -7,7 +7,8 @@ This directory contains code examples demonstrating how to use `lib3mf-rs`.
 You can run an example using `cargo run --example`:
 
 ```bash
-cargo run --example simple_read
+# From the project root
+cargo run -p lib3mf-core --example simple_read
 ```
 
 ## Available Examples

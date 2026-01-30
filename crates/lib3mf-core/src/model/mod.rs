@@ -6,6 +6,7 @@ pub mod mesh;
 pub mod resources;
 pub mod secure_content;
 pub mod slice;
+pub mod resolver;
 pub mod stats;
 pub mod stats_impl;
 pub mod volumetric;

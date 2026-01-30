@@ -52,6 +52,8 @@ pub struct Components {
 pub struct Component {
     pub object_id: ResourceId,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub uuid: Option<Uuid>,
     #[serde(default = "default_transform", skip_serializing_if = "is_identity")]
     pub transform: glam::Mat4,

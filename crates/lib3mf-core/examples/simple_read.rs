@@ -23,10 +23,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let model = parse_model(std::io::Cursor::new(model_data))?;
     let stats = model.compute_stats(&mut archiver)?;
 
-    println!("Model: Benchy.3mf");
+    println!("Model Statistics:");
     println!("  Unit: {:?}", model.unit);
+    println!("  Objects: {}", stats.geometry.object_count);
+    println!("  Build Items: {}", stats.geometry.instance_count);
     println!("  Triangles: {}", stats.geometry.triangle_count);
     println!("  Vertices: {}", stats.geometry.vertex_count);
+
+    if stats.geometry.object_count > 0 && stats.geometry.triangle_count == 0 {
+        println!("\nNote: This model appears to use components. Vertex/Triangle counts currently only reflect unique mesh geometry.");
+    }
 
     Ok(())
 }

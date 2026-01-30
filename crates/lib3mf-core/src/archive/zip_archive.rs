@@ -40,6 +40,7 @@ impl<R: Read + Seek> Seek for ZipArchiver<R> {
 
 impl<R: Read + Seek> ArchiveReader for ZipArchiver<R> {
     fn read_entry(&mut self, name: &str) -> Result<Vec<u8>> {
+        let name = name.trim_start_matches('/');
         let mut file = self.archive.by_name(name).map_err(|_| {
             Lib3mfError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, name))
         })?;
@@ -50,6 +51,7 @@ impl<R: Read + Seek> ArchiveReader for ZipArchiver<R> {
     }
 
     fn entry_exists(&mut self, name: &str) -> bool {
+        let name = name.trim_start_matches('/');
         self.archive.by_name(name).is_ok()
     }
 

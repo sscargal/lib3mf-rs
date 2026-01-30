@@ -13,6 +13,7 @@ pub fn parse_components<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Compone
         match parser.read_next_event()? {
             Event::Start(e) | Event::Empty(e) if e.name().as_ref() == b"component" => {
                 let object_id = crate::model::ResourceId(get_attribute_u32(&e, b"objectid")?);
+                let path = get_attribute(&e, b"path").or_else(|| get_attribute(&e, b"p:path")).map(|s| s.into_owned());
                 let uuid = crate::parser::xml_parser::get_attribute_uuid(&e)?;
                 let transform = if let Some(s) = get_attribute(&e, b"transform") {
                     parse_transform(&s)?
@@ -21,6 +22,7 @@ pub fn parse_components<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Compone
                 };
                 components.push(Component {
                     object_id,
+                    path,
                     uuid,
                     transform,
                 });

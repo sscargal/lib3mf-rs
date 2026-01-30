@@ -39,6 +39,35 @@ pub struct BoundingBox {
     pub max: [f32; 3],
 }
 
+impl BoundingBox {
+    pub fn transform(&self, matrix: glam::Mat4) -> Self {
+        let corners = [
+            glam::Vec3::new(self.min[0], self.min[1], self.min[2]),
+            glam::Vec3::new(self.min[0], self.min[1], self.max[2]),
+            glam::Vec3::new(self.min[0], self.max[1], self.min[2]),
+            glam::Vec3::new(self.min[0], self.max[1], self.max[2]),
+            glam::Vec3::new(self.max[0], self.min[1], self.min[2]),
+            glam::Vec3::new(self.max[0], self.min[1], self.max[2]),
+            glam::Vec3::new(self.max[0], self.max[1], self.min[2]),
+            glam::Vec3::new(self.max[0], self.max[1], self.max[2]),
+        ];
+
+        let mut transformed_min = glam::Vec3::splat(f32::INFINITY);
+        let mut transformed_max = glam::Vec3::splat(f32::NEG_INFINITY);
+
+        for corner in corners {
+            let transformed = matrix.transform_point3(corner);
+            transformed_min = transformed_min.min(transformed);
+            transformed_max = transformed_max.max(transformed);
+        }
+
+        Self {
+            min: [transformed_min.x, transformed_min.y, transformed_min.z],
+            max: [transformed_max.x, transformed_max.y, transformed_max.z],
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProductionStats {
     pub uuid_count: usize,
