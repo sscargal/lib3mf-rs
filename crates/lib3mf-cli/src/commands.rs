@@ -186,7 +186,8 @@ pub fn list(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
 
     match format {
         OutputFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(&entries)?);
+            let tree = build_file_tree(&entries);
+            println!("{}", serde_json::to_string_pretty(&tree)?);
         }
         OutputFormat::Tree => {
             print_tree(&entries);
@@ -315,8 +316,17 @@ fn open_archive(path: &PathBuf) -> anyhow::Result<ZipArchiver<File>> {
     ZipArchiver::new(file).map_err(|e| anyhow::anyhow!("Failed to open zip archive: {}", e))
 }
 
+fn build_file_tree(paths: &[String]) -> node::FileNode {
+    let mut root = node::FileNode::new_dir();
+    for path in paths {
+        let parts: Vec<&str> = path.split('/').collect();
+        root.insert(&parts);
+    }
+    root
+}
+
 fn print_tree(paths: &[String]) {
-    // Basic tree printer
+    // Legacy tree printer
     // Build a map of path components
     let mut tree: BTreeMap<String, node::Node> = BTreeMap::new();
 
@@ -505,8 +515,58 @@ fn add_object_to_tree_resolved<A: ArchiveReader>(
 }
 
 mod node {
+    use serde::Serialize;
     use std::collections::BTreeMap;
 
+    #[derive(Serialize)]
+    #[serde(untagged)]
+    pub enum FileNode {
+        File(Empty),
+        Dir(BTreeMap<String, FileNode>),
+    }
+
+    #[derive(Serialize)]
+    pub struct Empty {}
+
+    impl FileNode {
+        pub fn new_dir() -> Self {
+            FileNode::Dir(BTreeMap::new())
+        }
+
+        pub fn new_file() -> Self {
+            FileNode::File(Empty {})
+        }
+
+        pub fn insert(&mut self, path_parts: &[&str]) {
+            if let FileNode::Dir(children) = self {
+                if let Some((first, rest)) = path_parts.split_first() {
+                    let entry = children
+                        .entry(first.to_string())
+                        .or_insert_with(FileNode::new_dir);
+
+                    if rest.is_empty() {
+                        // It's a file
+                        if let FileNode::Dir(sub) = entry {
+                            if sub.is_empty() {
+                                *entry = FileNode::new_file();
+                            } else {
+                                // Conflict: Path is both a dir and a file?
+                                // Keep as dir for now or handle appropriately.
+                                // In 3MF/Zip, this shouldn't happen usually for exact paths.
+                            }
+                        }
+                    } else {
+                        // Recurse
+                        entry.insert(rest);
+                    }
+                }
+            }
+        }
+    }
+
+    // Helper for legacy Node struct compatibility if needed,
+    // or just reimplement internal printing logic.
+    #[derive(Serialize)] // Optional, mainly for internal use
     pub struct Node {
         pub children: BTreeMap<String, Node>,
     }
