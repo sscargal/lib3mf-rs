@@ -18,12 +18,12 @@ serde.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, optional = true }
 uuid.workspace = true
-zip = "2.2.0"
+zip = { version = "2.2.0", default-features = false, features = ["deflate"] }
 rsa.workspace = true
 sha2.workspace = true
 sha1.workspace = true
 base64 = "0.22.1"
-rayon.workspace = true
+rayon = { workspace = true, optional = true }
 x509-parser.workspace = true
 rand.workspace = true
 lexical-core.workspace = true
@@ -37,5 +37,6 @@ name = "core_bench"
 harness = false
 
 [features]
-default = []
+default = ["parallel"]
 async = ["dep:tokio"]
+parallel = ["dep:rayon"]

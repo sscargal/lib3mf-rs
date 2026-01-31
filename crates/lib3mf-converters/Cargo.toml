@@ -8,7 +8,7 @@ repository.workspace = true
 description = "STL and OBJ converters for lib3mf-rs"
 
 [dependencies]
-lib3mf-core.workspace = true
+lib3mf-core = { workspace = true, features = ["parallel"] }
 thiserror.workspace = true
 byteorder.workspace = true
 glam.workspace = true

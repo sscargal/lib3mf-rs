@@ -152,7 +152,6 @@ impl Mesh {
     }
 
     pub fn compute_aabb(&self) -> Option<crate::model::stats::BoundingBox> {
-        use rayon::prelude::*;
         if self.vertices.is_empty() {
             return None;
         }
@@ -166,35 +165,51 @@ impl Mesh {
             f32::NEG_INFINITY,
         );
 
-        let (min_x, min_y, min_z, max_x, max_y, max_z) = self
-            .vertices
-            .par_iter()
-            .fold(
-                || initial,
-                |acc, v| {
-                    (
-                        acc.0.min(v.x),
-                        acc.1.min(v.y),
-                        acc.2.min(v.z),
-                        acc.3.max(v.x),
-                        acc.4.max(v.y),
-                        acc.5.max(v.z),
-                    )
-                },
-            )
-            .reduce(
-                || initial,
-                |a, b| {
-                    (
-                        a.0.min(b.0),
-                        a.1.min(b.1),
-                        a.2.min(b.2),
-                        a.3.max(b.3),
-                        a.4.max(b.4),
-                        a.5.max(b.5),
-                    )
-                },
-            );
+        #[cfg(feature = "parallel")]
+        let (min_x, min_y, min_z, max_x, max_y, max_z) = {
+            use rayon::prelude::*;
+            self.vertices
+                .par_iter()
+                .fold(
+                    || initial,
+                    |acc, v| {
+                        (
+                            acc.0.min(v.x),
+                            acc.1.min(v.y),
+                            acc.2.min(v.z),
+                            acc.3.max(v.x),
+                            acc.4.max(v.y),
+                            acc.5.max(v.z),
+                        )
+                    },
+                )
+                .reduce(
+                    || initial,
+                    |a, b| {
+                        (
+                            a.0.min(b.0),
+                            a.1.min(b.1),
+                            a.2.min(b.2),
+                            a.3.max(b.3),
+                            a.4.max(b.4),
+                            a.5.max(b.5),
+                        )
+                    },
+                )
+        };
+
+        #[cfg(not(feature = "parallel"))]
+        let (min_x, min_y, min_z, max_x, max_y, max_z) =
+            self.vertices.iter().fold(initial, |acc, v| {
+                (
+                    acc.0.min(v.x),
+                    acc.1.min(v.y),
+                    acc.2.min(v.z),
+                    acc.3.max(v.x),
+                    acc.4.max(v.y),
+                    acc.5.max(v.z),
+                )
+            });
 
         Some(crate::model::stats::BoundingBox {
             min: [min_x, min_y, min_z],
@@ -203,48 +218,61 @@ impl Mesh {
     }
 
     pub fn compute_area_and_volume(&self) -> (f64, f64) {
-        use rayon::prelude::*;
         if self.triangles.is_empty() {
             return (0.0, 0.0);
         }
 
-        let (area, volume) = self
-            .triangles
-            .par_iter()
-            .fold(
-                || (0.0f64, 0.0f64),
-                |acc, t| {
-                    let v1 = glam::Vec3::new(
-                        self.vertices[t.v1 as usize].x,
-                        self.vertices[t.v1 as usize].y,
-                        self.vertices[t.v1 as usize].z,
-                    );
-                    let v2 = glam::Vec3::new(
-                        self.vertices[t.v2 as usize].x,
-                        self.vertices[t.v2 as usize].y,
-                        self.vertices[t.v2 as usize].z,
-                    );
-                    let v3 = glam::Vec3::new(
-                        self.vertices[t.v3 as usize].x,
-                        self.vertices[t.v3 as usize].y,
-                        self.vertices[t.v3 as usize].z,
-                    );
+        #[cfg(feature = "parallel")]
+        let (area, volume) = {
+            use rayon::prelude::*;
+            self.triangles
+                .par_iter()
+                .fold(
+                    || (0.0f64, 0.0f64),
+                    |acc, t| {
+                        let (area, volume) = self.compute_triangle_stats(t);
+                        (acc.0 + area, acc.1 + volume)
+                    },
+                )
+                .reduce(|| (0.0, 0.0), |a, b| (a.0 + b.0, a.1 + b.1))
+        };
 
-                    // Area using cross product
-                    let edge1 = v2 - v1;
-                    let edge2 = v3 - v1;
-                    let cross = edge1.cross(edge2);
-                    let triangle_area = 0.5 * cross.length() as f64;
-
-                    // Signed volume of tetrahedron from origin
-                    let triangle_volume = (v1.dot(v2.cross(v3)) / 6.0) as f64;
-
-                    (acc.0 + triangle_area, acc.1 + triangle_volume)
-                },
-            )
-            .reduce(|| (0.0, 0.0), |a, b| (a.0 + b.0, a.1 + b.1));
+        #[cfg(not(feature = "parallel"))]
+        let (area, volume) = self.triangles.iter().fold((0.0f64, 0.0f64), |acc, t| {
+            let (area, volume) = self.compute_triangle_stats(t);
+            (acc.0 + area, acc.1 + volume)
+        });
 
         (area, volume)
+    }
+
+    fn compute_triangle_stats(&self, t: &Triangle) -> (f64, f64) {
+        let v1 = glam::Vec3::new(
+            self.vertices[t.v1 as usize].x,
+            self.vertices[t.v1 as usize].y,
+            self.vertices[t.v1 as usize].z,
+        );
+        let v2 = glam::Vec3::new(
+            self.vertices[t.v2 as usize].x,
+            self.vertices[t.v2 as usize].y,
+            self.vertices[t.v2 as usize].z,
+        );
+        let v3 = glam::Vec3::new(
+            self.vertices[t.v3 as usize].x,
+            self.vertices[t.v3 as usize].y,
+            self.vertices[t.v3 as usize].z,
+        );
+
+        // Area using cross product
+        let edge1 = v2 - v1;
+        let edge2 = v3 - v1;
+        let cross = edge1.cross(edge2);
+        let triangle_area = 0.5 * cross.length() as f64;
+
+        // Signed volume of tetrahedron from origin
+        let triangle_volume = (v1.dot(v2.cross(v3)) / 6.0) as f64;
+
+        (triangle_area, triangle_volume)
     }
 
     pub fn compute_triangle_area(&self, triangle: &Triangle) -> f64 {

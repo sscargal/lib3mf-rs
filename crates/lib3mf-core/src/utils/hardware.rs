@@ -8,6 +8,7 @@ pub struct HardwareCapabilities {
 }
 
 pub fn detect_capabilities() -> HardwareCapabilities {
+    #[allow(unused_mut)]
     let mut features = Vec::new();
 
     #[cfg(target_arch = "x86_64")]
@@ -44,7 +45,10 @@ pub fn detect_capabilities() -> HardwareCapabilities {
 
     HardwareCapabilities {
         architecture: std::env::consts::ARCH.to_string(),
+        #[cfg(feature = "parallel")]
         num_cpus: rayon::current_num_threads(),
+        #[cfg(not(feature = "parallel"))]
+        num_cpus: 1,
         simd_features: features,
     }
 }
