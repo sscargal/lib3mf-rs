@@ -2,7 +2,6 @@ use glam::{Mat4, Vec3};
 use lib3mf_core::model::{
     BuildItem, Component, Components, Geometry, Mesh, Model, Object, ResourceId, Unit,
 };
-use lib3mf_core::writer::package_writer::PackageWriter;
 use std::fs::File;
 
 fn main() -> anyhow::Result<()> {
@@ -87,8 +86,7 @@ fn main() -> anyhow::Result<()> {
 
     // 4. Write
     let file = File::create("components.3mf")?;
-    let writer = PackageWriter::new(file);
-    writer.write(&model)?;
+    model.write(file)?;
 
     println!("Written to components.3mf");
     Ok(())

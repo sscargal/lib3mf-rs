@@ -2,7 +2,6 @@ use lib3mf_core::model::{
     BuildItem, Geometry, Model, Object, Polygon, ResourceId, Segment, Slice, SliceStack, Unit,
     Vertex2D,
 };
-use lib3mf_core::writer::package_writer::PackageWriter;
 use std::fs::File;
 
 fn main() -> anyhow::Result<()> {
@@ -123,8 +122,7 @@ fn main() -> anyhow::Result<()> {
 
     // 5. Write to file
     let file = File::create("slices.3mf")?;
-    let writer = PackageWriter::new(file);
-    writer.write(&model)?;
+    model.write(file)?;
 
     println!("Written to slices.3mf");
 

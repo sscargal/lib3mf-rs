@@ -1,5 +1,4 @@
 use lib3mf_core::model::{Model, Unit};
-use lib3mf_core::writer::package_writer::PackageWriter;
 use std::fs::File;
 
 fn main() -> anyhow::Result<()> {
@@ -40,8 +39,7 @@ fn main() -> anyhow::Result<()> {
 
     // Write to file
     let file = File::create("metadata.3mf")?;
-    let writer = PackageWriter::new(file);
-    writer.write(&model)?;
+    model.write(file)?;
 
     println!("Written to metadata.3mf");
 

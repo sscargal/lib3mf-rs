@@ -26,6 +26,29 @@ impl<'a, A: ArchiveReader> PartResolver<'a, A> {
         id: ResourceId,
         path: Option<&str>,
     ) -> Result<Option<(&Model, &Object)>> {
+        let model = self.get_or_load_model(path)?;
+        Ok(model.resources.get_object(id).map(|obj| (model, obj)))
+    }
+
+    pub fn resolve_base_materials(
+        &mut self,
+        id: ResourceId,
+        path: Option<&str>,
+    ) -> Result<Option<&crate::model::BaseMaterialsGroup>> {
+        let model = self.get_or_load_model(path)?;
+        Ok(model.resources.get_base_materials(id))
+    }
+
+    pub fn resolve_color_group(
+        &mut self,
+        id: ResourceId,
+        path: Option<&str>,
+    ) -> Result<Option<&crate::model::ColorGroup>> {
+        let model = self.get_or_load_model(path)?;
+        Ok(model.resources.get_color_group(id))
+    }
+
+    fn get_or_load_model(&mut self, path: Option<&str>) -> Result<&Model> {
         let part_path = match path {
             Some(p) => {
                 let p = p.trim_start_matches('/');
@@ -39,7 +62,6 @@ impl<'a, A: ArchiveReader> PartResolver<'a, A> {
         };
 
         if !self.models.contains_key(part_path) {
-            // Try normalized version
             let data = self.archive.read_entry(part_path).or_else(|_| {
                 let alt = format!("/{}", part_path);
                 self.archive.read_entry(&alt)
@@ -49,8 +71,7 @@ impl<'a, A: ArchiveReader> PartResolver<'a, A> {
             self.models.insert(part_path.to_string(), model);
         }
 
-        let model = self.models.get(part_path).unwrap();
-        Ok(model.resources.get_object(id).map(|obj| (model, obj)))
+        Ok(self.models.get(part_path).unwrap())
     }
 
     pub fn get_root_model(&self) -> &Model {
