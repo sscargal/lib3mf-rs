@@ -81,7 +81,6 @@ run_cmd() {
     echo "" >> "$CMD_LOG"
     
     log_result "$cmd" $status
-    log_result "$cmd" $status
     return $status
 }
 
@@ -117,14 +116,26 @@ run_negative_cmd() {
     fi
 }
 
-echo "=== Building Project ==="
-cargo build || { echo "Build failed"; exit 1; }
-CLI_BIN="./target/debug/lib3mf-cli"
+echo "=== Project Validation ==="
+run_cmd "cargo build" "Building Debug"
+run_cmd "cargo build --release" "Building Release"
 
-if [ ! -f "$CLI_BIN" ]; then
-    echo "Error: CLI binary not found at $CLI_BIN"
+CLI_BIN_DEBUG="./target/debug/lib3mf-cli"
+CLI_BIN_RELEASE="./target/release/lib3mf-cli"
+
+# Ensure at least debug binary exists for rest of tests
+if [ ! -f "$CLI_BIN_DEBUG" ]; then
+    echo "Error: CLI binary not found at $CLI_BIN_DEBUG"
     exit 1
 fi
+CLI_BIN="$CLI_BIN_DEBUG"
+
+run_cmd "$CLI_BIN_RELEASE --version" "Checking Release Version"
+run_cmd "$CLI_BIN_DEBUG --version" "Checking Debug Version"
+run_cmd "cargo clippy -- -D warnings" "Running Clippy"
+run_cmd "cargo fmt --check" "Checking Format"
+run_cmd "cargo test" "Running Tests"
+run_cmd "cargo bench" "Running Benchmarks"
 
 # --- Asset Generation (from test_cli.sh) ---
 echo -e "${BLUE}=== Generating Test Assets ===${NC}"
