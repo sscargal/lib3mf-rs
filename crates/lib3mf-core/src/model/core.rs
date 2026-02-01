@@ -1,3 +1,4 @@
+use super::units::Unit;
 use crate::model::{Build, ResourceCollection};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -78,23 +79,4 @@ impl Default for Model {
     }
 }
 
-/// Units of measurement used in the 3MF model.
-///
-/// Affects how vertex coordinates are interpreted in real-world dimensions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "lowercase")]
-pub enum Unit {
-    /// 0.000001 meters
-    Micron,
-    /// 0.001 meters (Default)
-    #[default]
-    Millimeter,
-    /// 0.01 meters
-    Centimeter,
-    /// 0.0254 meters
-    Inch,
-    /// 0.3048 meters
-    Foot,
-    /// 1.0 meters
-    Meter,
-}
+// Unit enum moved to definition in units.rs

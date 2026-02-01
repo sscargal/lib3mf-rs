@@ -5,7 +5,7 @@ use std::collections::HashMap;
 pub fn validate_geometry(model: &Model, level: ValidationLevel, report: &mut ValidationReport) {
     for object in model.resources.iter_objects() {
         if let Geometry::Mesh(mesh) = &object.geometry {
-            validate_mesh(mesh, object.id, level, report);
+            validate_mesh(mesh, object.id, level, report, model.unit);
         }
     }
 }
@@ -15,6 +15,7 @@ fn validate_mesh(
     oid: ResourceId,
     level: ValidationLevel,
     report: &mut ValidationReport,
+    unit: crate::model::Unit,
 ) {
     // Basic checks
     for (i, tri) in mesh.triangles.iter().enumerate() {
@@ -35,7 +36,7 @@ fn validate_mesh(
         check_islands(mesh, oid, report);
         check_self_intersections(mesh, oid, report);
         check_orientation(mesh, oid, report);
-        check_degenerate_faces(mesh, oid, report);
+        check_degenerate_faces(mesh, oid, report, unit);
     }
 }
 
@@ -279,12 +280,26 @@ fn check_orientation(mesh: &Mesh, oid: ResourceId, report: &mut ValidationReport
     }
 }
 
-fn check_degenerate_faces(mesh: &Mesh, oid: ResourceId, report: &mut ValidationReport) {
+fn check_degenerate_faces(
+    mesh: &Mesh,
+    oid: ResourceId,
+    report: &mut ValidationReport,
+    unit: crate::model::Unit,
+) {
+    // Determine epsilon based on unit.
+    // Base reference: 1e-6 mm^2 (which is 1e-12 m^2)
+    // Formula: threshold = 1e-12 / scale_factor^2
+    let scale = unit.scale_factor();
+    let epsilon = 1e-12 / (scale * scale);
+
     for (i, tri) in mesh.triangles.iter().enumerate() {
-        if mesh.compute_triangle_area(tri) < 1e-6 {
+        if mesh.compute_triangle_area(tri) < epsilon {
             report.add_warning(
                 4005,
-                format!("Triangle {} in Object {} has zero/near-zero area", i, oid.0),
+                format!(
+                    "Triangle {} in Object {} has zero/near-zero area (unit scaled)",
+                    i, oid.0
+                ),
             );
         }
     }

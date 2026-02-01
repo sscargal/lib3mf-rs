@@ -222,6 +222,23 @@ run_negative_cmd "$CLI_BIN stats $CORRUPT_FILE" "Testing stats on corrupt file"
 run_negative_cmd "$CLI_BIN list $CORRUPT_FILE" "Testing list on corrupt file"
 run_negative_cmd "$CLI_BIN validate $CORRUPT_FILE" "Testing validate on corrupt file"
 
+# --- Unit Verification Tests ---
+echo -e "${BLUE}=== Unit Verification Tests ===${NC}"
+
+# Check that stats output includes Unit Scale and Normalized Units
+STATS_OUTPUT=$($CLI_BIN stats "$ASSET_3MF")
+if echo "$STATS_OUTPUT" | grep -q "Scale:"; then
+    log_result "Unit Scale Display" 0
+else
+    log_result "Unit Scale Display (Missing 'Scale:' in output)" 1
+fi
+
+if echo "$STATS_OUTPUT" | grep -q "m^2"; then
+    log_result "Normalized Area Display" 0
+else
+    log_result "Normalized Area Display (Missing 'm^2' in output)" 1
+fi
+
 # --- Discovery & Testing Phase ---
 echo -e "${BLUE}=== Discovering Commands ===${NC}"
 COMMANDS=$($CLI_BIN --help | grep -E '^\s{2}[a-z]+' | awk '{print $1}')

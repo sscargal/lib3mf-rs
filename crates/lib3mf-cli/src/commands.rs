@@ -137,7 +137,11 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
         }
         _ => {
             println!("Stats for {:?}", path);
-            println!("Unit: {:?}", stats.unit);
+            println!(
+                "Unit: {:?} (Scale: {} m)",
+                stats.unit,
+                stats.unit.scale_factor()
+            );
             println!("Generator: {:?}", stats.generator.unwrap_or_default());
             println!("Geometry:");
             println!("  Objects: {}", stats.geometry.object_count);
@@ -147,8 +151,23 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
             if let Some(bbox) = stats.geometry.bounding_box {
                 println!("  Bounding Box: Min {:?}, Max {:?}", bbox.min, bbox.max);
             }
-            println!("  Surface Area: {:.2}", stats.geometry.surface_area);
-            println!("  Volume: {:.2}", stats.geometry.volume);
+            let scale = stats.unit.scale_factor();
+            println!(
+                "  Surface Area: {:.2} (native units^2)",
+                stats.geometry.surface_area
+            );
+            println!(
+                "                {:.6} m^2",
+                stats.geometry.surface_area * scale * scale
+            );
+            println!(
+                "  Volume:       {:.2} (native units^3)",
+                stats.geometry.volume
+            );
+            println!(
+                "                {:.6} m^3",
+                stats.geometry.volume * scale * scale * scale
+            );
 
             println!("\nSystem Info:");
             println!("  Architecture: {}", stats.system_info.architecture);

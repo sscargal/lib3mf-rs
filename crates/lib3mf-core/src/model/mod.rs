@@ -11,6 +11,8 @@ pub mod secure_content;
 pub mod slice;
 pub mod stats;
 pub mod stats_impl;
+
+pub mod units;
 pub mod volumetric;
 
 pub use build::*;
@@ -24,4 +26,6 @@ pub use resources::*;
 pub use secure_content::*;
 pub use slice::*;
 pub use stats::*;
+
+pub use units::*;
 pub use volumetric::*;
