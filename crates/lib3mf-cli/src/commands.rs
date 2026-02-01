@@ -600,6 +600,45 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
         .unwrap_or("")
         .to_lowercase();
 
+    // Special handling for STL export from 3MF to support components
+    if output_ext == "stl" {
+        // We need to keep the archive open for resolving components
+        // Try opening as archive (zip)
+        let file_res = File::open(&input);
+
+        let should_use_resolver = if let Ok(mut f) = file_res {
+            let mut magic = [0u8; 4];
+             f.read_exact(&mut magic).is_ok() && &magic == b"PK\x03\x04"
+        } else {
+            false
+        };
+
+        if should_use_resolver {
+            let mut archiver = open_archive(&input)?;
+            let model_path = find_model_path(&mut archiver)
+                .map_err(|e| anyhow::anyhow!("Failed to find model path: {}", e))?;
+            let model_data = archiver
+                .read_entry(&model_path)
+                .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
+            let model = parse_model(std::io::Cursor::new(model_data))
+                .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?;
+
+            let resolver = lib3mf_core::model::resolver::PartResolver::new(&mut archiver, model);
+            let file = File::create(&output)
+                .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
+
+            // Access the root model via resolver for export
+            let root_model = resolver.get_root_model().clone(); // Clone to pass to export, or export takes ref
+
+            lib3mf_converters::stl::StlExporter::write_with_resolver(&root_model, resolver, file)
+                .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
+
+            println!("Converted {:?} to {:?}", input, output);
+            return Ok(());
+        }
+    }
+
+    // Fallback to legacy conversion (or non-archive)
     // 1. Load Model
     let model = load_model(&input)?;
 
