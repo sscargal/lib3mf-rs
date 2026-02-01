@@ -1,3 +1,4 @@
+pub mod bvh;
 pub mod geometry;
 pub mod report;
 pub mod schema;

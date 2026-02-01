@@ -14,6 +14,22 @@ pub enum OutputFormat {
     Tree,
 }
 
+#[derive(Clone, ValueEnum, Debug, PartialEq, Copy)]
+pub enum RepairType {
+    /// Remove degenerate triangles (zero area)
+    Degenerate,
+    /// Remove duplicate triangles
+    Duplicates,
+    /// Harmonize triangle winding
+    Harmonize,
+    /// Remove disconnected components (islands)
+    Islands,
+    /// Attempt to fill holes (boundary loops)
+    Holes,
+    /// Perform all repairs
+    All,
+}
+
 enum ModelSource {
     Archive(ZipArchiver<File>, lib3mf_core::model::Model),
     Raw(lib3mf_core::model::Model),
@@ -709,7 +725,12 @@ pub fn validate(path: PathBuf, level: String) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn repair(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
+pub fn repair(
+    input: PathBuf,
+    output: PathBuf,
+    epsilon: f32,
+    fixes: Vec<RepairType>,
+) -> anyhow::Result<()> {
     use lib3mf_core::model::{Geometry, MeshRepair, RepairOptions};
 
     println!("Repairing {:?} -> {:?}", input, output);
@@ -723,29 +744,77 @@ pub fn repair(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
     let mut model = parse_model(std::io::Cursor::new(model_data))
         .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?;
 
-    let options = RepairOptions::default();
+    let mut options = RepairOptions {
+        stitch_epsilon: epsilon,
+        remove_degenerate: false,
+        remove_duplicate_faces: false,
+        harmonize_orientations: false,
+        remove_islands: false,
+        fill_holes: false,
+    };
+
+    let has_all = fixes.contains(&RepairType::All);
+    for fix in fixes {
+        match fix {
+            RepairType::Degenerate => options.remove_degenerate = true,
+            RepairType::Duplicates => options.remove_duplicate_faces = true,
+            RepairType::Harmonize => options.harmonize_orientations = true,
+            RepairType::Islands => options.remove_islands = true,
+            RepairType::Holes => options.fill_holes = true,
+            RepairType::All => {
+                options.remove_degenerate = true;
+                options.remove_duplicate_faces = true;
+                options.harmonize_orientations = true;
+                options.remove_islands = true;
+                options.fill_holes = true;
+            }
+        }
+    }
+
+    if has_all {
+        options.remove_degenerate = true;
+        options.remove_duplicate_faces = true;
+        options.harmonize_orientations = true;
+        options.remove_islands = true;
+        options.fill_holes = true;
+    }
+
     println!("Repair Options: {:?}", options);
 
     let mut total_vertices_removed = 0;
     let mut total_triangles_removed = 0;
+    let mut total_triangles_flipped = 0;
+    let mut total_triangles_added = 0;
 
     for object in model.resources.iter_objects_mut() {
         if let Geometry::Mesh(mesh) = &mut object.geometry {
             let stats = mesh.repair(options);
-            if stats.vertices_removed > 0 || stats.triangles_removed > 0 {
+            if stats.vertices_removed > 0
+                || stats.triangles_removed > 0
+                || stats.triangles_flipped > 0
+                || stats.triangles_added > 0
+            {
                 println!(
-                    "Repaired Object {}: Removed {} vertices, {} triangles",
-                    object.id.0, stats.vertices_removed, stats.triangles_removed
+                    "Repaired Object {}: Removed {} vertices, {} triangles. Flipped {}. Added {}.",
+                    object.id.0,
+                    stats.vertices_removed,
+                    stats.triangles_removed,
+                    stats.triangles_flipped,
+                    stats.triangles_added
                 );
                 total_vertices_removed += stats.vertices_removed;
                 total_triangles_removed += stats.triangles_removed;
+                total_triangles_flipped += stats.triangles_flipped;
+                total_triangles_added += stats.triangles_added;
             }
         }
     }
 
     println!("Total Repair Stats:");
-    println!("  Vertices Removed: {}", total_vertices_removed);
+    println!("  Vertices Removed:  {}", total_vertices_removed);
     println!("  Triangles Removed: {}", total_triangles_removed);
+    println!("  Triangles Flipped: {}", total_triangles_flipped);
+    println!("  Triangles Added:   {}", total_triangles_added);
 
     // Write output
     let file = File::create(&output)

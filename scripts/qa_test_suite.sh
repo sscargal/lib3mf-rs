@@ -180,6 +180,8 @@ ASSET_STL_DUMMY="$DUMMY_STL"
 KNOWN_VALUES=(
     "format:json,tree,text"
     "level:minimal,standard,strict,paranoid"
+    "fix:degenerate,duplicates,harmonize,islands,holes,all"
+    "epsilon:1e-3,1e-1"
     "key:$KEY_FILE"
     "cert:$CERT_FILE"
     "recipient:$CERT_FILE"

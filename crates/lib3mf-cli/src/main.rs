@@ -1,6 +1,6 @@
 mod commands;
 use clap::{Parser, Subcommand};
-use commands::OutputFormat;
+use commands::{OutputFormat, RepairType};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -240,6 +240,19 @@ enum Commands {
         input: PathBuf,
         /// Output file
         output: PathBuf,
+
+        /// Stitch epsilon for merging vertices
+        #[arg(long, default_value = "1e-4")]
+        epsilon: f32,
+
+        /// Specific repairs to perform (degenerate, duplicates, harmonize, islands, holes, all)
+        #[arg(
+            long = "fix",
+            short = 'f',
+            value_delimiter = ',',
+            default_value = "degenerate,duplicates,harmonize"
+        )]
+        fixes: Vec<RepairType>,
     },
     /// Sign a 3MF file using an RSA key
     ///
@@ -396,8 +409,13 @@ fn main() -> anyhow::Result<()> {
         Commands::Validate { file, level } => {
             commands::validate(file, level)?;
         }
-        Commands::Repair { input, output } => {
-            commands::repair(input, output)?;
+        Commands::Repair {
+            input,
+            output,
+            epsilon,
+            fixes,
+        } => {
+            commands::repair(input, output, epsilon, fixes)?;
         }
         Commands::Sign {
             input,

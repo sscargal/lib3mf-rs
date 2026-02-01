@@ -33,13 +33,18 @@ fn main() {
         stitch_epsilon: 0.0001, // 0.1mm
         remove_degenerate: true,
         remove_duplicate_faces: true,
+        harmonize_orientations: true,
+        remove_islands: false,
+        fill_holes: false,
     };
 
     let stats = mesh.repair(options);
 
     println!("Repair Report:");
-    println!("  Vertices Removed: {}", stats.vertices_removed);
+    println!("  Vertices Removed:  {}", stats.vertices_removed);
     println!("  Triangles Removed: {}", stats.triangles_removed);
+    println!("  Triangles Flipped: {}", stats.triangles_flipped);
+    println!("  Triangles Added:   {}", stats.triangles_added);
 
     println!("\nFinal Stats:");
     println!("  Vertices: {}", mesh.vertices.len());

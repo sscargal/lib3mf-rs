@@ -144,3 +144,96 @@ fn test_degenerate_face() {
         report.items
     );
 }
+
+#[test]
+fn test_non_manifold_vertex() {
+    let mut model = Model::default();
+    let mut mesh = Mesh::new();
+
+    // Two disjoint triangles sharing only vertex 0 (hourglass shape)
+    mesh.add_vertex(0.0, 0.0, 0.0); // 0
+    mesh.add_vertex(1.0, 0.0, 0.0); // 1
+    mesh.add_vertex(0.0, 1.0, 0.0); // 2
+    mesh.add_triangle(0, 1, 2);
+
+    mesh.add_vertex(-1.0, 0.0, 0.0); // 3
+    mesh.add_vertex(0.0, -1.0, 0.0); // 4
+    mesh.add_triangle(0, 3, 4);
+
+    let object = make_object(mesh);
+    model.resources.add_object(object).unwrap();
+
+    let mut report = ValidationReport::default();
+    validate_geometry(&model, ValidationLevel::Paranoid, &mut report);
+
+    // Should detect non-manifold vertex (code 4006)
+    assert!(
+        report.items.iter().any(|i| i.code == 4006),
+        "Should detect non-manifold vertex (4006). Got: {:?}",
+        report.items
+    );
+}
+
+#[test]
+fn test_islands() {
+    let mut model = Model::default();
+    let mut mesh = Mesh::new();
+
+    // Island 1: Triangle (0, 1, 2)
+    mesh.add_vertex(0.0, 0.0, 0.0);
+    mesh.add_vertex(1.0, 0.0, 0.0);
+    mesh.add_vertex(0.0, 1.0, 0.0);
+    mesh.add_triangle(0, 1, 2);
+
+    // Island 2: Triangle (3, 4, 5) - completely disconnected
+    mesh.add_vertex(10.0, 0.0, 0.0);
+    mesh.add_vertex(11.0, 0.0, 0.0);
+    mesh.add_vertex(10.0, 1.0, 0.0);
+    mesh.add_triangle(3, 4, 5);
+
+    let object = make_object(mesh);
+    model.resources.add_object(object).unwrap();
+
+    let mut report = ValidationReport::default();
+    validate_geometry(&model, ValidationLevel::Paranoid, &mut report);
+
+    // Should detect islands (code 4007)
+    assert!(
+        report.items.iter().any(|i| i.code == 4007),
+        "Should detect islands (4007). Got: {:?}",
+        report.items
+    );
+}
+
+#[test]
+fn test_self_intersection() {
+    let mut model = Model::default();
+    let mut mesh = Mesh::new();
+
+    // Two intersecting triangles (X-shape)
+    // T1: (0,0,-1) - (0,0,1) - (1,0,0) -> XY plane roughly
+    mesh.add_vertex(0.0, 1.0, 0.0); // 0
+    mesh.add_vertex(0.0, -1.0, 0.0); // 1
+    mesh.add_vertex(1.0, 0.0, 0.0); // 2
+    mesh.add_triangle(0, 1, 2);
+
+    // T2: (-1,0,0) - (1,0,0) - (0,1,0) -> wait, let's make them really intersect
+    // T2: (0.5, 0.5, -1.0) - (0.5, 0.5, 1.0) - (-0.5, 0.5, 0.0)
+    mesh.add_vertex(0.5, 0.0, -1.0); // 3
+    mesh.add_vertex(0.5, 0.0, 1.0); // 4
+    mesh.add_vertex(-0.5, 0.0, 0.0); // 5
+    mesh.add_triangle(3, 4, 5);
+
+    let object = make_object(mesh);
+    model.resources.add_object(object).unwrap();
+
+    let mut report = ValidationReport::default();
+    validate_geometry(&model, ValidationLevel::Paranoid, &mut report);
+
+    // Should detect self-intersection (code 4008)
+    assert!(
+        report.items.iter().any(|i| i.code == 4008),
+        "Should detect self-intersection (4008). Got: {:?}",
+        report.items
+    );
+}
