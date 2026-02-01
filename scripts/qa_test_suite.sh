@@ -2,10 +2,18 @@
 set -u
 
 # QA Test Suite for lib3mf-rs
-# Integrated with test_cli.sh concepts:
-# - Automatic CLI discovery
-# - Asset generation (Keys, Certs, Dummy Meshes)
-# - Specialized tests for complex commands (encrypt, sign, etc.)
+#
+# This script serves as the comprehensive Quality Assurance (QA) automation tool for the lib3mf-rs CLI.
+# Its primary purpose is to validate the correctness, robustness, and stability of the command-line interface
+# before releases. It dynamically discovers available commands to ensure full coverage and executes a mix
+# of generic fuzzing tests and specialized scenario-based tests.
+#
+# Capabilities:
+# 1. Automatic Discovery: Parses `lib3mf-cli --help` to dynamically identify and test all available subcommands.
+# 2. Asset Generation: Automatically creates required test assets (RSA keys, X.509 certs, invalid 3MF/STL files).
+# 3. Specialized Testing: Dedicated handlers for complex workflows like Encryption, Signing, and Diffing.
+# 4. Negative Testing: Verifies that the CLI correctly rejects zero-byte files, corrupted archives, and invalid inputs.
+# 5. Full Logging: Captures all STDOUT/STDERR to `commands.log` for deep debugging while keeping console output clean.
 
 # Usage: ./scripts/qa_test_suite.sh
 
@@ -73,7 +81,40 @@ run_cmd() {
     echo "" >> "$CMD_LOG"
     
     log_result "$cmd" $status
+    log_result "$cmd" $status
     return $status
+}
+
+run_negative_cmd() {
+    local cmd="$1"
+    local msg="${2:-Running Negative Test: $cmd}"
+    # echo "$msg"
+    
+    {
+        echo "========================================================"
+        echo "TIME: $(date)"
+        echo "CMD (NEGATIVE): $cmd"
+        echo "--------------------------------------------------------"
+    } >> "$CMD_LOG"
+    
+    eval "$cmd" >> "$CMD_LOG" 2>&1
+    local status=$?
+    
+    echo "EXIT: $status" >> "$CMD_LOG"
+    echo "" >> "$CMD_LOG"
+    
+    # Invert logic: Success (0) is FAIL, Failure (!0) is PASS
+    if [ "$status" -ne 0 ]; then
+        echo -e "${GREEN}[PASS]${NC} (Expected Fail) $cmd"
+        echo "[PASS] (Expected Fail) $cmd" >> "$REPORT_FILE"
+        ((PASS_COUNT++))
+        return 0
+    else
+        echo -e "${RED}[FAIL]${NC} (Unexpected Success) $cmd"
+        echo "[FAIL] (Unexpected Success) $cmd" >> "$REPORT_FILE"
+        ((FAIL_COUNT++))
+        return 1
+    fi
 }
 
 echo "=== Building Project ==="
@@ -143,6 +184,30 @@ get_values_for_option() {
         fi
     done
 }
+
+# --- Negative / Stress Testing ---
+echo -e "${BLUE}=== Negative & Stress Testing ===${NC}"
+
+# 1. Zero Byte File
+ZERO_FILE="$QA_TMP_DIR/zero.3mf"
+touch "$ZERO_FILE"
+echo "Testing Zero Byte File: $ZERO_FILE"
+
+# Test a few commands against zero file
+run_negative_cmd "$CLI_BIN stats $ZERO_FILE" "Testing stats on zero bytes"
+run_negative_cmd "$CLI_BIN list $ZERO_FILE" "Testing list on zero bytes"
+run_negative_cmd "$CLI_BIN validate $ZERO_FILE" "Testing validate on zero bytes"
+
+# 2. Corrupted File
+CORRUPT_FILE="$QA_TMP_DIR/corrupt.3mf"
+cp "$ASSET_3MF" "$CORRUPT_FILE"
+# Overwrite header with garbage
+printf "TRASH_DATA_HEADER" | dd of="$CORRUPT_FILE" bs=1 count=15 conv=notrunc 2>/dev/null
+echo "Testing Corrupted File: $CORRUPT_FILE"
+
+run_negative_cmd "$CLI_BIN stats $CORRUPT_FILE" "Testing stats on corrupt file"
+run_negative_cmd "$CLI_BIN list $CORRUPT_FILE" "Testing list on corrupt file"
+run_negative_cmd "$CLI_BIN validate $CORRUPT_FILE" "Testing validate on corrupt file"
 
 # --- Discovery & Testing Phase ---
 echo -e "${BLUE}=== Discovering Commands ===${NC}"
