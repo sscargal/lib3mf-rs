@@ -220,15 +220,9 @@ enum Commands {
     },
     /// Repair a 3MF mesh
     ///
-    /// Attempts to fix common mesh errors such as:
-    ///
-    /// * Removing degenerate triangles (zero area)
-    ///
-    /// * Removing unused vertices
-    ///
-    /// * (Future) Closing holes
-    ///
-    /// Note: Currently performs a basic pass.
+    /// Performs advanced geometric processing to ensure 3D printability.
+    /// Supports vertex stitching, degenerate triangle removal, orientation
+    /// harmonization, hole filling, and disconnected component removal.
     ///
     /// Examples:
     ///
