@@ -608,7 +608,7 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
 
         let should_use_resolver = if let Ok(mut f) = file_res {
             let mut magic = [0u8; 4];
-             f.read_exact(&mut magic).is_ok() && &magic == b"PK\x03\x04"
+            f.read_exact(&mut magic).is_ok() && &magic == b"PK\x03\x04"
         } else {
             false
         };
