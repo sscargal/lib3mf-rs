@@ -27,6 +27,7 @@ fn main() -> anyhow::Result<()> {
         pid: None,
         thumbnail: None,
         pindex: None,
+        object_type: lib3mf_core::model::ObjectType::Model,
         geometry: lib3mf_core::model::Geometry::Mesh(mesh),
     };
     model.resources.add_object(object)?;

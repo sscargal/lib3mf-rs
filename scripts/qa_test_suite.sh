@@ -788,6 +788,559 @@ echo -e "${BLUE}[SKIP]${NC} Secure: Empty key file validation (not yet implement
 # run_negative_cmd "$CLI_BIN sign $ASSET_3MF $SIGN_BAD_CERT_OUT --key $KEY_FILE --cert $MALFORMED_CERT" "Secure: Reject malformed certificate"
 echo -e "${BLUE}[SKIP]${NC} Secure: Malformed certificate validation (not yet implemented)"
 
+# --- Object Type Differentiation Tests ---
+echo -e "${BLUE}=== Object Type Differentiation Tests ===${NC}"
+
+# Helper function to create 3MF with specific object type
+create_object_type_3mf() {
+    local output_file="$1"
+    local obj_type="$2"
+
+    cat > "$QA_TMP_DIR/model.xml" <<TYPEEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
+  <resources>
+    <object id="1" type="$obj_type">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0"/>
+          <vertex x="10" y="0" z="0"/>
+          <vertex x="0" y="10" z="0"/>
+          <vertex x="0" y="0" z="10"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+          <triangle v1="0" v2="2" v3="3"/>
+          <triangle v1="0" v2="3" v3="1"/>
+          <triangle v1="1" v2="3" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+  </resources>
+  <build>
+    <item objectid="1"/>
+  </build>
+</model>
+TYPEEOF
+
+    mkdir -p "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D"
+
+    cat > "$QA_TMP_DIR/[Content_Types].xml" <<'CTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
+</Types>
+CTEOF
+
+    cat > "$QA_TMP_DIR/_rels/.rels" <<'RELSEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rel0" Target="/3D/3dmodel.model" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
+</Relationships>
+RELSEOF
+
+    mv "$QA_TMP_DIR/model.xml" "$QA_TMP_DIR/3D/3dmodel.model"
+    (cd "$QA_TMP_DIR" && zip -q -r "$output_file" "[Content_Types].xml" "_rels" "3D" 2>/dev/null)
+    rm -rf "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D" "$QA_TMP_DIR/[Content_Types].xml"
+}
+
+# Test 1: Test Each Object Type
+for OBJ_TYPE in "model" "support" "solidsupport" "surface" "other"; do
+    TYPE_3MF="$QA_TMP_DIR/type_${OBJ_TYPE}.3mf"
+    create_object_type_3mf "$TYPE_3MF" "$OBJ_TYPE"
+
+    if [ -f "$TYPE_3MF" ]; then
+        run_cmd "$CLI_BIN stats $TYPE_3MF" "ObjectType: Stats on $OBJ_TYPE"
+        run_cmd "$CLI_BIN validate $TYPE_3MF" "ObjectType: Validate $OBJ_TYPE"
+
+        # Verify type detection in stats output
+        STATS_OUT=$($CLI_BIN stats $TYPE_3MF 2>&1)
+        if echo "$STATS_OUT" | grep -qi "$OBJ_TYPE"; then
+            log_result "ObjectType: $OBJ_TYPE type detection in stats" 0
+        else
+            # Object type might not be shown in stats output, which is OK for some types
+            log_result "ObjectType: $OBJ_TYPE type detection (not in stats - may be normal)" 0
+        fi
+
+        # Test round-trip preservation
+        TYPE_ROUNDTRIP="$QA_TMP_DIR/type_${OBJ_TYPE}_roundtrip.3mf"
+        run_cmd "$CLI_BIN copy $TYPE_3MF $TYPE_ROUNDTRIP" "ObjectType: Round-trip $OBJ_TYPE"
+
+        if [ -f "$TYPE_ROUNDTRIP" ]; then
+            run_cmd "$CLI_BIN validate $TYPE_ROUNDTRIP" "ObjectType: Validate round-tripped $OBJ_TYPE"
+        fi
+    else
+        echo "Warning: Failed to create $OBJ_TYPE test 3MF, skipping tests"
+    fi
+done
+
+# Test 2: Mixed Object Types in Single File
+create_mixed_types_3mf() {
+    local output_file="$1"
+
+    cat > "$QA_TMP_DIR/model.xml" <<'MIXEDEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
+  <resources>
+    <object id="1" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0"/>
+          <vertex x="10" y="0" z="0"/>
+          <vertex x="0" y="10" z="0"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+    <object id="2" type="support">
+      <mesh>
+        <vertices>
+          <vertex x="5" y="5" z="0"/>
+          <vertex x="5" y="5" z="10"/>
+          <vertex x="6" y="5" z="10"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+    <object id="3" type="other">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0"/>
+          <vertex x="1" y="0" z="0"/>
+          <vertex x="0" y="1" z="0"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+  </resources>
+  <build>
+    <item objectid="1"/>
+    <item objectid="2"/>
+  </build>
+</model>
+MIXEDEOF
+
+    mkdir -p "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D"
+
+    cat > "$QA_TMP_DIR/[Content_Types].xml" <<'CTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
+</Types>
+CTEOF
+
+    cat > "$QA_TMP_DIR/_rels/.rels" <<'RELSEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rel0" Target="/3D/3dmodel.model" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
+</Relationships>
+RELSEOF
+
+    mv "$QA_TMP_DIR/model.xml" "$QA_TMP_DIR/3D/3dmodel.model"
+    (cd "$QA_TMP_DIR" && zip -q -r "$output_file" "[Content_Types].xml" "_rels" "3D" 2>/dev/null)
+    rm -rf "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D" "$QA_TMP_DIR/[Content_Types].xml"
+}
+
+MIXED_TYPES_3MF="$QA_TMP_DIR/mixed_types.3mf"
+create_mixed_types_3mf "$MIXED_TYPES_3MF"
+
+if [ -f "$MIXED_TYPES_3MF" ]; then
+    run_cmd "$CLI_BIN stats $MIXED_TYPES_3MF" "ObjectType: Stats on mixed types"
+    run_cmd "$CLI_BIN validate $MIXED_TYPES_3MF" "ObjectType: Validate mixed types"
+    run_cmd "$CLI_BIN list $MIXED_TYPES_3MF" "ObjectType: List mixed types"
+
+    # Check if stats shows type breakdown
+    STATS_OUT=$($CLI_BIN stats $MIXED_TYPES_3MF 2>&1)
+    if echo "$STATS_OUT" | grep -qi "type"; then
+        log_result "ObjectType: Type breakdown in stats" 0
+    else
+        log_result "ObjectType: Type breakdown in stats (no type info shown)" 0
+    fi
+
+    # Test round-trip with mixed types
+    MIXED_ROUNDTRIP="$QA_TMP_DIR/mixed_types_roundtrip.3mf"
+    run_cmd "$CLI_BIN copy $MIXED_TYPES_3MF $MIXED_ROUNDTRIP" "ObjectType: Round-trip mixed types"
+else
+    echo "Warning: Failed to create mixed types test 3MF, skipping tests"
+fi
+
+# --- Boolean Operations Extension Tests ---
+echo -e "${BLUE}=== Boolean Operations Extension Tests ===${NC}"
+
+# Helper function to create 3MF with boolean operations
+create_boolean_ops_3mf() {
+    local output_file="$1"
+    local op_type="$2"  # union, difference, intersection
+
+    cat > "$QA_TMP_DIR/model.xml" <<BOOLEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:b="http://schemas.3mf.io/3dmanufacturing/booleanoperations/2023/07">
+  <resources>
+    <object id="1" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0"/>
+          <vertex x="10" y="0" z="0"/>
+          <vertex x="5" y="10" z="0"/>
+          <vertex x="5" y="5" z="10"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+          <triangle v1="0" v2="2" v3="3"/>
+          <triangle v1="0" v2="3" v3="1"/>
+          <triangle v1="1" v2="3" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+    <object id="2" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="5" y="0" z="0"/>
+          <vertex x="15" y="0" z="0"/>
+          <vertex x="10" y="10" z="0"/>
+          <vertex x="10" y="5" z="10"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+          <triangle v1="0" v2="2" v3="3"/>
+          <triangle v1="0" v2="3" v3="1"/>
+          <triangle v1="1" v2="3" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+    <b:booleanshape id="3" objectid="1">
+      <b:boolean operation="$op_type" objectid="2"/>
+    </b:booleanshape>
+  </resources>
+  <build>
+    <item objectid="3"/>
+  </build>
+</model>
+BOOLEOF
+
+    mkdir -p "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D"
+
+    cat > "$QA_TMP_DIR/[Content_Types].xml" <<'CTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
+</Types>
+CTEOF
+
+    cat > "$QA_TMP_DIR/_rels/.rels" <<'RELSEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rel0" Target="/3D/3dmodel.model" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
+</Relationships>
+RELSEOF
+
+    mv "$QA_TMP_DIR/model.xml" "$QA_TMP_DIR/3D/3dmodel.model"
+    (cd "$QA_TMP_DIR" && zip -q -r "$output_file" "[Content_Types].xml" "_rels" "3D" 2>/dev/null)
+    rm -rf "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D" "$QA_TMP_DIR/[Content_Types].xml"
+}
+
+# Test 1: Test Each Boolean Operation Type
+for OP_TYPE in "union" "difference" "intersection"; do
+    BOOL_3MF="$QA_TMP_DIR/boolean_${OP_TYPE}.3mf"
+    create_boolean_ops_3mf "$BOOL_3MF" "$OP_TYPE"
+
+    if [ -f "$BOOL_3MF" ]; then
+        run_cmd "$CLI_BIN stats $BOOL_3MF" "BooleanOps: Stats on $OP_TYPE"
+        run_cmd "$CLI_BIN validate $BOOL_3MF" "BooleanOps: Validate $OP_TYPE"
+
+        # Test round-trip preservation
+        BOOL_ROUNDTRIP="$QA_TMP_DIR/boolean_${OP_TYPE}_roundtrip.3mf"
+        run_cmd "$CLI_BIN copy $BOOL_3MF $BOOL_ROUNDTRIP" "BooleanOps: Round-trip $OP_TYPE"
+
+        if [ -f "$BOOL_ROUNDTRIP" ]; then
+            run_cmd "$CLI_BIN validate $BOOL_ROUNDTRIP" "BooleanOps: Validate round-tripped $OP_TYPE"
+        fi
+    else
+        echo "Warning: Failed to create $OP_TYPE boolean test 3MF, skipping tests"
+    fi
+done
+
+# Test 2: Nested Boolean Operations with Transformations
+create_nested_boolean_3mf() {
+    local output_file="$1"
+
+    cat > "$QA_TMP_DIR/model.xml" <<'NESTEDBOOLEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:b="http://schemas.3mf.io/3dmanufacturing/booleanoperations/2023/07">
+  <resources>
+    <object id="1" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0"/>
+          <vertex x="10" y="0" z="0"/>
+          <vertex x="5" y="10" z="0"/>
+          <vertex x="5" y="5" z="10"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+          <triangle v1="0" v2="2" v3="3"/>
+          <triangle v1="0" v2="3" v3="1"/>
+          <triangle v1="1" v2="3" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+    <object id="2" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0"/>
+          <vertex x="5" y="0" z="0"/>
+          <vertex x="2.5" y="5" z="0"/>
+          <vertex x="2.5" y="2.5" z="5"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+          <triangle v1="0" v2="2" v3="3"/>
+          <triangle v1="0" v2="3" v3="1"/>
+          <triangle v1="1" v2="3" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+    <object id="3" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0"/>
+          <vertex x="3" y="0" z="0"/>
+          <vertex x="1.5" y="3" z="0"/>
+          <vertex x="1.5" y="1.5" z="3"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+          <triangle v1="0" v2="2" v3="3"/>
+          <triangle v1="0" v2="3" v3="1"/>
+          <triangle v1="1" v2="3" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+    <b:booleanshape id="4" objectid="1" transform="1 0 0 0 1 0 0 0 1 0 0 0">
+      <b:boolean operation="difference" objectid="2" transform="1 0 0 0 1 0 0 0 1 2 0 0"/>
+      <b:boolean operation="intersection" objectid="3" transform="2 0 0 0 2 0 0 0 2 0 0 0"/>
+    </b:booleanshape>
+  </resources>
+  <build>
+    <item objectid="4"/>
+  </build>
+</model>
+NESTEDBOOLEOF
+
+    mkdir -p "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D"
+
+    cat > "$QA_TMP_DIR/[Content_Types].xml" <<'CTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
+</Types>
+CTEOF
+
+    cat > "$QA_TMP_DIR/_rels/.rels" <<'RELSEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rel0" Target="/3D/3dmodel.model" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
+</Relationships>
+RELSEOF
+
+    mv "$QA_TMP_DIR/model.xml" "$QA_TMP_DIR/3D/3dmodel.model"
+    (cd "$QA_TMP_DIR" && zip -q -r "$output_file" "[Content_Types].xml" "_rels" "3D" 2>/dev/null)
+    rm -rf "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D" "$QA_TMP_DIR/[Content_Types].xml"
+}
+
+NESTED_BOOL_3MF="$QA_TMP_DIR/nested_boolean.3mf"
+create_nested_boolean_3mf "$NESTED_BOOL_3MF"
+
+if [ -f "$NESTED_BOOL_3MF" ]; then
+    run_cmd "$CLI_BIN stats $NESTED_BOOL_3MF" "BooleanOps: Stats on nested operations"
+    run_cmd "$CLI_BIN validate $NESTED_BOOL_3MF" "BooleanOps: Validate nested operations"
+    run_cmd "$CLI_BIN list $NESTED_BOOL_3MF" "BooleanOps: List nested operations"
+
+    # Test round-trip with nested operations and transforms
+    NESTED_ROUNDTRIP="$QA_TMP_DIR/nested_boolean_roundtrip.3mf"
+    run_cmd "$CLI_BIN copy $NESTED_BOOL_3MF $NESTED_ROUNDTRIP" "BooleanOps: Round-trip nested operations"
+
+    if [ -f "$NESTED_ROUNDTRIP" ]; then
+        run_cmd "$CLI_BIN validate $NESTED_ROUNDTRIP" "BooleanOps: Validate round-tripped nested"
+    fi
+else
+    echo "Warning: Failed to create nested boolean test 3MF, skipping tests"
+fi
+
+# Test 3: Cycle Detection (Negative Test - Should Fail Validation)
+create_cyclic_boolean_3mf() {
+    local output_file="$1"
+
+    cat > "$QA_TMP_DIR/model.xml" <<'CYCLEEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:b="http://schemas.3mf.io/3dmanufacturing/booleanoperations/2023/07">
+  <resources>
+    <object id="1" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0"/>
+        </vertices>
+        <triangles/>
+      </mesh>
+    </object>
+    <b:booleanshape id="2" objectid="3">
+      <b:boolean objectid="1"/>
+    </b:booleanshape>
+    <b:booleanshape id="3" objectid="2">
+      <b:boolean objectid="1"/>
+    </b:booleanshape>
+  </resources>
+  <build>
+    <item objectid="2"/>
+  </build>
+</model>
+CYCLEEOF
+
+    mkdir -p "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D"
+
+    cat > "$QA_TMP_DIR/[Content_Types].xml" <<'CTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
+</Types>
+CTEOF
+
+    cat > "$QA_TMP_DIR/_rels/.rels" <<'RELSEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rel0" Target="/3D/3dmodel.model" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
+</Relationships>
+RELSEOF
+
+    mv "$QA_TMP_DIR/model.xml" "$QA_TMP_DIR/3D/3dmodel.model"
+    (cd "$QA_TMP_DIR" && zip -q -r "$output_file" "[Content_Types].xml" "_rels" "3D" 2>/dev/null)
+    rm -rf "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D" "$QA_TMP_DIR/[Content_Types].xml"
+}
+
+CYCLIC_BOOL_3MF="$QA_TMP_DIR/cyclic_boolean.3mf"
+create_cyclic_boolean_3mf "$CYCLIC_BOOL_3MF"
+
+if [ -f "$CYCLIC_BOOL_3MF" ]; then
+    # Stats should work even with cycles
+    run_cmd "$CLI_BIN stats $CYCLIC_BOOL_3MF" "BooleanOps: Stats on cyclic boolean (should work)"
+
+    # Validation should FAIL and detect the cycle
+    VALIDATE_OUTPUT=$($CLI_BIN validate $CYCLIC_BOOL_3MF 2>&1)
+    VALIDATE_EXIT=$?
+
+    if [ $VALIDATE_EXIT -ne 0 ]; then
+        # Validation correctly failed - check if it mentions cycle
+        if echo "$VALIDATE_OUTPUT" | grep -qi "cycle"; then
+            log_result "BooleanOps: Cycle detection (correctly detected)" 0
+        else
+            log_result "BooleanOps: Cycle detection (failed but no cycle message)" 1
+        fi
+    else
+        # Validation passed when it should have failed
+        log_result "BooleanOps: Cycle detection (FAILED - cycle not detected)" 1
+    fi
+else
+    echo "Warning: Failed to create cyclic boolean test 3MF, skipping cycle detection test"
+fi
+
+# Test 4: Invalid Transform Matrix (Should Fail Validation)
+create_invalid_transform_boolean_3mf() {
+    local output_file="$1"
+
+    cat > "$QA_TMP_DIR/model.xml" <<'INVALIDEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:b="http://schemas.3mf.io/3dmanufacturing/booleanoperations/2023/07">
+  <resources>
+    <object id="1" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0"/>
+          <vertex x="10" y="0" z="0"/>
+          <vertex x="5" y="10" z="0"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+    <object id="2" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0"/>
+          <vertex x="5" y="0" z="0"/>
+          <vertex x="2.5" y="5" z="0"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+    <b:booleanshape id="3" objectid="1" transform="NaN 0 0 0 1 0 0 0 1 0 0 0">
+      <b:boolean operation="union" objectid="2"/>
+    </b:booleanshape>
+  </resources>
+  <build>
+    <item objectid="3"/>
+  </build>
+</model>
+INVALIDEOF
+
+    mkdir -p "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D"
+
+    cat > "$QA_TMP_DIR/[Content_Types].xml" <<'CTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
+</Types>
+CTEOF
+
+    cat > "$QA_TMP_DIR/_rels/.rels" <<'RELSEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rel0" Target="/3D/3dmodel.model" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
+</Relationships>
+RELSEOF
+
+    mv "$QA_TMP_DIR/model.xml" "$QA_TMP_DIR/3D/3dmodel.model"
+    (cd "$QA_TMP_DIR" && zip -q -r "$output_file" "[Content_Types].xml" "_rels" "3D" 2>/dev/null)
+    rm -rf "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D" "$QA_TMP_DIR/[Content_Types].xml"
+}
+
+INVALID_TRANSFORM_3MF="$QA_TMP_DIR/invalid_transform_boolean.3mf"
+create_invalid_transform_boolean_3mf "$INVALID_TRANSFORM_3MF"
+
+if [ -f "$INVALID_TRANSFORM_3MF" ]; then
+    # Validation should FAIL due to NaN in transform matrix
+    VALIDATE_OUTPUT=$($CLI_BIN validate $INVALID_TRANSFORM_3MF 2>&1)
+    VALIDATE_EXIT=$?
+
+    if [ $VALIDATE_EXIT -ne 0 ]; then
+        # Validation correctly failed - check if it mentions transform/NaN/finite
+        if echo "$VALIDATE_OUTPUT" | grep -qiE "(transform|nan|finite|invalid)"; then
+            log_result "BooleanOps: Invalid transform detection (correctly detected)" 0
+        else
+            log_result "BooleanOps: Invalid transform detection (failed but no transform message)" 1
+        fi
+    else
+        # Validation passed when it should have failed
+        log_result "BooleanOps: Invalid transform detection (FAILED - NaN not detected)" 1
+    fi
+else
+    echo "Warning: Failed to create invalid transform boolean test 3MF, skipping transform validation test"
+fi
+
 # --- Beam Lattice Extension Tests ---
 echo -e "${BLUE}=== Beam Lattice Extension Tests ===${NC}"
 

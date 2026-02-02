@@ -148,18 +148,23 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
             println!("Geometry:");
 
             // Display object counts by type per CONTEXT.md decision
-            let type_display: Vec<String> = ["model", "support", "solidsupport", "surface", "other"]
-                .iter()
-                .filter_map(|&type_name| {
-                    stats.geometry.type_counts.get(type_name).and_then(|&count| {
-                        if count > 0 {
-                            Some(format!("{} {}", count, type_name))
-                        } else {
-                            None
-                        }
+            let type_display: Vec<String> =
+                ["model", "support", "solidsupport", "surface", "other"]
+                    .iter()
+                    .filter_map(|&type_name| {
+                        stats
+                            .geometry
+                            .type_counts
+                            .get(type_name)
+                            .and_then(|&count| {
+                                if count > 0 {
+                                    Some(format!("{} {}", count, type_name))
+                                } else {
+                                    None
+                                }
+                            })
                     })
-                })
-                .collect();
+                    .collect();
 
             if type_display.is_empty() {
                 println!("  Objects: 0");
@@ -451,11 +456,20 @@ fn print_model_hierarchy(model: &lib3mf_core::model::Model) {
         let (obj_name, obj_type) = model
             .resources
             .get_object(item.object_id)
-            .map(|obj| (
-                obj.name.clone().unwrap_or_else(|| format!("Object {}", item.object_id.0)),
-                obj.object_type
-            ))
-            .unwrap_or_else(|| (format!("Object {}", item.object_id.0), lib3mf_core::model::ObjectType::Model));
+            .map(|obj| {
+                (
+                    obj.name
+                        .clone()
+                        .unwrap_or_else(|| format!("Object {}", item.object_id.0)),
+                    obj.object_type,
+                )
+            })
+            .unwrap_or_else(|| {
+                (
+                    format!("Object {}", item.object_id.0),
+                    lib3mf_core::model::ObjectType::Model,
+                )
+            });
 
         let name = format!(
             "Build Item {} [{}] (type: {}, ID: {})",
@@ -543,7 +557,13 @@ fn print_model_hierarchy_resolved<A: ArchiveReader>(
             }
         };
 
-        let name = format!("Build Item {} [{}] (type: {}, ID: {})", i + 1, obj_name, obj_type, obj_id.0);
+        let name = format!(
+            "Build Item {} [{}] (type: {}, ID: {})",
+            i + 1,
+            obj_name,
+            obj_type,
+            obj_id.0
+        );
         let node = tree.entry(name).or_insert_with(node::Node::new);
 
         // Recurse into objects
@@ -772,12 +792,13 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
 }
 
 pub fn validate(path: PathBuf, level: String) -> anyhow::Result<()> {
-    use lib3mf_core::validation::ValidationLevel;
+    use lib3mf_core::validation::{ValidationLevel, ValidationSeverity};
 
     let level_enum = match level.to_lowercase().as_str() {
         "minimal" => ValidationLevel::Minimal,
         "standard" => ValidationLevel::Standard,
         "strict" => ValidationLevel::Strict,
+        "paranoid" => ValidationLevel::Paranoid,
         _ => ValidationLevel::Standard,
     };
 
@@ -785,29 +806,33 @@ pub fn validate(path: PathBuf, level: String) -> anyhow::Result<()> {
 
     let model = load_model(&path)?;
 
-    let mut errors = Vec::new();
+    // Run comprehensive validation
+    let report = model.validate(level_enum);
 
-    if model.unit == lib3mf_core::model::Unit::Millimeter && level_enum == ValidationLevel::Strict {
-        // Example strict check
-    }
+    let errors: Vec<_> = report
+        .items
+        .iter()
+        .filter(|i| i.severity == ValidationSeverity::Error)
+        .collect();
+    let warnings: Vec<_> = report
+        .items
+        .iter()
+        .filter(|i| i.severity == ValidationSeverity::Warning)
+        .collect();
 
-    // Check for integrity
-    for item in &model.build.items {
-        if !model.resources.exists(item.object_id) {
-            errors.push(format!(
-                "Build item references missing object ID {}",
-                item.object_id.0
-            ));
+    if !errors.is_empty() {
+        println!("Validation Failed with {} error(s):", errors.len());
+        for item in &errors {
+            println!("  [ERROR {}] {}", item.code, item.message);
         }
-    }
-
-    if errors.is_empty() {
-        println!("Validation Passed.");
+        std::process::exit(1);
+    } else if !warnings.is_empty() {
+        println!("Validation Passed with {} warning(s):", warnings.len());
+        for item in &warnings {
+            println!("  [WARN {}] {}", item.code, item.message);
+        }
     } else {
-        println!("Validation Failed with {} errors:", errors.len());
-        for err in errors {
-            println!(" - {}", err);
-        }
+        println!("Validation Passed.");
     }
 
     Ok(())
