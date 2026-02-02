@@ -1,3 +1,5 @@
+pub mod thumbnails;
+
 use clap::ValueEnum;
 use lib3mf_core::archive::{find_model_path, opc, ArchiveReader, ZipArchiver};
 use lib3mf_core::parser::parse_model;
@@ -200,6 +202,20 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
                     println!("    - ID {}: {}", plate.id, plate.name.unwrap_or_default());
                 }
             }
+
+            println!("Thumbnails:");
+            println!(
+                "  Package Thumbnail: {}",
+                if stats.thumbnails.package_thumbnail_present {
+                    "Yes"
+                } else {
+                    "No"
+                }
+            );
+            println!(
+                "  Object Thumbnails: {}",
+                stats.thumbnails.object_thumbnail_count
+            );
         }
     }
     Ok(())
@@ -332,8 +348,35 @@ pub fn copy(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
     let model_data = archiver
         .read_entry(&model_path)
         .map_err(|e| anyhow::anyhow!("Failed to read model data: {}", e))?;
-    let model = parse_model(std::io::Cursor::new(model_data))
+    let mut model = parse_model(std::io::Cursor::new(model_data))
         .map_err(|e| anyhow::anyhow!("Failed to parse model XML: {}", e))?;
+
+    // Load all existing files to preserve multi-part relationships and attachments
+    let all_files = archiver.list_entries()?;
+    for entry_path in all_files {
+        // Skip files that PackageWriter regenerates
+        if entry_path == model_path
+            || entry_path == "_rels/.rels"
+            || entry_path == "[Content_Types].xml"
+        {
+            continue;
+        }
+
+        // Load .rels files to preserve relationships
+        if entry_path.ends_with(".rels") {
+            if let Ok(data) = archiver.read_entry(&entry_path) {
+                if let Ok(rels) = lib3mf_core::archive::opc::parse_relationships(&data) {
+                    model.existing_relationships.insert(entry_path, rels);
+                }
+            }
+            continue;
+        }
+
+        // Load other data as attachments
+        if let Ok(data) = archiver.read_entry(&entry_path) {
+            model.attachments.insert(entry_path, data);
+        }
+    }
 
     let file = File::create(&output)
         .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;

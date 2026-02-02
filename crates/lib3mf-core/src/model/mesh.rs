@@ -26,6 +26,10 @@ pub struct Object {
     /// Default Property Index for this object (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pindex: Option<u32>,
+    /// Path to the thumbnail image in the package (optional).
+    /// Used for object-level thumbnails.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thumbnail: Option<String>,
     /// The actual geometric content of the object.
     pub geometry: Geometry,
 }

@@ -367,6 +367,34 @@ enum Commands {
         #[arg(long, default_value = "text")]
         format: String,
     },
+    /// Manage thumbnails (extract, inject, list)
+    ///
+    /// Examples:
+    ///
+    /// # List all thumbnails and OIDs
+    /// $ lib3mf thumbnails input.3mf --list
+    ///
+    /// # Inject package thumbnail
+    /// $ lib3mf thumbnails input.3mf --inject thumb.png
+    ///
+    /// # Inject object thumbnail
+    /// $ lib3mf thumbnails input.3mf --inject thumb.png --oid 1
+    Thumbnails {
+        /// Input 3MF file
+        file: PathBuf,
+        /// List all thumbnails and OIDs
+        #[arg(long)]
+        list: bool,
+        /// Extract all thumbnails to directory
+        #[arg(long)]
+        extract: Option<PathBuf>,
+        /// Inject image file
+        #[arg(long)]
+        inject: Option<PathBuf>,
+        /// Target Object ID (for injection)
+        #[arg(long)]
+        oid: Option<u32>,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -441,6 +469,15 @@ fn main() -> anyhow::Result<()> {
             format,
         } => {
             commands::diff(file1, file2, &format)?;
+        }
+        Commands::Thumbnails {
+            file,
+            list,
+            extract,
+            inject,
+            oid,
+        } => {
+            commands::thumbnails::run(file, list, extract, inject, oid)?;
         }
     }
 

@@ -4,8 +4,14 @@ use crate::writer::mesh_writer::write_mesh;
 use crate::writer::xml_writer::XmlWriter;
 use std::io::Write;
 
+use std::collections::HashMap;
+
 impl Model {
-    pub fn write_xml<W: Write>(&self, writer: W) -> Result<()> {
+    pub fn write_xml<W: Write>(
+        &self,
+        writer: W,
+        thumbnail_relationships: Option<&HashMap<String, String>>,
+    ) -> Result<()> {
         let mut xml = XmlWriter::new(writer);
         xml.write_declaration()?;
 
@@ -50,6 +56,20 @@ impl Model {
             }
             if let Some(name) = obj.name.as_ref() {
                 obj_elem = obj_elem.attr("name", name);
+            }
+            if let Some(thumb_path) = obj.thumbnail.as_ref()
+                && let Some(rels) = thumbnail_relationships
+            {
+                // Try to match exact path or normalized path
+                let lookup_key = if thumb_path.starts_with('/') {
+                    thumb_path.clone()
+                } else {
+                    format!("/{}", thumb_path)
+                };
+
+                if let Some(rel_id) = rels.get(&lookup_key) {
+                    obj_elem = obj_elem.attr("thumbnail", rel_id);
+                }
             }
 
             obj_elem.write_start()?;

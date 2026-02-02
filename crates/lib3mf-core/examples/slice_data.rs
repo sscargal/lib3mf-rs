@@ -105,6 +105,7 @@ fn main() -> anyhow::Result<()> {
         part_number: None,
         uuid: None,
         pid: None,
+        thumbnail: None,
         pindex: None,
         geometry: Geometry::SliceStack(ResourceId(5)),
     };

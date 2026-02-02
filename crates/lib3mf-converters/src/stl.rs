@@ -77,6 +77,7 @@ impl StlImporter {
             uuid: None,
             pid: None,
             pindex: None,
+            thumbnail: None,
             geometry: lib3mf_core::model::Geometry::Mesh(mesh),
         };
 

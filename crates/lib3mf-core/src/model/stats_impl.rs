@@ -52,6 +52,16 @@ impl Model {
             multi_properties_count: self.resources.multi_properties_count(),
         };
 
+        // 5. Thumbnails
+        // Check archiver for package thumbnail (attachments may not be loaded)
+        let pkg_thumb = archiver.entry_exists("Metadata/thumbnail.png")
+            || archiver.entry_exists("/Metadata/thumbnail.png");
+        let obj_thumb_count = self
+            .resources
+            .iter_objects()
+            .filter(|o| o.thumbnail.is_some())
+            .count();
+
         Ok(ModelStats {
             unit: self.unit,
             generator,
@@ -61,6 +71,10 @@ impl Model {
             production: prod_stats,
             vendor: vendor_data,
             system_info: crate::utils::hardware::detect_capabilities(),
+            thumbnails: crate::model::stats::ThumbnailStats {
+                package_thumbnail_present: pkg_thumb,
+                object_thumbnail_count: obj_thumb_count,
+            },
         })
     }
 

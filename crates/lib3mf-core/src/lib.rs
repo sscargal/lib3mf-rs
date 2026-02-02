@@ -50,6 +50,7 @@ mod tests {
             part_number: None,
             uuid: None,
             pid: None,
+            thumbnail: None,
             pindex: None,
             geometry: Geometry::Mesh(mesh),
         };

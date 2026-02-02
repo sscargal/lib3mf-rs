@@ -13,6 +13,13 @@ pub struct ModelStats {
     pub production: ProductionStats,
     pub vendor: VendorData,
     pub system_info: HardwareCapabilities,
+    pub thumbnails: ThumbnailStats,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ThumbnailStats {
+    pub package_thumbnail_present: bool,
+    pub object_thumbnail_count: usize,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

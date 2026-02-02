@@ -94,6 +94,8 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                         let _obj_type =
                             get_attribute(&e, b"type").unwrap_or_else(|| "model".into());
 
+                        let thumbnail = get_attribute(&e, b"thumbnail").map(|s| s.into_owned());
+
                         let geometry_content = parse_object_geometry(parser)?;
 
                         let geometry = if let Some(ssid) = slice_stack_id {
@@ -112,6 +114,7 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                             uuid,
                             pid,
                             pindex,
+                            thumbnail,
                             geometry,
                         };
                         model.resources.add_object(object)?;

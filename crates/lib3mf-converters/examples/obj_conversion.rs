@@ -27,6 +27,7 @@ fn main() -> anyhow::Result<()> {
         part_number: None,
         uuid: None,
         pid: None,
+        thumbnail: None,
         pindex: None,
         geometry: lib3mf_core::model::Geometry::Mesh(mesh),
     };

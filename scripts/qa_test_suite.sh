@@ -239,6 +239,67 @@ else
     log_result "Normalized Area Display (Missing 'm^2' in output)" 1
 fi
 
+# --- Thumbnail Tests ---
+echo -e "${BLUE}=== Thumbnail Tests ===${NC}"
+THUMB_IMG="$QA_TMP_DIR/thumb.png"
+# Create dummy PNG (minimal valid PNG signature)
+printf "\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01\x08\x06\0\0\0\x1f\x15\xc4\x89\0\0\0\nIDATx\x9cc\0\x01\0\0\x05\0\x01\r\n-\xb4" > "$THUMB_IMG"
+
+THUMB_TEST_FILE="$QA_TMP_DIR/thumb_test.3mf"
+run_cmd "$CLI_BIN copy $ASSET_3MF $THUMB_TEST_FILE" "Prepare 3MF for thumbnail test"
+
+# 1. Inject Package Thumbnail
+run_cmd "$CLI_BIN thumbnails $THUMB_TEST_FILE --inject $THUMB_IMG" "Inject Package Thumbnail"
+
+# 2. Inject Object Thumbnail (Dynamic ID)
+OID=$($CLI_BIN thumbnails "$THUMB_TEST_FILE" --list | grep "ID:" | head -n 1 | awk '{print $2}')
+if [ -z "$OID" ]; then
+    echo "No objects found in $THUMB_TEST_FILE. Skipping object injection."
+else
+    run_cmd "$CLI_BIN thumbnails $THUMB_TEST_FILE --inject $THUMB_IMG --oid $OID" "Inject Object Thumbnail (ID $OID)"
+fi
+
+# 3. List Thumbnails
+LIST_OUT=$($CLI_BIN thumbnails $THUMB_TEST_FILE --list)
+if echo "$LIST_OUT" | grep -q "Package Thumbnail: Yes"; then
+    log_result "List Package Thumbnail" 0
+else
+    log_result "List Package Thumbnail" 1
+fi
+
+if [ -n "$OID" ]; then
+    if echo "$LIST_OUT" | grep -q "Thumbnail: .*thumb_${OID}.png"; then
+        log_result "List Object Thumbnail (ID $OID has thumbnail)" 0
+    else
+        log_result "List Object Thumbnail (Missing indication for ID $OID)" 1
+    fi
+fi
+
+# 4. Extract Thumbnails
+EXTRACT_DIR="$QA_TMP_DIR/thumbs_out"
+run_cmd "$CLI_BIN thumbnails $THUMB_TEST_FILE --extract $EXTRACT_DIR" "Extract Thumbnails"
+if [ -f "$EXTRACT_DIR/package_thumbnail.png" ]; then
+    log_result "Verify Extracted Package Thumbnail" 0
+else
+    log_result "Verify Extracted Package Thumbnail" 1
+fi
+
+if [ -n "$OID" ]; then
+    if ls "$EXTRACT_DIR"/obj_${OID}_thumbnail.png 1> /dev/null 2>&1; then
+        log_result "Verify Extracted Object Thumbnail (ID $OID)" 0
+    else
+        log_result "Verify Extracted Object Thumbnail (ID $OID)" 1
+    fi
+fi
+
+# 5. Stats Check
+STATS_OUT=$($CLI_BIN stats $THUMB_TEST_FILE)
+if echo "$STATS_OUT" | grep -q "Package Thumbnail: Yes"; then
+    log_result "Stats Report Thumbnails" 0
+else
+    log_result "Stats Report Thumbnails" 1
+fi
+
 # --- Discovery & Testing Phase ---
 echo -e "${BLUE}=== Discovering Commands ===${NC}"
 COMMANDS=$($CLI_BIN --help | grep -E '^\s{2}[a-z]+' | awk '{print $1}')

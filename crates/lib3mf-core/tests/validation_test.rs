@@ -48,6 +48,7 @@ fn make_object(mesh: Mesh) -> Object {
         part_number: None,
         uuid: None,
         pid: None,
+        thumbnail: None,
         pindex: None,
     }
 }

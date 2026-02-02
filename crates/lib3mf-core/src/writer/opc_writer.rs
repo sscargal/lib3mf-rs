@@ -41,7 +41,11 @@ pub fn write_content_types<W: Write>(writer: W) -> Result<()> {
     Ok(())
 }
 
-pub fn write_relationships<W: Write>(writer: W, model_part: &str) -> Result<()> {
+pub fn write_relationships<W: Write>(
+    writer: W,
+    model_part: &str,
+    thumbnail_part: Option<&str>,
+) -> Result<()> {
     let mut xml = XmlWriter::new(writer);
     xml.write_declaration()?;
 
@@ -60,6 +64,17 @@ pub fn write_relationships<W: Write>(writer: W, model_part: &str) -> Result<()> 
             "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel",
         )
         .write_empty()?;
+
+    if let Some(thumb) = thumbnail_part {
+        xml.start_element("Relationship")
+            .attr("Target", thumb)
+            .attr("Id", "rel1")
+            .attr(
+                "Type",
+                "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail",
+            )
+            .write_empty()?;
+    }
 
     xml.end_element("Relationships")?;
     Ok(())

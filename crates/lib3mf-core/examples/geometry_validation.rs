@@ -47,6 +47,7 @@ fn main() {
         part_number: None,
         uuid: None,
         pid: None,
+        thumbnail: None,
         pindex: None,
     };
 

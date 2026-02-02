@@ -36,6 +36,12 @@ pub struct Model {
     /// Value: Binary content
     #[serde(skip)]
     pub attachments: HashMap<String, Vec<u8>>,
+
+    /// Existing OPC relationships loaded from the archive.
+    /// Key: Relationship file path (e.g., "3D/_rels/3dmodel.model.rels")
+    /// Value: Parsed relationships
+    #[serde(skip)]
+    pub existing_relationships: HashMap<String, Vec<crate::archive::opc::Relationship>>,
 }
 
 impl Model {
@@ -75,6 +81,7 @@ impl Default for Model {
             resources: ResourceCollection::default(),
             build: Build::default(),
             attachments: HashMap::new(),
+            existing_relationships: HashMap::new(),
         }
     }
 }

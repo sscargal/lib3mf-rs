@@ -35,29 +35,12 @@ impl<W: Write + Seek> PackageWriter<W> {
             self.zip.write_all(data).map_err(Lib3mfError::Io)?;
         }
 
-        // 2. Write 3D Model parts
-        let main_path = "3D/3dmodel.model";
-        self.zip
-            .start_file(main_path, self.options)
-            .map_err(|e| Lib3mfError::Io(e.into()))?;
-        package.main_model.write_xml(&mut self.zip)?;
-
-        for (path, model) in &package.parts {
-            self.zip
-                .start_file(path.trim_start_matches('/'), self.options)
-                .map_err(|e| Lib3mfError::Io(e.into()))?;
-            model.write_xml(&mut self.zip)?;
-        }
-
-        // 3. Write Relationships (_rels/.rels and model relationships)
-        // Global Relationships
-        self.zip
-            .start_file("_rels/.rels", self.options)
-            .map_err(|e| Lib3mfError::Io(e.into()))?;
-        write_relationships(&mut self.zip, &format!("/{}", main_path))?;
-
-        // Model Relationships (e.g. 3D/_rels/3dmodel.model.rels)
+        // 2. Prepare Relationships (Textures, Thumbnails) for 3D Model
+        // We do this BEFORE writing XML because objects need the Relationship ID for the 'thumbnail' attribute.
         let mut model_rels = Vec::new();
+        let mut path_to_rel_id = std::collections::HashMap::new();
+
+        // A. Collect Textures from Attachments
         for path in package.main_model.attachments.keys() {
             if path.starts_with("3D/Textures/") || path.starts_with("/3D/Textures/") {
                 let target = if path.starts_with('/') {
@@ -66,24 +49,118 @@ impl<W: Write + Seek> PackageWriter<W> {
                     format!("/{}", path)
                 };
 
-                let id = format!("rel_tex_{}", model_rels.len());
-                model_rels.push(crate::archive::opc::Relationship {
-                    id,
-                    rel_type: "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel/relationship/texture".to_string(),
-                    target,
-                    target_mode: "Internal".to_string(),
+                // Deduplicate? For now, we assume 1:1 path to rel or just create distinct rels per path
+                path_to_rel_id.entry(target.clone()).or_insert_with(|| {
+                    let id = format!("rel_tex_{}", model_rels.len());
+                    model_rels.push(crate::archive::opc::Relationship {
+                        id: id.clone(),
+                        rel_type: "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel/relationship/texture".to_string(),
+                        target: target.clone(),
+                        target_mode: "Internal".to_string(),
+                    });
+                    id
                 });
             }
         }
 
-        if !model_rels.is_empty() {
+        // B. Collect Object Thumbnails
+        for obj in package.main_model.resources.iter_objects() {
+            if let Some(thumb_path) = &obj.thumbnail {
+                let target = if thumb_path.starts_with('/') {
+                    thumb_path.clone()
+                } else {
+                    format!("/{}", thumb_path)
+                };
+
+                path_to_rel_id.entry(target.clone()).or_insert_with(|| {
+                    let id = format!("rel_thumb_{}", model_rels.len());
+                    model_rels.push(crate::archive::opc::Relationship {
+                        id: id.clone(),
+                        rel_type: "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel/relationship/thumbnail".to_string(),
+                        target: target.clone(),
+                        target_mode: "Internal".to_string(),
+                    });
+                    id
+                });
+            }
+        }
+
+        // 3. Write 3D Model parts
+        let main_path = "3D/3dmodel.model";
+        self.zip
+            .start_file(main_path, self.options)
+            .map_err(|e| Lib3mfError::Io(e.into()))?;
+
+        // Pass the relationship map to write_xml so it can write attributes
+        package
+            .main_model
+            .write_xml(&mut self.zip, Some(&path_to_rel_id))?;
+
+        for (path, model) in &package.parts {
             self.zip
-                .start_file("3D/_rels/3dmodel.model.rels", self.options)
+                .start_file(path.trim_start_matches('/'), self.options)
+                .map_err(|e| Lib3mfError::Io(e.into()))?;
+            // TODO: Support relationships for other parts if they have their own thumbnails
+            model.write_xml(&mut self.zip, None)?;
+        }
+
+        // 4. Write Relationships (_rels/.rels and model relationships)
+        // Global Relationships
+        self.zip
+            .start_file("_rels/.rels", self.options)
+            .map_err(|e| Lib3mfError::Io(e.into()))?;
+
+        let package_thumb = package
+            .main_model
+            .attachments
+            .keys()
+            .find(|k| k == &"Metadata/thumbnail.png" || k == &"/Metadata/thumbnail.png")
+            .map(|k| {
+                if k.starts_with('/') {
+                    k.clone()
+                } else {
+                    format!("/{}", k)
+                }
+            });
+
+        write_relationships(
+            &mut self.zip,
+            &format!("/{}", main_path),
+            package_thumb.as_deref(),
+        )?;
+
+        // Model Relationships (e.g. 3D/_rels/3dmodel.model.rels)
+        // Merge existing relationships with new texture/thumbnail relationships
+        let model_rels_path = "3D/_rels/3dmodel.model.rels";
+
+        // Start with existing relationships if available
+        let mut all_model_rels = package
+            .main_model
+            .existing_relationships
+            .get(model_rels_path)
+            .cloned()
+            .unwrap_or_default();
+
+        // Add new texture/thumbnail relationships
+        // Use a HashSet to track existing IDs to avoid duplicates
+        let existing_ids: std::collections::HashSet<String> =
+            all_model_rels.iter().map(|r| r.id.clone()).collect();
+
+        for rel in model_rels {
+            if !existing_ids.contains(&rel.id) {
+                all_model_rels.push(rel);
+            }
+        }
+
+        // Write merged relationships if any exist
+        if !all_model_rels.is_empty() {
+            self.zip
+                .start_file(model_rels_path, self.options)
                 .map_err(|e| Lib3mfError::Io(e.into()))?;
 
             let mut xml = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
             xml.push_str("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\n");
-            for rel in model_rels {
+            for rel in all_model_rels {
                 xml.push_str(&format!(
                     "  <Relationship Target=\"{}\" Id=\"{}\" Type=\"{}\" />\n",
                     rel.target, rel.id, rel.rel_type
