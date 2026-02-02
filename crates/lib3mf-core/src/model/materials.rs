@@ -36,6 +36,11 @@ impl Color {
             _ => None,
         }
     }
+
+    /// Convert color to hex string #RRGGBBAA
+    pub fn to_hex(&self) -> String {
+        format!("#{:02X}{:02X}{:02X}{:02X}", self.r, self.g, self.b, self.a)
+    }
 }
 
 /// A base material with a name and display color.

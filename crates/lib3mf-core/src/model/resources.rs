@@ -195,4 +195,24 @@ impl ResourceCollection {
     pub fn iter_objects_mut(&mut self) -> impl Iterator<Item = &mut Object> {
         self.objects.values_mut()
     }
+
+    pub fn iter_base_materials(&self) -> impl Iterator<Item = &BaseMaterialsGroup> {
+        self.base_materials.values()
+    }
+
+    pub fn iter_color_groups(&self) -> impl Iterator<Item = &ColorGroup> {
+        self.color_groups.values()
+    }
+
+    pub fn iter_textures(&self) -> impl Iterator<Item = &Texture2DGroup> {
+        self.texture_2d_groups.values()
+    }
+
+    pub fn iter_composite_materials(&self) -> impl Iterator<Item = &CompositeMaterials> {
+        self.composite_materials.values()
+    }
+
+    pub fn iter_multi_properties(&self) -> impl Iterator<Item = &MultiProperties> {
+        self.multi_properties.values()
+    }
 }

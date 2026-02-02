@@ -43,6 +43,10 @@ impl Model {
                 "http://schemas.microsoft.com/3dmanufacturing/core/2015/02",
             )
             .attr(
+                "xmlns:m",
+                "http://schemas.microsoft.com/3dmanufacturing/material/2015/02",
+            )
+            .attr(
                 "xmlns:p",
                 "http://schemas.microsoft.com/3dmanufacturing/production/2015/06",
             )
@@ -65,6 +69,74 @@ impl Model {
 
         // Resources
         xml.start_element("resources").write_start()?;
+
+        // Write material resources first (colorgroups, basematerials, textures, etc.)
+        for color_group in self.resources.iter_color_groups() {
+            xml.start_element("colorgroup")
+                .attr("id", &color_group.id.0.to_string())
+                .write_start()?;
+            for color in &color_group.colors {
+                xml.start_element("color")
+                    .attr("color", &color.to_hex())
+                    .write_empty()?;
+            }
+            xml.end_element("colorgroup")?;
+        }
+
+        for base_materials in self.resources.iter_base_materials() {
+            xml.start_element("m:basematerials")
+                .attr("id", &base_materials.id.0.to_string())
+                .write_start()?;
+            for material in &base_materials.materials {
+                xml.start_element("m:base")
+                    .attr("name", &material.name)
+                    .attr("displaycolor", &material.display_color.to_hex())
+                    .write_empty()?;
+            }
+            xml.end_element("m:basematerials")?;
+        }
+
+        for texture_group in self.resources.iter_textures() {
+            xml.start_element("m:texture2dgroup")
+                .attr("id", &texture_group.id.0.to_string())
+                .attr("texid", &texture_group.texture_id.0.to_string())
+                .write_start()?;
+            for coord in &texture_group.coords {
+                xml.start_element("m:tex2coord")
+                    .attr("u", &coord.u.to_string())
+                    .attr("v", &coord.v.to_string())
+                    .write_empty()?;
+            }
+            xml.end_element("m:texture2dgroup")?;
+        }
+
+        for composite in self.resources.iter_composite_materials() {
+            xml.start_element("m:compositematerials")
+                .attr("id", &composite.id.0.to_string())
+                .attr("matid", &composite.base_material_id.0.to_string())
+                .write_start()?;
+            for comp in &composite.composites {
+                xml.start_element("m:composite")
+                    .attr("values", &comp.values.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(" "))
+                    .write_empty()?;
+            }
+            xml.end_element("m:compositematerials")?;
+        }
+
+        for multi_props in self.resources.iter_multi_properties() {
+            xml.start_element("m:multiproperties")
+                .attr("id", &multi_props.id.0.to_string())
+                .attr("pids", &multi_props.pids.iter().map(|id| id.0.to_string()).collect::<Vec<_>>().join(" "))
+                .write_start()?;
+            for multi in &multi_props.multis {
+                xml.start_element("m:multi")
+                    .attr("pindices", &multi.pindices.iter().map(|idx: &u32| idx.to_string()).collect::<Vec<_>>().join(" "))
+                    .write_empty()?;
+            }
+            xml.end_element("m:multiproperties")?;
+        }
+
+        // Write objects
         for obj in self.resources.iter_objects() {
             match &obj.geometry {
                 Geometry::BooleanShape(bs) => {
