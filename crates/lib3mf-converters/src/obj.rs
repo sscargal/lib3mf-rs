@@ -94,6 +94,7 @@ impl ObjImporter {
 
         let object = lib3mf_core::model::Object {
             id: resource_id,
+            object_type: lib3mf_core::model::ObjectType::Model,
             name: Some("OBJ Import".to_string()),
             part_number: None,
             uuid: None,

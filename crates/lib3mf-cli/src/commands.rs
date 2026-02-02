@@ -146,7 +146,27 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
             );
             println!("Generator: {:?}", stats.generator.unwrap_or_default());
             println!("Geometry:");
-            println!("  Objects: {}", stats.geometry.object_count);
+
+            // Display object counts by type per CONTEXT.md decision
+            let type_display: Vec<String> = ["model", "support", "solidsupport", "surface", "other"]
+                .iter()
+                .filter_map(|&type_name| {
+                    stats.geometry.type_counts.get(type_name).and_then(|&count| {
+                        if count > 0 {
+                            Some(format!("{} {}", count, type_name))
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .collect();
+
+            if type_display.is_empty() {
+                println!("  Objects: 0");
+            } else {
+                println!("  Objects: {}", type_display.join(", "));
+            }
+
             println!("  Instances: {}", stats.geometry.instance_count);
             println!("  Vertices: {}", stats.geometry.vertex_count);
             println!("  Triangles: {}", stats.geometry.triangle_count);
@@ -428,16 +448,20 @@ fn print_model_hierarchy(model: &lib3mf_core::model::Model) {
     let mut tree: BTreeMap<String, node::Node> = BTreeMap::new();
 
     for (i, item) in model.build.items.iter().enumerate() {
-        let obj_name = model
+        let (obj_name, obj_type) = model
             .resources
             .get_object(item.object_id)
-            .and_then(|obj| obj.name.clone())
-            .unwrap_or_else(|| format!("Object {}", item.object_id.0));
+            .map(|obj| (
+                obj.name.clone().unwrap_or_else(|| format!("Object {}", item.object_id.0)),
+                obj.object_type
+            ))
+            .unwrap_or_else(|| (format!("Object {}", item.object_id.0), lib3mf_core::model::ObjectType::Model));
 
         let name = format!(
-            "Build Item {} [{}] (ID: {})",
+            "Build Item {} [{}] (type: {}, ID: {})",
             i + 1,
             obj_name,
+            obj_type,
             item.object_id.0
         );
         let node = tree.entry(name).or_insert_with(node::Node::new);
@@ -499,7 +523,7 @@ fn print_model_hierarchy_resolved<A: ArchiveReader>(
     let build_items = resolver.get_root_model().build.items.clone();
 
     for (i, item) in build_items.iter().enumerate() {
-        let (obj_name, obj_id) = {
+        let (obj_name, obj_id, obj_type) = {
             let res = resolver
                 .resolve_object(item.object_id, None)
                 .unwrap_or(None);
@@ -509,15 +533,17 @@ fn print_model_hierarchy_resolved<A: ArchiveReader>(
                         .clone()
                         .unwrap_or_else(|| format!("Object {}", obj.id.0)),
                     obj.id,
+                    obj.object_type,
                 ),
                 None => (
                     format!("Missing Object {}", item.object_id.0),
                     item.object_id,
+                    lib3mf_core::model::ObjectType::Model,
                 ),
             }
         };
 
-        let name = format!("Build Item {} [{}] (ID: {})", i + 1, obj_name, obj_id.0);
+        let name = format!("Build Item {} [{}] (type: {}, ID: {})", i + 1, obj_name, obj_type, obj_id.0);
         let node = tree.entry(name).or_insert_with(node::Node::new);
 
         // Recurse into objects

@@ -41,6 +41,9 @@ pub struct GeometryStats {
     pub surface_area: f64,
     pub volume: f64,
     pub is_manifold: bool,
+    /// Object counts by type
+    #[serde(default)]
+    pub type_counts: HashMap<String, usize>,
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]

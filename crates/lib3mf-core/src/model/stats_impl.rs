@@ -86,7 +86,7 @@ impl Model {
         resolver: &mut crate::model::resolver::PartResolver<impl ArchiveReader>,
         stats: &mut GeometryStats,
     ) -> Result<()> {
-        let (geom, path_to_use) = {
+        let (geom, path_to_use, obj_type) = {
             let resolved = resolver.resolve_object(id, path)?;
             if let Some((_model, object)) = resolved {
                 // Determine the next path to use for children.
@@ -104,13 +104,19 @@ impl Model {
                 (
                     Some(object.geometry.clone()),
                     current_path.map(|s| s.to_string()),
+                    Some(object.object_type),
                 )
             } else {
-                (None, None)
+                (None, None, None)
             }
         };
 
         if let Some(geometry) = geom {
+            // Count object by type
+            if let Some(ot) = obj_type {
+                *stats.type_counts.entry(ot.to_string()).or_insert(0) += 1;
+            }
+
             match geometry {
                 Geometry::Mesh(mesh) => {
                     stats.object_count += 1;
