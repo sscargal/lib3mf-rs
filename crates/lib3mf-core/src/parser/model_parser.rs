@@ -91,8 +91,23 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                             .map(crate::model::ResourceId)
                             .ok();
 
-                        let _obj_type =
-                            get_attribute(&e, b"type").unwrap_or_else(|| "model".into());
+                        let object_type = match get_attribute(&e, b"type") {
+                            Some(type_str) => match type_str.as_ref() {
+                                "model" => crate::model::ObjectType::Model,
+                                "support" => crate::model::ObjectType::Support,
+                                "solidsupport" => crate::model::ObjectType::SolidSupport,
+                                "surface" => crate::model::ObjectType::Surface,
+                                "other" => crate::model::ObjectType::Other,
+                                unknown => {
+                                    eprintln!(
+                                        "Warning: Unknown object type '{}', defaulting to 'model'",
+                                        unknown
+                                    );
+                                    crate::model::ObjectType::Model
+                                }
+                            },
+                            None => crate::model::ObjectType::Model,
+                        };
 
                         let thumbnail = get_attribute(&e, b"thumbnail").map(|s| s.into_owned());
 
@@ -109,6 +124,7 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
 
                         let object = Object {
                             id,
+                            object_type,
                             name,
                             part_number,
                             uuid,

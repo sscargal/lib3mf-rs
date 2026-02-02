@@ -1,4 +1,4 @@
-use lib3mf_core::model::{Geometry, Mesh, Model, Object, ResourceId};
+use lib3mf_core::model::{Geometry, Mesh, Model, Object, ObjectType, ResourceId};
 use lib3mf_core::validation::{
     ValidationLevel, ValidationReport, ValidationSeverity, validate_geometry,
 };
@@ -43,6 +43,7 @@ fn create_cube() -> Mesh {
 fn make_object(mesh: Mesh) -> Object {
     Object {
         id: ResourceId(1),
+        object_type: ObjectType::Model,
         geometry: Geometry::Mesh(mesh),
         name: None,
         part_number: None,

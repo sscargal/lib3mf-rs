@@ -1,4 +1,4 @@
-use lib3mf_core::model::{Geometry, Mesh, Model, Object, ResourceId};
+use lib3mf_core::model::{Geometry, Mesh, Model, Object, ObjectType, ResourceId};
 use lib3mf_core::validation::{ValidationLevel, ValidationReport, validate_geometry};
 
 fn main() {
@@ -42,6 +42,7 @@ fn main() {
 
     let object = Object {
         id: ResourceId(1),
+        object_type: ObjectType::Model,
         geometry: Geometry::Mesh(mesh),
         name: Some("Problematic Mesh".to_string()),
         part_number: None,

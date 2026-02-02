@@ -46,6 +46,7 @@ mod tests {
         let mesh = Mesh::new();
         let object = Object {
             id: ResourceId(1),
+            object_type: ObjectType::Model,
             name: Some("Test Object".to_string()),
             part_number: None,
             uuid: None,

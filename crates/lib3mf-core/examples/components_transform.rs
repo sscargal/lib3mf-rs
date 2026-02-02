@@ -1,6 +1,6 @@
 use glam::{Mat4, Vec3};
 use lib3mf_core::model::{
-    BuildItem, Component, Components, Geometry, Mesh, Model, Object, ResourceId, Unit,
+    BuildItem, Component, Components, Geometry, Mesh, Model, Object, ObjectType, ResourceId, Unit,
 };
 use std::fs::File;
 
@@ -32,6 +32,7 @@ fn main() -> anyhow::Result<()> {
     let mesh_id = ResourceId(1);
     let mesh_obj = Object {
         id: mesh_id,
+        object_type: ObjectType::Model,
         name: Some("Pyramid Mesh".to_string()),
         part_number: None,
         uuid: None,
@@ -66,6 +67,7 @@ fn main() -> anyhow::Result<()> {
 
     let assembly_obj = Object {
         id: assembly_id,
+        object_type: ObjectType::Model,
         name: Some("Pyramid Assembly".to_string()),
         part_number: None,
         uuid: None,

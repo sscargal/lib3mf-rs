@@ -1,6 +1,6 @@
 use lib3mf_core::model::{
-    Beam, BeamLattice, BuildItem, CapMode, ClippingMode, Geometry, Mesh, Model, Object, ResourceId,
-    Unit,
+    Beam, BeamLattice, BuildItem, CapMode, ClippingMode, Geometry, Mesh, Model, Object, ObjectType,
+    ResourceId, Unit,
 };
 use std::fs::File;
 
@@ -73,6 +73,7 @@ fn main() -> anyhow::Result<()> {
     let object_id = ResourceId(10);
     let object = Object {
         id: object_id,
+        object_type: ObjectType::Model,
         name: Some("Lattice Structure".to_string()),
         part_number: None,
         uuid: None,

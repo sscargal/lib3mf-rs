@@ -1,6 +1,6 @@
 use lib3mf_core::model::{
-    BuildItem, Geometry, Model, Object, Polygon, ResourceId, Segment, Slice, SliceStack, Unit,
-    Vertex2D,
+    BuildItem, Geometry, Model, Object, ObjectType, Polygon, ResourceId, Segment, Slice,
+    SliceStack, Unit, Vertex2D,
 };
 use std::fs::File;
 
@@ -101,6 +101,7 @@ fn main() -> anyhow::Result<()> {
     let object_id = ResourceId(10);
     let object = Object {
         id: object_id,
+        object_type: ObjectType::Model,
         name: Some("Sliced Geometry".to_string()),
         part_number: None,
         uuid: None,

@@ -1,4 +1,4 @@
-use lib3mf_core::model::{BuildItem, Geometry, Mesh, Model, Object, ResourceId, Unit};
+use lib3mf_core::model::{BuildItem, Geometry, Mesh, Model, Object, ObjectType, ResourceId, Unit};
 use std::fs::File;
 
 fn main() -> anyhow::Result<()> {
@@ -48,6 +48,7 @@ fn main() -> anyhow::Result<()> {
     let object_id = ResourceId(1);
     let object = Object {
         id: object_id,
+        object_type: ObjectType::Model,
         name: Some("Simple Cube".to_string()),
         part_number: None,
         uuid: None,
