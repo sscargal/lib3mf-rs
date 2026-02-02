@@ -117,7 +117,15 @@ impl Model {
                 .write_start()?;
             for comp in &composite.composites {
                 xml.start_element("m:composite")
-                    .attr("values", &comp.values.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(" "))
+                    .attr(
+                        "values",
+                        &comp
+                            .values
+                            .iter()
+                            .map(|v| v.to_string())
+                            .collect::<Vec<_>>()
+                            .join(" "),
+                    )
                     .write_empty()?;
             }
             xml.end_element("m:compositematerials")?;
@@ -126,11 +134,27 @@ impl Model {
         for multi_props in self.resources.iter_multi_properties() {
             xml.start_element("m:multiproperties")
                 .attr("id", &multi_props.id.0.to_string())
-                .attr("pids", &multi_props.pids.iter().map(|id| id.0.to_string()).collect::<Vec<_>>().join(" "))
+                .attr(
+                    "pids",
+                    &multi_props
+                        .pids
+                        .iter()
+                        .map(|id| id.0.to_string())
+                        .collect::<Vec<_>>()
+                        .join(" "),
+                )
                 .write_start()?;
             for multi in &multi_props.multis {
                 xml.start_element("m:multi")
-                    .attr("pindices", &multi.pindices.iter().map(|idx: &u32| idx.to_string()).collect::<Vec<_>>().join(" "))
+                    .attr(
+                        "pindices",
+                        &multi
+                            .pindices
+                            .iter()
+                            .map(|idx: &u32| idx.to_string())
+                            .collect::<Vec<_>>()
+                            .join(" "),
+                    )
                     .write_empty()?;
             }
             xml.end_element("m:multiproperties")?;
