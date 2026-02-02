@@ -2,6 +2,9 @@ use crate::model::{Geometry, Model};
 use crate::validation::report::ValidationReport;
 
 pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
+    // Validate build items
+    validate_build_references(model, report);
+
     // Check Resources
     for object in model.resources.iter_objects() {
         // Check PID validity
@@ -78,6 +81,33 @@ pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
                     );
                 }
             }
+        }
+    }
+}
+
+fn validate_build_references(model: &Model, report: &mut ValidationReport) {
+    for (idx, item) in model.build.items.iter().enumerate() {
+        // Check if referenced object exists
+        if let Some(obj) = model.resources.get_object(item.object_id) {
+            // Check type constraint: Other cannot be in build
+            if !obj.object_type.can_be_in_build() {
+                report.add_error(
+                    3010,
+                    format!(
+                        "Build item {} references object {} with type '{}' which cannot be in build",
+                        idx, item.object_id.0, obj.object_type
+                    ),
+                );
+            }
+        } else {
+            // Existing check: object must exist
+            report.add_error(
+                3002,
+                format!(
+                    "Build item {} references non-existent object {}",
+                    idx, item.object_id.0
+                ),
+            );
         }
     }
 }
