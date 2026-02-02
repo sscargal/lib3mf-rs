@@ -46,6 +46,16 @@ impl ValidationReport {
         });
     }
 
+    pub fn add_info(&mut self, code: u32, msg: impl Into<String>) {
+        self.items.push(ValidationItem {
+            severity: ValidationSeverity::Info,
+            code,
+            message: msg.into(),
+            suggestion: None,
+            context: None,
+        });
+    }
+
     pub fn has_errors(&self) -> bool {
         self.items
             .iter()

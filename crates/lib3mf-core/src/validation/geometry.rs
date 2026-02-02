@@ -1,11 +1,13 @@
-use crate::model::{Geometry, Mesh, Model, ResourceId};
+use crate::model::{Geometry, Mesh, Model, ObjectType, ResourceId};
 use crate::validation::{ValidationLevel, ValidationReport};
 use std::collections::HashMap;
 
 pub fn validate_geometry(model: &Model, level: ValidationLevel, report: &mut ValidationReport) {
     for object in model.resources.iter_objects() {
+        // Per spec: "The object type is ignored on objects that contain components"
+        // Component-containing objects skip type-specific mesh validation
         if let Geometry::Mesh(mesh) = &object.geometry {
-            validate_mesh(mesh, object.id, level, report, model.unit);
+            validate_mesh(mesh, object.id, object.object_type, level, report, model.unit);
         }
     }
 }
@@ -13,30 +15,48 @@ pub fn validate_geometry(model: &Model, level: ValidationLevel, report: &mut Val
 fn validate_mesh(
     mesh: &Mesh,
     oid: ResourceId,
+    object_type: ObjectType,
     level: ValidationLevel,
     report: &mut ValidationReport,
     unit: crate::model::Unit,
 ) {
-    // Basic checks
+    // Basic checks for ALL object types (degenerate triangles)
     for (i, tri) in mesh.triangles.iter().enumerate() {
         if tri.v1 == tri.v2 || tri.v2 == tri.v3 || tri.v1 == tri.v3 {
             report.add_warning(
                 4001,
                 format!(
-                    "Triangle {} in Object {} is degenerate (duplicate vertices)",
-                    i, oid.0
+                    "Triangle {} in Object {} ({}) is degenerate (duplicate vertices)",
+                    i, oid.0, object_type
                 ),
             );
         }
     }
 
+    // Type-specific validation at Paranoid level
     if level >= ValidationLevel::Paranoid {
-        check_manifoldness(mesh, oid, report);
-        check_vertex_manifoldness(mesh, oid, report);
-        check_islands(mesh, oid, report);
-        check_self_intersections(mesh, oid, report);
-        check_orientation(mesh, oid, report);
-        check_degenerate_faces(mesh, oid, report, unit);
+        if object_type.requires_manifold() {
+            // Strict checks for Model and SolidSupport
+            check_manifoldness(mesh, oid, report);
+            check_vertex_manifoldness(mesh, oid, report);
+            check_islands(mesh, oid, report);
+            check_self_intersections(mesh, oid, report);
+            check_orientation(mesh, oid, report);
+            check_degenerate_faces(mesh, oid, report, unit);
+        } else {
+            // Relaxed checks for Support/Surface/Other - only basic geometry warnings
+            // These are informational, not errors
+            let manifold_issues = count_non_manifold_edges(mesh);
+            if manifold_issues > 0 {
+                report.add_info(
+                    4100,
+                    format!(
+                        "Object {} ({}) has {} non-manifold edges (allowed for this type)",
+                        oid.0, object_type, manifold_issues
+                    ),
+                );
+            }
+        }
     }
 }
 
@@ -307,4 +327,22 @@ fn check_degenerate_faces(
 
 fn sort_edge(v1: u32, v2: u32) -> (u32, u32) {
     if v1 < v2 { (v1, v2) } else { (v2, v1) }
+}
+
+fn count_non_manifold_edges(mesh: &Mesh) -> usize {
+    let mut edge_counts: HashMap<(u32, u32), usize> = HashMap::new();
+
+    for tri in &mesh.triangles {
+        let edges = [
+            sort_edge(tri.v1, tri.v2),
+            sort_edge(tri.v2, tri.v3),
+            sort_edge(tri.v3, tri.v1),
+        ];
+        for e in edges {
+            *edge_counts.entry(e).or_insert(0) += 1;
+        }
+    }
+
+    // Non-manifold edges have count != 2
+    edge_counts.values().filter(|&&c| c != 2).count()
 }
