@@ -81,25 +81,61 @@ pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
                     );
                 }
             }
-            Geometry::BooleanShape(bool_shape) => {
-                // Validate base object reference
-                if model.resources.get_object(bool_shape.base_object_id).is_none() {
+            Geometry::BooleanShape(bs) => {
+                // Validate base object exists and is valid type
+                if let Some(base_obj) = model.resources.get_object(bs.base_object_id) {
+                    // Base can be Mesh or another BooleanShape (per spec)
+                    match &base_obj.geometry {
+                        Geometry::Mesh(_) | Geometry::BooleanShape(_) => {
+                            // Valid base types
+                        }
+                        Geometry::Components(_) => {
+                            report.add_error(
+                                2101,
+                                format!(
+                                    "BooleanShape {} base object {} cannot be Components type",
+                                    object.id.0, bs.base_object_id.0
+                                ),
+                            );
+                        }
+                        _ => {
+                            // Other extensions (SliceStack, VolumetricStack) - allow per spec extensibility
+                        }
+                    }
+                } else {
                     report.add_error(
-                        2006,
+                        2102,
                         format!(
-                            "BooleanShape in Object {} references non-existent base object {}",
-                            object.id.0, bool_shape.base_object_id.0
+                            "BooleanShape {} references non-existent base object {}",
+                            object.id.0, bs.base_object_id.0
                         ),
                     );
                 }
-                // Validate operation object references
-                for (i, op) in bool_shape.operations.iter().enumerate() {
-                    if model.resources.get_object(op.object_id).is_none() {
+
+                // Validate each operation object
+                for (idx, op) in bs.operations.iter().enumerate() {
+                    if let Some(op_obj) = model.resources.get_object(op.object_id) {
+                        // Operation objects MUST be triangle meshes (not Components, not BooleanShape)
+                        match &op_obj.geometry {
+                            Geometry::Mesh(_) => {
+                                // Valid - mesh object
+                            }
+                            _ => {
+                                report.add_error(
+                                    2103,
+                                    format!(
+                                        "BooleanShape {} operation {} references non-mesh object {} (type must be mesh)",
+                                        object.id.0, idx, op.object_id.0
+                                    ),
+                                );
+                            }
+                        }
+                    } else {
                         report.add_error(
-                            2007,
+                            2104,
                             format!(
-                                "BooleanShape operation {} in Object {} references non-existent object {}",
-                                i, object.id.0, op.object_id.0
+                                "BooleanShape {} operation {} references non-existent object {}",
+                                object.id.0, idx, op.object_id.0
                             ),
                         );
                     }

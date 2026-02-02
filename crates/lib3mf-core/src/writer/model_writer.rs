@@ -26,6 +26,10 @@ impl Model {
             .attr(
                 "xmlns:p",
                 "http://schemas.microsoft.com/3dmanufacturing/production/2015/06",
+            )
+            .attr(
+                "xmlns:b",
+                "http://schemas.3mf.io/3dmanufacturing/booleanoperations/2023/07",
             );
 
         // Add typical namespaces if needed (e.g. production, slice) - strictly core for now
