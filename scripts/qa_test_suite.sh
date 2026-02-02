@@ -852,7 +852,24 @@ for OBJ_TYPE in "model" "support" "solidsupport" "surface" "other"; do
 
     if [ -f "$TYPE_3MF" ]; then
         run_cmd "$CLI_BIN stats $TYPE_3MF" "ObjectType: Stats on $OBJ_TYPE"
-        run_cmd "$CLI_BIN validate $TYPE_3MF" "ObjectType: Validate $OBJ_TYPE"
+
+        # Skip validation for "other" type - it's invalid to have in build per spec
+        if [ "$OBJ_TYPE" != "other" ]; then
+            run_cmd "$CLI_BIN validate $TYPE_3MF" "ObjectType: Validate $OBJ_TYPE"
+        else
+            # "other" type objects cannot be in build items (error 3010)
+            VALIDATE_OUTPUT=$($CLI_BIN validate $TYPE_3MF 2>&1)
+            VALIDATE_EXIT=$?
+            if [ $VALIDATE_EXIT -ne 0 ]; then
+                if echo "$VALIDATE_OUTPUT" | grep -q "3010"; then
+                    log_result "ObjectType: Validate $OBJ_TYPE (correctly rejected in build)" 0
+                else
+                    log_result "ObjectType: Validate $OBJ_TYPE (failed but wrong error)" 1
+                fi
+            else
+                log_result "ObjectType: Validate $OBJ_TYPE (FAILED - should reject in build)" 1
+            fi
+        fi
 
         # Verify type detection in stats output
         STATS_OUT=$($CLI_BIN stats $TYPE_3MF 2>&1)
@@ -868,7 +885,10 @@ for OBJ_TYPE in "model" "support" "solidsupport" "surface" "other"; do
         run_cmd "$CLI_BIN copy $TYPE_3MF $TYPE_ROUNDTRIP" "ObjectType: Round-trip $OBJ_TYPE"
 
         if [ -f "$TYPE_ROUNDTRIP" ]; then
-            run_cmd "$CLI_BIN validate $TYPE_ROUNDTRIP" "ObjectType: Validate round-tripped $OBJ_TYPE"
+            # Skip validation for "other" type roundtrip as well
+            if [ "$OBJ_TYPE" != "other" ]; then
+                run_cmd "$CLI_BIN validate $TYPE_ROUNDTRIP" "ObjectType: Validate round-tripped $OBJ_TYPE"
+            fi
         fi
     else
         echo "Warning: Failed to create $OBJ_TYPE test 3MF, skipping tests"

@@ -52,7 +52,8 @@ pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
             }
             Geometry::Components(comps) => {
                 for comp in &comps.components {
-                    if model.resources.get_object(comp.object_id).is_none() {
+                    // Only validate internal references (components without external path)
+                    if comp.path.is_none() && model.resources.get_object(comp.object_id).is_none() {
                         report.add_error(
                             2003,
                             format!(
