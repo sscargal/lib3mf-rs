@@ -1,5 +1,6 @@
 use crate::error::{Lib3mfError, Result};
 use crate::model::{Geometry, Model, Object, Unit};
+use crate::parser::boolean_parser::parse_boolean_shape;
 use crate::parser::build_parser::parse_build;
 use crate::parser::component_parser::parse_components;
 use crate::parser::material_parser::{
@@ -217,6 +218,34 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
                         let stack = parse_volumetric_stack_content(parser, id, 0.0)?;
                         model.resources.add_volumetric_stack(stack)?;
+                    }
+                    b"booleanshape" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let base_object_id = crate::model::ResourceId(get_attribute_u32(&e, b"objectid")?);
+                        let base_transform = if let Some(s) = get_attribute(&e, b"transform") {
+                            crate::parser::component_parser::parse_transform(&s)?
+                        } else {
+                            glam::Mat4::IDENTITY
+                        };
+                        let base_path = get_attribute(&e, b"path")
+                            .or_else(|| get_attribute(&e, b"p:path"))
+                            .map(|s| s.into_owned());
+
+                        let bool_shape = parse_boolean_shape(parser, base_object_id, base_transform, base_path)?;
+
+                        // Per spec, booleanshape is a model-type object
+                        let object = Object {
+                            id,
+                            object_type: crate::model::ObjectType::Model,
+                            name: None,
+                            part_number: None,
+                            uuid: None,
+                            pid: None,
+                            pindex: None,
+                            thumbnail: None,
+                            geometry: Geometry::BooleanShape(bool_shape),
+                        };
+                        model.resources.add_object(object)?;
                     }
                     _ => {}
                 }

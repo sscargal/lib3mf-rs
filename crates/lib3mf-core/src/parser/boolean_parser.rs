@@ -11,27 +11,16 @@ use std::io::BufRead;
 /// operations on referenced objects.
 ///
 /// Per Boolean Operations Extension v1.1.1:
-/// - Requires base objectid attribute
-/// - Optional transform on base (defaults to identity)
-/// - Optional p:path for external references
+/// - Requires base objectid attribute (parsed by caller)
+/// - Optional transform on base (parsed by caller)
+/// - Optional p:path for external references (parsed by caller)
 /// - Contains nested <boolean> elements defining operations
 pub fn parse_boolean_shape<R: BufRead>(
     parser: &mut XmlParser<R>,
-    start_elem: &quick_xml::events::BytesStart,
+    base_object_id: ResourceId,
+    base_transform: glam::Mat4,
+    base_path: Option<String>,
 ) -> Result<BooleanShape> {
-    // Parse base object attributes
-    let base_object_id = ResourceId(get_attribute_u32(start_elem, b"objectid")?);
-
-    let base_transform = if let Some(s) = get_attribute(start_elem, b"transform") {
-        parse_transform(&s)?
-    } else {
-        glam::Mat4::IDENTITY
-    };
-
-    let base_path = get_attribute(start_elem, b"path")
-        .or_else(|| get_attribute(start_elem, b"p:path"))
-        .map(|s| s.into_owned());
-
     let mut operations = Vec::new();
 
     // Parse nested <boolean> elements
