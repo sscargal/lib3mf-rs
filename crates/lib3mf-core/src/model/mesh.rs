@@ -3,6 +3,52 @@ use glam::Vec3;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// Type of 3MF object determining validation requirements and build behavior.
+///
+/// Per 3MF Core Specification:
+/// - Model/SolidSupport: Must be manifold, closed volumes
+/// - Support/Surface/Other: Can be non-manifold, open meshes
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum ObjectType {
+    /// Printable part - requires manifold mesh (default)
+    #[default]
+    Model,
+    /// Support structure - non-manifold allowed, can be ignored by consumer
+    Support,
+    /// Solid support structure - manifold required, filled like model
+    #[serde(rename = "solidsupport")]
+    SolidSupport,
+    /// Surface geometry - non-manifold allowed
+    Surface,
+    /// Other geometry - non-manifold allowed, cannot be referenced in build
+    Other,
+}
+
+impl std::fmt::Display for ObjectType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ObjectType::Model => write!(f, "model"),
+            ObjectType::Support => write!(f, "support"),
+            ObjectType::SolidSupport => write!(f, "solidsupport"),
+            ObjectType::Surface => write!(f, "surface"),
+            ObjectType::Other => write!(f, "other"),
+        }
+    }
+}
+
+impl ObjectType {
+    /// Returns true if this type requires manifold mesh validation
+    pub fn requires_manifold(&self) -> bool {
+        matches!(self, ObjectType::Model | ObjectType::SolidSupport)
+    }
+
+    /// Returns true if this type can be referenced in build items
+    pub fn can_be_in_build(&self) -> bool {
+        !matches!(self, ObjectType::Other)
+    }
+}
+
 /// A resource representing a 3D object.
 ///
 /// An object is a reusable resource that defines geometry (Mesh or Components).
@@ -11,6 +57,9 @@ use uuid::Uuid;
 pub struct Object {
     /// Unique identifier for this resource within the model.
     pub id: ResourceId,
+    /// Object type determining validation rules and build behavior.
+    #[serde(default)]
+    pub object_type: ObjectType,
     /// Human-readable name (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
