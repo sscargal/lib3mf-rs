@@ -1,9 +1,13 @@
-use crate::model::{Geometry, Model};
+use crate::model::{Geometry, Model, ResourceId};
 use crate::validation::report::ValidationReport;
+use std::collections::{HashMap, HashSet};
 
 pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
     // Validate build items
     validate_build_references(model, report);
+
+    // Validate boolean operation cycles
+    validate_boolean_cycles(model, report);
 
     // Check Resources
     for object in model.resources.iter_objects() {
@@ -170,4 +174,65 @@ fn validate_build_references(model: &Model, report: &mut ValidationReport) {
             );
         }
     }
+}
+
+/// Detects cycles in boolean operation graphs using DFS with recursion stack.
+fn validate_boolean_cycles(model: &Model, report: &mut ValidationReport) {
+    // Build adjacency list: BooleanShape -> referenced objects
+    let mut graph: HashMap<ResourceId, Vec<ResourceId>> = HashMap::new();
+
+    for obj in model.resources.iter_objects() {
+        if let Geometry::BooleanShape(bs) = &obj.geometry {
+            let mut refs = vec![bs.base_object_id];
+            refs.extend(bs.operations.iter().map(|op| op.object_id));
+            graph.insert(obj.id, refs);
+        }
+    }
+
+    // DFS for cycle detection
+    let mut visited = HashSet::new();
+    let mut rec_stack = HashSet::new();
+
+    for &start_id in graph.keys() {
+        if !visited.contains(&start_id) {
+            if has_cycle_dfs(start_id, &graph, &mut visited, &mut rec_stack) {
+                report.add_error(
+                    2100,
+                    format!(
+                        "Cycle detected in boolean operation graph involving object {}",
+                        start_id.0
+                    ),
+                );
+            }
+        }
+    }
+}
+
+fn has_cycle_dfs(
+    node: ResourceId,
+    graph: &HashMap<ResourceId, Vec<ResourceId>>,
+    visited: &mut HashSet<ResourceId>,
+    rec_stack: &mut HashSet<ResourceId>,
+) -> bool {
+    visited.insert(node);
+    rec_stack.insert(node);
+
+    if let Some(neighbors) = graph.get(&node) {
+        for &neighbor in neighbors {
+            // Only follow edges to other BooleanShape objects (those in the graph)
+            if graph.contains_key(&neighbor) {
+                if !visited.contains(&neighbor) {
+                    if has_cycle_dfs(neighbor, graph, visited, rec_stack) {
+                        return true;
+                    }
+                } else if rec_stack.contains(&neighbor) {
+                    // Back edge found = cycle
+                    return true;
+                }
+            }
+        }
+    }
+
+    rec_stack.remove(&node);
+    false
 }
