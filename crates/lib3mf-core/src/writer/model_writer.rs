@@ -46,7 +46,7 @@ impl Model {
             let mut obj_elem = xml
                 .start_element("object")
                 .attr("id", &obj.id.0.to_string())
-                .attr("type", "model"); // TODO: object type enum
+                .attr("type", &obj.object_type.to_string());
 
             if let Some(pid) = obj.part_number.as_ref() {
                 obj_elem = obj_elem.attr("partnumber", pid);
