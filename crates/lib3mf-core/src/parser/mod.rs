@@ -1,5 +1,6 @@
 pub mod bambu_config;
 pub mod beamlattice_parser;
+pub mod boolean_parser;
 pub mod build_parser;
 pub mod component_parser;
 pub mod crypto_parser;
