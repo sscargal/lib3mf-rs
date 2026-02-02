@@ -9,8 +9,8 @@
 //! Run with: cargo run -p lib3mf-core --example boolean_operations
 
 use lib3mf_core::model::{
-    BooleanOperation, BooleanOperationType, BooleanShape, Build, BuildItem,
-    Geometry, Mesh, Model, Object, ObjectType, ResourceId,
+    BooleanOperation, BooleanOperationType, BooleanShape, Build, BuildItem, Geometry, Mesh, Model,
+    Object, ObjectType, ResourceId,
 };
 use lib3mf_core::validation::ValidationLevel;
 use std::io::Cursor;
@@ -26,7 +26,12 @@ fn main() -> anyhow::Result<()> {
     let report = model.validate(ValidationLevel::Standard);
     if report.has_errors() {
         println!("Validation errors:");
-        for err in report.items.iter().filter(|i| matches!(i.severity, lib3mf_core::validation::ValidationSeverity::Error)) {
+        for err in report.items.iter().filter(|i| {
+            matches!(
+                i.severity,
+                lib3mf_core::validation::ValidationSeverity::Error
+            )
+        }) {
             println!("  [{}] {}", err.code, err.message);
         }
     } else {
@@ -69,45 +74,54 @@ fn create_boolean_model() -> Model {
 
     // Create first cube (base object for boolean)
     let cube1 = create_cube_mesh(0.0, 0.0, 0.0, 20.0);
-    model.resources.add_object(Object {
-        id: ResourceId(1),
-        object_type: ObjectType::Model,
-        name: Some("Base Cube".to_string()),
-        part_number: None,
-        uuid: None,
-        pid: None,
-        pindex: None,
-        thumbnail: None,
-        geometry: Geometry::Mesh(cube1),
-    }).unwrap();
+    model
+        .resources
+        .add_object(Object {
+            id: ResourceId(1),
+            object_type: ObjectType::Model,
+            name: Some("Base Cube".to_string()),
+            part_number: None,
+            uuid: None,
+            pid: None,
+            pindex: None,
+            thumbnail: None,
+            geometry: Geometry::Mesh(cube1),
+        })
+        .unwrap();
 
     // Create second cube (will be subtracted)
     let cube2 = create_cube_mesh(5.0, 5.0, 5.0, 15.0);
-    model.resources.add_object(Object {
-        id: ResourceId(2),
-        object_type: ObjectType::Model,
-        name: Some("Subtraction Cube".to_string()),
-        part_number: None,
-        uuid: None,
-        pid: None,
-        pindex: None,
-        thumbnail: None,
-        geometry: Geometry::Mesh(cube2),
-    }).unwrap();
+    model
+        .resources
+        .add_object(Object {
+            id: ResourceId(2),
+            object_type: ObjectType::Model,
+            name: Some("Subtraction Cube".to_string()),
+            part_number: None,
+            uuid: None,
+            pid: None,
+            pindex: None,
+            thumbnail: None,
+            geometry: Geometry::Mesh(cube2),
+        })
+        .unwrap();
 
     // Create third cube (will be intersected)
     let cube3 = create_cube_mesh(10.0, 10.0, 0.0, 15.0);
-    model.resources.add_object(Object {
-        id: ResourceId(3),
-        object_type: ObjectType::Model,
-        name: Some("Intersection Cube".to_string()),
-        part_number: None,
-        uuid: None,
-        pid: None,
-        pindex: None,
-        thumbnail: None,
-        geometry: Geometry::Mesh(cube3),
-    }).unwrap();
+    model
+        .resources
+        .add_object(Object {
+            id: ResourceId(3),
+            object_type: ObjectType::Model,
+            name: Some("Intersection Cube".to_string()),
+            part_number: None,
+            uuid: None,
+            pid: None,
+            pindex: None,
+            thumbnail: None,
+            geometry: Geometry::Mesh(cube3),
+        })
+        .unwrap();
 
     // Create boolean shape: cube1 - cube2 intersect cube3
     let boolean_shape = BooleanShape {
@@ -130,17 +144,20 @@ fn create_boolean_model() -> Model {
         ],
     };
 
-    model.resources.add_object(Object {
-        id: ResourceId(100),
-        object_type: ObjectType::Model,
-        name: Some("Boolean Result".to_string()),
-        part_number: None,
-        uuid: None,
-        pid: None,
-        pindex: None,
-        thumbnail: None,
-        geometry: Geometry::BooleanShape(boolean_shape),
-    }).unwrap();
+    model
+        .resources
+        .add_object(Object {
+            id: ResourceId(100),
+            object_type: ObjectType::Model,
+            name: Some("Boolean Result".to_string()),
+            part_number: None,
+            uuid: None,
+            pid: None,
+            pindex: None,
+            thumbnail: None,
+            geometry: Geometry::BooleanShape(boolean_shape),
+        })
+        .unwrap();
 
     // Build references the boolean result
     model.build = Build {

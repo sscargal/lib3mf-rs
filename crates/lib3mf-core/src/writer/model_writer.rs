@@ -75,8 +75,8 @@ impl Model {
                         .attr("objectid", &bs.base_object_id.0.to_string());
 
                     if bs.base_transform != glam::Mat4::IDENTITY {
-                        bool_elem =
-                            bool_elem.attr("transform", &format_transform_matrix(&bs.base_transform));
+                        bool_elem = bool_elem
+                            .attr("transform", &format_transform_matrix(&bs.base_transform));
                     }
                     if let Some(path) = &bs.base_path {
                         bool_elem = bool_elem.attr("p:path", path);
@@ -98,7 +98,8 @@ impl Model {
                             .attr("operation", op_type_str);
 
                         if op.transform != glam::Mat4::IDENTITY {
-                            op_elem = op_elem.attr("transform", &format_transform_matrix(&op.transform));
+                            op_elem =
+                                op_elem.attr("transform", &format_transform_matrix(&op.transform));
                         }
                         if let Some(path) = &op.path {
                             op_elem = op_elem.attr("p:path", path);
@@ -159,7 +160,8 @@ impl Model {
                                 }
 
                                 if c.transform != glam::Mat4::IDENTITY {
-                                    comp = comp.attr("transform", &format_transform_matrix(&c.transform));
+                                    comp = comp
+                                        .attr("transform", &format_transform_matrix(&c.transform));
                                 }
                                 comp.write_empty()?;
                             }
@@ -200,7 +202,8 @@ impl Model {
                 .attr("objectid", &item.object_id.0.to_string());
 
             if item.transform != glam::Mat4::IDENTITY {
-                build_item = build_item.attr("transform", &format_transform_matrix(&item.transform));
+                build_item =
+                    build_item.attr("transform", &format_transform_matrix(&item.transform));
             }
             // partnumber support if needed
             build_item.write_empty()?;

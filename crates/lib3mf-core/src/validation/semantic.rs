@@ -218,16 +218,16 @@ fn validate_boolean_cycles(model: &Model, report: &mut ValidationReport) {
     let mut rec_stack = HashSet::new();
 
     for &start_id in graph.keys() {
-        if !visited.contains(&start_id) {
-            if has_cycle_dfs(start_id, &graph, &mut visited, &mut rec_stack) {
-                report.add_error(
-                    2100,
-                    format!(
-                        "Cycle detected in boolean operation graph involving object {}",
-                        start_id.0
-                    ),
-                );
-            }
+        if !visited.contains(&start_id)
+            && has_cycle_dfs(start_id, &graph, &mut visited, &mut rec_stack)
+        {
+            report.add_error(
+                2100,
+                format!(
+                    "Cycle detected in boolean operation graph involving object {}",
+                    start_id.0
+                ),
+            );
         }
     }
 }

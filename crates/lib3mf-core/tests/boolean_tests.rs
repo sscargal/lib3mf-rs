@@ -1,8 +1,6 @@
 //! Tests for Boolean Operations Extension parsing, writing, and validation.
 
-use lib3mf_core::model::{
-    BooleanOperationType, Geometry, ResourceId,
-};
+use lib3mf_core::model::{BooleanOperationType, Geometry, ResourceId};
 use lib3mf_core::parser::parse_model;
 use lib3mf_core::validation::ValidationLevel;
 use std::io::Cursor;
@@ -58,7 +56,9 @@ fn test_parse_boolean_union() -> anyhow::Result<()> {
 
     let model = parse_model(Cursor::new(xml))?;
 
-    let obj = model.resources.get_object(ResourceId(3))
+    let obj = model
+        .resources
+        .get_object(ResourceId(3))
         .expect("BooleanShape object missing");
 
     if let Geometry::BooleanShape(bs) = &obj.geometry {
@@ -100,14 +100,22 @@ fn test_parse_all_operation_types() -> anyhow::Result<()> {
 
     let model = parse_model(Cursor::new(xml))?;
 
-    let obj = model.resources.get_object(ResourceId(10))
+    let obj = model
+        .resources
+        .get_object(ResourceId(10))
         .expect("BooleanShape object missing");
 
     if let Geometry::BooleanShape(bs) = &obj.geometry {
         assert_eq!(bs.operations.len(), 3);
         assert_eq!(bs.operations[0].operation_type, BooleanOperationType::Union);
-        assert_eq!(bs.operations[1].operation_type, BooleanOperationType::Difference);
-        assert_eq!(bs.operations[2].operation_type, BooleanOperationType::Intersection);
+        assert_eq!(
+            bs.operations[1].operation_type,
+            BooleanOperationType::Difference
+        );
+        assert_eq!(
+            bs.operations[2].operation_type,
+            BooleanOperationType::Intersection
+        );
     } else {
         panic!("Expected BooleanShape geometry");
     }
@@ -309,8 +317,7 @@ fn test_round_trip() -> anyhow::Result<()> {
     let bs1 = model1.resources.get_object(ResourceId(3)).unwrap();
     let bs2 = model2.resources.get_object(ResourceId(3)).unwrap();
 
-    if let (Geometry::BooleanShape(s1), Geometry::BooleanShape(s2)) =
-        (&bs1.geometry, &bs2.geometry)
+    if let (Geometry::BooleanShape(s1), Geometry::BooleanShape(s2)) = (&bs1.geometry, &bs2.geometry)
     {
         assert_eq!(s1.base_object_id, s2.base_object_id);
         assert_eq!(s1.operations.len(), s2.operations.len());

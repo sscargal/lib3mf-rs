@@ -7,7 +7,14 @@ pub fn validate_geometry(model: &Model, level: ValidationLevel, report: &mut Val
         // Per spec: "The object type is ignored on objects that contain components"
         // Component-containing objects skip type-specific mesh validation
         if let Geometry::Mesh(mesh) = &object.geometry {
-            validate_mesh(mesh, object.id, object.object_type, level, report, model.unit);
+            validate_mesh(
+                mesh,
+                object.id,
+                object.object_type,
+                level,
+                report,
+                model.unit,
+            );
         }
     }
 }

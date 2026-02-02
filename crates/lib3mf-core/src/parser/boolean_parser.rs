@@ -1,7 +1,7 @@
 use crate::error::{Lib3mfError, Result};
 use crate::model::{BooleanOperation, BooleanOperationType, BooleanShape, ResourceId};
 use crate::parser::component_parser::parse_transform;
-use crate::parser::xml_parser::{get_attribute, get_attribute_u32, XmlParser};
+use crate::parser::xml_parser::{XmlParser, get_attribute, get_attribute_u32};
 use quick_xml::events::Event;
 use std::io::BufRead;
 

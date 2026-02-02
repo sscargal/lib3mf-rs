@@ -221,7 +221,8 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                     }
                     b"booleanshape" => {
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
-                        let base_object_id = crate::model::ResourceId(get_attribute_u32(&e, b"objectid")?);
+                        let base_object_id =
+                            crate::model::ResourceId(get_attribute_u32(&e, b"objectid")?);
                         let base_transform = if let Some(s) = get_attribute(&e, b"transform") {
                             crate::parser::component_parser::parse_transform(&s)?
                         } else {
@@ -231,7 +232,8 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                             .or_else(|| get_attribute(&e, b"p:path"))
                             .map(|s| s.into_owned());
 
-                        let bool_shape = parse_boolean_shape(parser, base_object_id, base_transform, base_path)?;
+                        let bool_shape =
+                            parse_boolean_shape(parser, base_object_id, base_transform, base_path)?;
 
                         // Per spec, booleanshape is a model-type object
                         let object = Object {
