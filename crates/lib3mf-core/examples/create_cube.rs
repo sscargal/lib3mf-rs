@@ -44,11 +44,11 @@ fn main() -> anyhow::Result<()> {
     mesh.add_triangle(v3, v0, v4);
     mesh.add_triangle(v3, v4, v7);
 
-    // 2. Create Object Resource
+    // 2. Create Model Object (printable part)
     let object_id = ResourceId(1);
     let object = Object {
         id: object_id,
-        object_type: ObjectType::Model,
+        object_type: ObjectType::Model, // Printable part - requires manifold mesh
         name: Some("Simple Cube".to_string()),
         part_number: None,
         uuid: None,
@@ -58,10 +58,44 @@ fn main() -> anyhow::Result<()> {
         geometry: Geometry::Mesh(mesh),
     };
 
-    // 3. Add to Resources
-    model.resources.add_object(object)?;
+    println!(
+        "Object type: {} - requires manifold: {}",
+        object.object_type,
+        object.object_type.requires_manifold()
+    );
 
-    // 4. Create Build Item (Instance)
+    // 3. Create Support Object (optional - demonstrates different type)
+    let mut support_mesh = Mesh::new();
+    // Simple support geometry (can be non-manifold)
+    support_mesh.add_vertex(5.0, 5.0, -5.0);
+    support_mesh.add_vertex(6.0, 5.0, -5.0);
+    support_mesh.add_vertex(5.0, 6.0, -5.0);
+    support_mesh.add_triangle(0, 1, 2);
+
+    let support_id = ResourceId(2);
+    let support_object = Object {
+        id: support_id,
+        object_type: ObjectType::Support, // Support structure - non-manifold allowed
+        name: Some("Support".to_string()),
+        part_number: None,
+        uuid: None,
+        pid: None,
+        thumbnail: None,
+        pindex: None,
+        geometry: Geometry::Mesh(support_mesh),
+    };
+
+    println!(
+        "Support type: {} - requires manifold: {}",
+        support_object.object_type,
+        support_object.object_type.requires_manifold()
+    );
+
+    // 4. Add to Resources
+    model.resources.add_object(object)?;
+    model.resources.add_object(support_object)?;
+
+    // 5. Create Build Items (only model object - supports can be ignored by consumer)
     let item = BuildItem {
         object_id,
         transform: glam::Mat4::IDENTITY,
@@ -71,11 +105,14 @@ fn main() -> anyhow::Result<()> {
     };
     model.build.items.push(item);
 
-    // 5. Write to file
+    // 6. Write to file
     let file = File::create("cube.3mf")?;
     model.write(file)?;
 
-    println!("Written to cube.3mf");
+    println!("\nWritten to cube.3mf");
+    println!("Model contains:");
+    println!("  - 1 model object (printable cube)");
+    println!("  - 1 support object (removable support)");
 
     Ok(())
 }

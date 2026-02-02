@@ -8,6 +8,23 @@ use uuid::Uuid;
 /// Per 3MF Core Specification:
 /// - Model/SolidSupport: Must be manifold, closed volumes
 /// - Support/Surface/Other: Can be non-manifold, open meshes
+///
+/// # Examples
+///
+/// ```
+/// use lib3mf_core::model::ObjectType;
+///
+/// let obj_type = ObjectType::default();
+/// assert_eq!(obj_type, ObjectType::Model);
+///
+/// // Check validation requirements
+/// assert!(ObjectType::Model.requires_manifold());
+/// assert!(!ObjectType::Support.requires_manifold());
+///
+/// // Check build constraints
+/// assert!(ObjectType::Model.can_be_in_build());
+/// assert!(!ObjectType::Other.can_be_in_build());
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ObjectType {
