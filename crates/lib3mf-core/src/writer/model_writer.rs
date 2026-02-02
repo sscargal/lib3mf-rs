@@ -128,6 +128,12 @@ impl Model {
                 Geometry::VolumetricStack(_id) => {
                     // Similar to SliceStack, requires attribute on object tag.
                 }
+                Geometry::BooleanShape(_bool_shape) => {
+                    // BooleanShape requires its own resource element (not a child of object)
+                    // This is written at the resource level like object, not inside object.
+                    // Writer structure needs refactoring to support BooleanShape properly.
+                    // For now, leaving empty to satisfy exhaustiveness check.
+                }
             }
 
             xml.end_element("object")?;

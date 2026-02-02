@@ -81,6 +81,30 @@ pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
                     );
                 }
             }
+            Geometry::BooleanShape(bool_shape) => {
+                // Validate base object reference
+                if model.resources.get_object(bool_shape.base_object_id).is_none() {
+                    report.add_error(
+                        2006,
+                        format!(
+                            "BooleanShape in Object {} references non-existent base object {}",
+                            object.id.0, bool_shape.base_object_id.0
+                        ),
+                    );
+                }
+                // Validate operation object references
+                for (i, op) in bool_shape.operations.iter().enumerate() {
+                    if model.resources.get_object(op.object_id).is_none() {
+                        report.add_error(
+                            2007,
+                            format!(
+                                "BooleanShape operation {} in Object {} references non-existent object {}",
+                                i, object.id.0, op.object_id.0
+                            ),
+                        );
+                    }
+                }
+            }
         }
     }
 }

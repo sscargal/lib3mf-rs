@@ -111,6 +111,8 @@ pub enum Geometry {
     SliceStack(ResourceId),
     /// Voxel data (Volumetric Extension).
     VolumetricStack(ResourceId),
+    /// Boolean shape from CSG operations (Boolean Operations Extension).
+    BooleanShape(BooleanShape),
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -135,6 +137,60 @@ fn default_transform() -> glam::Mat4 {
 
 fn is_identity(transform: &glam::Mat4) -> bool {
     *transform == glam::Mat4::IDENTITY
+}
+
+/// Type of boolean operation to apply between shapes.
+///
+/// Per 3MF Boolean Operations Extension v1.1.1:
+/// - Union: Combines both shapes (default)
+/// - Difference: Subtracts operation shape from base
+/// - Intersection: Only keeps overlapping volume
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum BooleanOperationType {
+    /// Combine both shapes (default)
+    #[default]
+    Union,
+    /// Subtract operation shape from base
+    Difference,
+    /// Keep only overlapping volume
+    Intersection,
+}
+
+/// A single boolean operation applied to a shape.
+///
+/// Represents one <boolean> element within a <booleanshape>.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BooleanOperation {
+    /// Type of boolean operation (union, difference, intersection)
+    #[serde(default)]
+    pub operation_type: BooleanOperationType,
+    /// Reference to the object to apply
+    pub object_id: ResourceId,
+    /// Transformation matrix applied to the operation object
+    #[serde(default = "default_transform", skip_serializing_if = "is_identity")]
+    pub transform: glam::Mat4,
+    /// Optional external reference path (p:path)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+}
+
+/// A boolean shape combining multiple objects with CSG operations.
+///
+/// Represents a <booleanshape> resource that defines geometry through
+/// constructive solid geometry (CSG) operations.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BooleanShape {
+    /// Base object to start with
+    pub base_object_id: ResourceId,
+    /// Transformation applied to base object
+    #[serde(default = "default_transform", skip_serializing_if = "is_identity")]
+    pub base_transform: glam::Mat4,
+    /// Optional external reference path for base (p:path)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_path: Option<String>,
+    /// Ordered list of boolean operations to apply
+    pub operations: Vec<BooleanOperation>,
 }
 
 /// A mesh defined by vertices and triangles.
