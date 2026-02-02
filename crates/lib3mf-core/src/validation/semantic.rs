@@ -144,6 +144,30 @@ pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
                         );
                     }
                 }
+
+                // Validate base transformation matrix
+                if !is_transform_valid(&bs.base_transform) {
+                    report.add_error(
+                        2106,
+                        format!(
+                            "BooleanShape {} has invalid base transformation matrix (contains NaN or Infinity)",
+                            object.id.0
+                        ),
+                    );
+                }
+
+                // Validate operation transformation matrices
+                for (idx, op) in bs.operations.iter().enumerate() {
+                    if !is_transform_valid(&op.transform) {
+                        report.add_error(
+                            2105,
+                            format!(
+                                "BooleanShape {} operation {} has invalid transformation matrix (contains NaN or Infinity)",
+                                object.id.0, idx
+                            ),
+                        );
+                    }
+                }
             }
         }
     }
@@ -235,4 +259,12 @@ fn has_cycle_dfs(
 
     rec_stack.remove(&node);
     false
+}
+
+/// Validates that a transformation matrix contains only finite values.
+fn is_transform_valid(mat: &glam::Mat4) -> bool {
+    mat.x_axis.is_finite()
+        && mat.y_axis.is_finite()
+        && mat.z_axis.is_finite()
+        && mat.w_axis.is_finite()
 }
