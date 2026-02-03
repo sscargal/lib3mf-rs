@@ -11,6 +11,7 @@ pub struct ModelStats {
     pub geometry: GeometryStats,
     pub materials: MaterialsStats,
     pub production: ProductionStats,
+    pub displacement: DisplacementStats,
     pub vendor: VendorData,
     pub system_info: HardwareCapabilities,
     pub thumbnails: ThumbnailStats,
@@ -84,6 +85,16 @@ impl BoundingBox {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProductionStats {
     pub uuid_count: usize,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DisplacementStats {
+    pub mesh_count: usize,
+    pub texture_count: usize,
+    pub normal_count: u64,
+    pub gradient_count: u64,
+    pub displaced_triangle_count: u64,
+    pub total_triangle_count: u64,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

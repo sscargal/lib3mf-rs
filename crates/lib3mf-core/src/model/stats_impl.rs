@@ -1,6 +1,6 @@
 use crate::archive::ArchiveReader;
 use crate::error::Result;
-use crate::model::stats::{GeometryStats, MaterialsStats, ModelStats, ProductionStats, VendorData};
+use crate::model::stats::{DisplacementStats, GeometryStats, MaterialsStats, ModelStats, ProductionStats, VendorData};
 use crate::model::{Geometry, Model};
 use crate::parser::bambu_config::parse_model_settings;
 
@@ -52,7 +52,10 @@ impl Model {
             multi_properties_count: self.resources.multi_properties_count(),
         };
 
-        // 5. Thumbnails
+        // 5. Displacement Stats
+        let displacement_stats = self.compute_displacement_stats();
+
+        // 6. Thumbnails
         // Check archiver for package thumbnail (attachments may not be loaded)
         let pkg_thumb = archiver.entry_exists("Metadata/thumbnail.png")
             || archiver.entry_exists("/Metadata/thumbnail.png");
@@ -69,6 +72,7 @@ impl Model {
             geometry: geom_stats,
             materials: materials_stats,
             production: prod_stats,
+            displacement: displacement_stats,
             vendor: vendor_data,
             system_info: crate::utils::hardware::detect_capabilities(),
             thumbnails: crate::model::stats::ThumbnailStats {
@@ -76,6 +80,32 @@ impl Model {
                 object_thumbnail_count: obj_thumb_count,
             },
         })
+    }
+
+    fn compute_displacement_stats(&self) -> DisplacementStats {
+        let mut stats = DisplacementStats {
+            texture_count: self.resources.displacement_2d_count(),
+            ..Default::default()
+        };
+
+        // Count DisplacementMesh objects and accumulate metrics
+        for obj in self.resources.iter_objects() {
+            if let Geometry::DisplacementMesh(dmesh) = &obj.geometry {
+                stats.mesh_count += 1;
+                stats.normal_count += dmesh.normals.len() as u64;
+                stats.gradient_count += dmesh.gradients.as_ref().map_or(0, |g| g.len() as u64);
+                stats.total_triangle_count += dmesh.triangles.len() as u64;
+
+                // Count triangles with displacement indices
+                for tri in &dmesh.triangles {
+                    if tri.d1.is_some() || tri.d2.is_some() || tri.d3.is_some() {
+                        stats.displaced_triangle_count += 1;
+                    }
+                }
+            }
+        }
+
+        stats
     }
 
     fn accumulate_object_stats(
