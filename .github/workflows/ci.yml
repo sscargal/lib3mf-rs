@@ -63,17 +63,3 @@ jobs:
         run: cargo clippy -- -D warnings
       - name: Format
         run: cargo fmt --check
-
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install cargo-audit & cargo-deny
-        run: |
-          cargo install cargo-audit
-          cargo install cargo-deny
-      - name: Security Audit
-        run: cargo audit
-      - name: License & Dependency Check
-        run: cargo deny check

@@ -2,21 +2,40 @@ name: Security Audit
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 0 * * *"  # Daily at midnight UTC
   push:
     paths:
       - "**/Cargo.toml"
       - "**/Cargo.lock"
+      - ".cargo/audit.toml"
+  workflow_dispatch:  # Allow manual runs
 
 permissions:
   contents: read
 
 jobs:
   audit:
+    name: Security Audit & Compliance
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Security audit
-        uses: rustsec/audit-check@v1.4.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Security Audit (cargo-audit)
+        run: cargo audit
+        continue-on-error: false
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
+
+      - name: License & Dependency Check (cargo-deny)
+        run: cargo deny check
+        continue-on-error: false

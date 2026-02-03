@@ -1,0 +1,40 @@
+# cargo-audit configuration
+# Documentation: https://docs.rs/cargo-audit/latest/cargo_audit/config/
+
+[advisories]
+# Ignored advisories - documented exceptions for known issues
+
+# RUSTSEC-2023-0071: Marvin Attack on RSA (timing side-channel)
+# Summary: Potential RSA private key recovery through timing side-channel analysis
+# Severity: 5.9 (Medium)
+# Status: No upstream fix available as of 2026-02-03
+#
+# Risk Assessment for lib3mf-rs:
+# - ACCEPTABLE: This vulnerability requires:
+#   1. Attacker observing thousands of decryption operations
+#   2. Precise timing measurements (nanosecond precision)
+#   3. Statistical analysis of timing variations
+#
+# - Typical lib3mf-rs usage (parsing/validating 3MF files) does not expose
+#   repeated decryption operations to potential attackers in a way that would
+#   make this attack practical.
+#
+# - The RSA operations are used for:
+#   - Digital signature verification (public key operations - not vulnerable)
+#   - Encrypted key unwrapping (limited, non-repeated operations)
+#
+# - Attack requires local or network-adjacent position to measure timing
+#
+# Mitigation Plan:
+# - Monitor for upstream fix in RustCrypto/RSA repository
+# - Re-evaluate when rsa crate v0.10+ is released
+# - Consider migration to constant-time RSA implementation if available
+#
+# References:
+# - https://rustsec.org/advisories/RUSTSEC-2023-0071
+# - https://github.com/RustCrypto/RSA/issues/19
+# - Original Marvin Attack paper: https://people.redhat.com/~hkario/marvin/
+
+ignore = [
+    "RUSTSEC-2023-0071",  # RSA Marvin Attack - acceptable risk for our use case
+]
