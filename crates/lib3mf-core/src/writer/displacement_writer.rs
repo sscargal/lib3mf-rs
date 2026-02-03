@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::model::{Channel, DisplacementMesh, Displacement2D, FilterMode, TileStyle};
+use crate::model::{Channel, Displacement2D, DisplacementMesh, FilterMode, TileStyle};
 use crate::writer::xml_writer::XmlWriter;
 use std::io::Write;
 

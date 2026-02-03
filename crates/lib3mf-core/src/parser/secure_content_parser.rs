@@ -124,10 +124,9 @@ fn parse_access_right_content<R: BufRead>(parser: &mut XmlParser<R>) -> Result<(
 
                         let text = parser.read_text_content()?;
                         // Decode base64 to actual encrypted key bytes
-                        wrapped_key = BASE64_STANDARD
-                            .decode(text.as_bytes())
-                            .map_err(|e| Lib3mfError::Validation(
-                                format!("Invalid base64 wrapped key: {}", e)))?;
+                        wrapped_key = BASE64_STANDARD.decode(text.as_bytes()).map_err(|e| {
+                            Lib3mfError::Validation(format!("Invalid base64 wrapped key: {}", e))
+                        })?;
                     }
                     _ => {
                         let end_tag = e.name().as_ref().to_vec();

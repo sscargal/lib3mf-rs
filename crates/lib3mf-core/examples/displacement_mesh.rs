@@ -9,8 +9,8 @@
 //! Run with: cargo run -p lib3mf-core --example displacement_mesh
 
 use lib3mf_core::model::{
-    Build, BuildItem, Channel, Displacement2D, DisplacementMesh, DisplacementTriangle,
-    FilterMode, Geometry, Model, NormalVector, Object, ObjectType, ResourceId, TileStyle, Vertex,
+    Build, BuildItem, Channel, Displacement2D, DisplacementMesh, DisplacementTriangle, FilterMode,
+    Geometry, Model, NormalVector, Object, ObjectType, ResourceId, TileStyle, Vertex,
 };
 use lib3mf_core::validation::{ValidationLevel, ValidationSeverity};
 use std::io::Cursor;

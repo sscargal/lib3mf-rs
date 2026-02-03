@@ -1,6 +1,8 @@
 use crate::archive::ArchiveReader;
 use crate::error::Result;
-use crate::model::stats::{DisplacementStats, GeometryStats, MaterialsStats, ModelStats, ProductionStats, VendorData};
+use crate::model::stats::{
+    DisplacementStats, GeometryStats, MaterialsStats, ModelStats, ProductionStats, VendorData,
+};
 use crate::model::{Geometry, Model};
 use crate::parser::bambu_config::parse_model_settings;
 

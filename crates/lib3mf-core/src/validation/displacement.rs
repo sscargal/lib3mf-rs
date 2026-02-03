@@ -17,13 +17,7 @@ pub fn validate_displacement(model: &Model, level: ValidationLevel, report: &mut
     // Validate DisplacementMesh geometry
     for object in model.resources.iter_objects() {
         if let Geometry::DisplacementMesh(dmesh) = &object.geometry {
-            validate_displacement_mesh(
-                dmesh,
-                object.id,
-                level,
-                report,
-                &model.resources,
-            );
+            validate_displacement_mesh(dmesh, object.id, level, report, &model.resources);
         }
     }
 }
@@ -145,7 +139,11 @@ pub fn validate_displacement_mesh_geometry(
 }
 
 /// Validate Displacement2D texture resources.
-fn validate_displacement_resources(model: &Model, level: ValidationLevel, report: &mut ValidationReport) {
+fn validate_displacement_resources(
+    model: &Model,
+    level: ValidationLevel,
+    report: &mut ValidationReport,
+) {
     for res in model.resources.iter_displacement_2d() {
         // Standard level: Basic path validation
         if level >= ValidationLevel::Standard {
@@ -333,8 +331,11 @@ fn validate_displacement_mesh(
             // This is a quality check - gradients should be orthogonal to normals
             // for best displacement mapping results, but not strictly required
             for (i, (normal, gradient)) in mesh.normals.iter().zip(gradients.iter()).enumerate() {
-                if normal.nx.is_finite() && normal.ny.is_finite() && normal.nz.is_finite()
-                    && gradient.gu.is_finite() && gradient.gv.is_finite()
+                if normal.nx.is_finite()
+                    && normal.ny.is_finite()
+                    && normal.nz.is_finite()
+                    && gradient.gu.is_finite()
+                    && gradient.gv.is_finite()
                 {
                     // For a proper check we'd need to convert 2D gradient to 3D
                     // and check dot product with normal. This is complex and

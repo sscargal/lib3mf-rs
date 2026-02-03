@@ -3,7 +3,7 @@ use crate::model::{
     Channel, Displacement2D, DisplacementMesh, DisplacementTriangle, FilterMode, GradientVector,
     NormalVector, ResourceId, TileStyle, Vertex,
 };
-use crate::parser::xml_parser::{get_attribute_f32, get_attribute_u32, XmlParser};
+use crate::parser::xml_parser::{XmlParser, get_attribute_f32, get_attribute_u32};
 use quick_xml::events::Event;
 use std::io::BufRead;
 
@@ -160,7 +160,7 @@ fn parse_disp2d_groups<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<Grad
                                 gradients.push(GradientVector { gu, gv });
                             }
                             Event::End(end_e) if end_e.local_name().as_ref() == b"disp2dgroup" => {
-                                break
+                                break;
                             }
                             Event::Eof => {
                                 return Err(Lib3mfError::Validation(
@@ -202,7 +202,7 @@ pub fn parse_displacement_2d<R: BufRead>(
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in displacement2d".to_string(),
-                ))
+                ));
             }
             _ => {}
         }

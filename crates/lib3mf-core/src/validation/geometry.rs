@@ -418,7 +418,11 @@ fn validate_displacement_mesh_geometry(
     }
 }
 
-fn check_displacement_manifoldness(dmesh: &DisplacementMesh, oid: ResourceId, report: &mut ValidationReport) {
+fn check_displacement_manifoldness(
+    dmesh: &DisplacementMesh,
+    oid: ResourceId,
+    report: &mut ValidationReport,
+) {
     let mut edge_counts = HashMap::new();
 
     for tri in &dmesh.triangles {
@@ -454,7 +458,11 @@ fn check_displacement_manifoldness(dmesh: &DisplacementMesh, oid: ResourceId, re
     }
 }
 
-fn check_displacement_vertex_manifoldness(dmesh: &DisplacementMesh, oid: ResourceId, report: &mut ValidationReport) {
+fn check_displacement_vertex_manifoldness(
+    dmesh: &DisplacementMesh,
+    oid: ResourceId,
+    report: &mut ValidationReport,
+) {
     if dmesh.vertices.is_empty() || dmesh.triangles.is_empty() {
         return;
     }
@@ -514,7 +522,10 @@ fn check_displacement_vertex_manifoldness(dmesh: &DisplacementMesh, oid: Resourc
     }
 }
 
-fn count_displacement_shared_vertices(t1: &crate::model::DisplacementTriangle, t2: &crate::model::DisplacementTriangle) -> usize {
+fn count_displacement_shared_vertices(
+    t1: &crate::model::DisplacementTriangle,
+    t2: &crate::model::DisplacementTriangle,
+) -> usize {
     let mut count = 0;
     let v1 = [t1.v1, t1.v2, t1.v3];
     let v2 = [t2.v1, t2.v2, t2.v3];
@@ -528,7 +539,11 @@ fn count_displacement_shared_vertices(t1: &crate::model::DisplacementTriangle, t
     count
 }
 
-fn check_displacement_islands(dmesh: &DisplacementMesh, oid: ResourceId, report: &mut ValidationReport) {
+fn check_displacement_islands(
+    dmesh: &DisplacementMesh,
+    oid: ResourceId,
+    report: &mut ValidationReport,
+) {
     if dmesh.triangles.is_empty() {
         return;
     }
@@ -589,7 +604,11 @@ fn check_displacement_islands(dmesh: &DisplacementMesh, oid: ResourceId, report:
     }
 }
 
-fn check_displacement_orientation(dmesh: &DisplacementMesh, oid: ResourceId, report: &mut ValidationReport) {
+fn check_displacement_orientation(
+    dmesh: &DisplacementMesh,
+    oid: ResourceId,
+    report: &mut ValidationReport,
+) {
     let mut directed_edge_counts = HashMap::new();
     for tri in &dmesh.triangles {
         let edges = [(tri.v1, tri.v2), (tri.v2, tri.v3), (tri.v3, tri.v1)];
