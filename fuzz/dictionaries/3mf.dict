@@ -1,0 +1,129 @@
+# 3MF/XML Dictionary for libFuzzer
+# Format: token_name="value" (quotes are part of value)
+
+# XML structural tokens
+tag_open="<"
+tag_close=">"
+tag_self_close="/>"
+tag_end="</"
+xml_decl="<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+comment_start="<!--"
+comment_end="-->"
+cdata_start="<![CDATA["
+cdata_end="]]>"
+entity_amp="&amp;"
+entity_lt="&lt;"
+entity_gt="&gt;"
+entity_quot="&quot;"
+
+# 3MF Core namespaces
+ns_core="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
+ns_materials="http://schemas.microsoft.com/3dmanufacturing/material/2015/02"
+ns_beamlattice="http://schemas.microsoft.com/3dmanufacturing/beamlattice/2017/02"
+ns_slice="http://schemas.microsoft.com/3dmanufacturing/slice/2015/07"
+ns_production="http://schemas.microsoft.com/3dmanufacturing/production/2015/06"
+ns_boolean="http://schemas.microsoft.com/3dmanufacturing/booleanoperations/2022/06"
+ns_displacement="http://schemas.microsoft.com/3dmanufacturing/displacement/2021/06"
+
+# Core element names
+elem_model="<model"
+elem_resources="<resources>"
+elem_build="<build>"
+elem_object="<object"
+elem_mesh="<mesh>"
+elem_vertices="<vertices>"
+elem_vertex="<vertex"
+elem_triangles="<triangles>"
+elem_triangle="<triangle"
+elem_components="<components>"
+elem_component="<component"
+elem_item="<item"
+elem_metadata="<metadata"
+
+# Material elements
+elem_basematerials="<basematerials"
+elem_base="<base"
+elem_colorgroup="<colorgroup"
+elem_color="<color"
+elem_texture2d="<texture2d"
+elem_texture2dgroup="<texture2dgroup"
+elem_tex2coord="<tex2coord"
+elem_compositematerials="<compositematerials"
+elem_composite="<composite"
+elem_multiproperties="<multiproperties"
+elem_multi="<multi"
+
+# Extension elements
+elem_beamlattice="<beamlattice"
+elem_beam="<beam"
+elem_beams="<beams"
+elem_beamsets="<beamsets"
+elem_slicestack="<slicestack"
+elem_slice="<slice"
+elem_polygon="<polygon"
+elem_segment="<segment"
+elem_booleanshape="<booleanshape"
+elem_booleanshaperef="<booleanshaperef"
+elem_displacementmesh="<displacementmesh"
+elem_displacement2d="<displacement2d"
+
+# Common attributes
+attr_id=" id=\""
+attr_type=" type=\""
+attr_name=" name=\""
+attr_unit=" unit=\""
+attr_objectid=" objectid=\""
+attr_transform=" transform=\""
+attr_pid=" pid=\""
+attr_pindex=" pindex=\""
+attr_partnumber=" partnumber=\""
+attr_uuid=" UUID=\""
+
+# Coordinate attributes
+attr_x=" x=\""
+attr_y=" y=\""
+attr_z=" z=\""
+attr_v1=" v1=\""
+attr_v2=" v2=\""
+attr_v3=" v3=\""
+attr_p1=" p1=\""
+attr_p2=" p2=\""
+attr_p3=" p3=\""
+
+# Object types
+type_model="model"
+type_support="support"
+type_solidsupport="solidsupport"
+type_surface="surface"
+type_other="other"
+
+# Unit values
+unit_mm="millimeter"
+unit_inch="inch"
+unit_foot="foot"
+unit_meter="meter"
+unit_micron="micron"
+
+# Boolean operation types
+bool_union="union"
+bool_difference="difference"
+bool_intersection="intersection"
+
+# Edge case values that might trigger bugs
+edge_maxint="4294967295"
+edge_negative="-1"
+edge_zero="0"
+edge_float="3.14159265358979323846"
+edge_scientific="1e308"
+edge_nan="NaN"
+edge_inf="Infinity"
+edge_empty=""
+edge_space=" "
+edge_null="\x00"
+
+# OPC relationship tokens
+rel_type_model="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"
+rel_type_printtix="http://schemas.microsoft.com/3dmanufacturing/2013/01/printticket"
+rel_type_texture="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dtexture"
+content_types="[Content_Types].xml"
+rels_file="_rels/.rels"
