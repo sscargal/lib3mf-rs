@@ -1,8 +1,7 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
-use lib3mf_core::archive::ZipArchiver;
+use lib3mf_core::archive::{ZipArchiver, ArchiveReader, find_model_path};
 use lib3mf_core::parser::parse_model;
-use lib3mf_core::archive::find_model_path;
 use std::io::Cursor;
 
 fuzz_target!(|data: &[u8]| {
