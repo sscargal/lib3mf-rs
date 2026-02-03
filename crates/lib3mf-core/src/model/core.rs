@@ -49,7 +49,7 @@ impl Model {
         &self,
         level: crate::validation::ValidationLevel,
     ) -> crate::validation::ValidationReport {
-        use crate::validation::{ValidationLevel, geometry, schema, semantic};
+        use crate::validation::{ValidationLevel, displacement, geometry, schema, semantic};
 
         let mut report = crate::validation::ValidationReport::new();
 
@@ -62,6 +62,9 @@ impl Model {
         if level >= ValidationLevel::Standard {
             semantic::validate_semantic(self, &mut report);
         }
+
+        // All levels: Displacement validation (progressive checks)
+        displacement::validate_displacement(self, level, &mut report);
 
         // Paranoid: Geometry validation
         if level >= ValidationLevel::Paranoid {

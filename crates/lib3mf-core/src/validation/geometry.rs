@@ -1,4 +1,4 @@
-use crate::model::{Geometry, Mesh, Model, ObjectType, ResourceId};
+use crate::model::{DisplacementMesh, Geometry, Mesh, Model, ObjectType, ResourceId};
 use crate::validation::{ValidationLevel, ValidationReport};
 use std::collections::HashMap;
 
@@ -6,15 +6,28 @@ pub fn validate_geometry(model: &Model, level: ValidationLevel, report: &mut Val
     for object in model.resources.iter_objects() {
         // Per spec: "The object type is ignored on objects that contain components"
         // Component-containing objects skip type-specific mesh validation
-        if let Geometry::Mesh(mesh) = &object.geometry {
-            validate_mesh(
-                mesh,
-                object.id,
-                object.object_type,
-                level,
-                report,
-                model.unit,
-            );
+        match &object.geometry {
+            Geometry::Mesh(mesh) => {
+                validate_mesh(
+                    mesh,
+                    object.id,
+                    object.object_type,
+                    level,
+                    report,
+                    model.unit,
+                );
+            }
+            Geometry::DisplacementMesh(dmesh) => {
+                validate_displacement_mesh_geometry(
+                    dmesh,
+                    object.id,
+                    object.object_type,
+                    level,
+                    report,
+                    model.unit,
+                );
+            }
+            _ => {}
         }
     }
 }
@@ -351,5 +364,298 @@ fn count_non_manifold_edges(mesh: &Mesh) -> usize {
     }
 
     // Non-manifold edges have count != 2
+    edge_counts.values().filter(|&&c| c != 2).count()
+}
+
+/// Validate DisplacementMesh geometry (basic geometric checks at Paranoid level).
+///
+/// This performs similar checks to regular Mesh validation but adapted for DisplacementMesh.
+/// Displacement-specific validation (normals, gradients, texture refs) is handled by
+/// displacement::validate_displacement().
+fn validate_displacement_mesh_geometry(
+    dmesh: &DisplacementMesh,
+    oid: ResourceId,
+    object_type: ObjectType,
+    level: ValidationLevel,
+    report: &mut ValidationReport,
+    unit: crate::model::Unit,
+) {
+    // Basic checks for ALL object types (degenerate triangles)
+    for (i, tri) in dmesh.triangles.iter().enumerate() {
+        if tri.v1 == tri.v2 || tri.v2 == tri.v3 || tri.v1 == tri.v3 {
+            report.add_warning(
+                4001,
+                format!(
+                    "Triangle {} in DisplacementMesh object {} ({}) is degenerate (duplicate vertices)",
+                    i, oid.0, object_type
+                ),
+            );
+        }
+    }
+
+    // Type-specific validation at Paranoid level
+    if level >= ValidationLevel::Paranoid {
+        if object_type.requires_manifold() {
+            // Strict checks for Model and SolidSupport
+            check_displacement_manifoldness(dmesh, oid, report);
+            check_displacement_vertex_manifoldness(dmesh, oid, report);
+            check_displacement_islands(dmesh, oid, report);
+            check_displacement_orientation(dmesh, oid, report);
+            check_displacement_degenerate_faces(dmesh, oid, report, unit);
+        } else {
+            // Relaxed checks for Support/Surface/Other - only basic geometry warnings
+            let manifold_issues = count_displacement_non_manifold_edges(dmesh);
+            if manifold_issues > 0 {
+                report.add_info(
+                    4100,
+                    format!(
+                        "DisplacementMesh object {} ({}) has {} non-manifold edges (allowed for this type)",
+                        oid.0, object_type, manifold_issues
+                    ),
+                );
+            }
+        }
+    }
+}
+
+fn check_displacement_manifoldness(dmesh: &DisplacementMesh, oid: ResourceId, report: &mut ValidationReport) {
+    let mut edge_counts = HashMap::new();
+
+    for tri in &dmesh.triangles {
+        let edges = [
+            sort_edge(tri.v1, tri.v2),
+            sort_edge(tri.v2, tri.v3),
+            sort_edge(tri.v3, tri.v1),
+        ];
+
+        for edge in edges {
+            *edge_counts.entry(edge).or_insert(0) += 1;
+        }
+    }
+
+    for (edge, count) in edge_counts {
+        if count == 1 {
+            report.add_warning(
+                4002,
+                format!(
+                    "DisplacementMesh object {} has boundary edge {:?} (not watertight)",
+                    oid.0, edge
+                ),
+            );
+        } else if count > 2 {
+            report.add_warning(
+                4003,
+                format!(
+                    "DisplacementMesh object {} has non-manifold edge {:?} (shared by {} triangles)",
+                    oid.0, edge, count
+                ),
+            );
+        }
+    }
+}
+
+fn check_displacement_vertex_manifoldness(dmesh: &DisplacementMesh, oid: ResourceId, report: &mut ValidationReport) {
+    if dmesh.vertices.is_empty() || dmesh.triangles.is_empty() {
+        return;
+    }
+
+    let mut vertex_to_triangles = vec![Vec::new(); dmesh.vertices.len()];
+    for (i, tri) in dmesh.triangles.iter().enumerate() {
+        vertex_to_triangles[tri.v1 as usize].push(i);
+        vertex_to_triangles[tri.v2 as usize].push(i);
+        vertex_to_triangles[tri.v3 as usize].push(i);
+    }
+
+    for (v_idx, tri_indices) in vertex_to_triangles.iter().enumerate() {
+        if tri_indices.len() <= 1 {
+            continue;
+        }
+
+        let mut visited = vec![false; tri_indices.len()];
+        let mut components = 0;
+
+        for start_idx in 0..tri_indices.len() {
+            if visited[start_idx] {
+                continue;
+            }
+
+            components += 1;
+            let mut stack = vec![start_idx];
+            visited[start_idx] = true;
+
+            while let Some(current_idx) = stack.pop() {
+                let current_tri_idx = tri_indices[current_idx];
+                let current_tri = &dmesh.triangles[current_tri_idx];
+
+                for (other_idx, &other_tri_idx) in tri_indices.iter().enumerate() {
+                    if visited[other_idx] {
+                        continue;
+                    }
+
+                    let other_tri = &dmesh.triangles[other_tri_idx];
+                    let shared_verts = count_displacement_shared_vertices(current_tri, other_tri);
+                    if shared_verts >= 2 {
+                        visited[other_idx] = true;
+                        stack.push(other_idx);
+                    }
+                }
+            }
+        }
+
+        if components > 1 {
+            report.add_warning(
+                4006,
+                format!(
+                    "DisplacementMesh object {} has non-manifold vertex {} (points to {} disjoint triangle groups)",
+                    oid.0, v_idx, components
+                ),
+            );
+        }
+    }
+}
+
+fn count_displacement_shared_vertices(t1: &crate::model::DisplacementTriangle, t2: &crate::model::DisplacementTriangle) -> usize {
+    let mut count = 0;
+    let v1 = [t1.v1, t1.v2, t1.v3];
+    let v2 = [t2.v1, t2.v2, t2.v3];
+    for &va in &v1 {
+        for &vb in &v2 {
+            if va == vb {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
+fn check_displacement_islands(dmesh: &DisplacementMesh, oid: ResourceId, report: &mut ValidationReport) {
+    if dmesh.triangles.is_empty() {
+        return;
+    }
+
+    let mut edge_to_tris: HashMap<(u32, u32), Vec<usize>> = HashMap::new();
+    for (i, tri) in dmesh.triangles.iter().enumerate() {
+        let edges = [
+            sort_edge(tri.v1, tri.v2),
+            sort_edge(tri.v2, tri.v3),
+            sort_edge(tri.v3, tri.v1),
+        ];
+        for e in edges {
+            edge_to_tris.entry(e).or_default().push(i);
+        }
+    }
+
+    let mut visited = vec![false; dmesh.triangles.len()];
+    let mut component_count = 0;
+
+    for start_idx in 0..dmesh.triangles.len() {
+        if visited[start_idx] {
+            continue;
+        }
+
+        component_count += 1;
+        let mut stack = vec![start_idx];
+        visited[start_idx] = true;
+
+        while let Some(curr_idx) = stack.pop() {
+            let tri = &dmesh.triangles[curr_idx];
+            let edges = [
+                sort_edge(tri.v1, tri.v2),
+                sort_edge(tri.v2, tri.v3),
+                sort_edge(tri.v3, tri.v1),
+            ];
+
+            for e in edges {
+                if let Some(neighbors) = edge_to_tris.get(&e) {
+                    for &neigh_idx in neighbors {
+                        if !visited[neigh_idx] {
+                            visited[neigh_idx] = true;
+                            stack.push(neigh_idx);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if component_count > 1 {
+        report.add_warning(
+            4007,
+            format!(
+                "DisplacementMesh object {} contains {} disconnected components (islands)",
+                oid.0, component_count
+            ),
+        );
+    }
+}
+
+fn check_displacement_orientation(dmesh: &DisplacementMesh, oid: ResourceId, report: &mut ValidationReport) {
+    let mut directed_edge_counts = HashMap::new();
+    for tri in &dmesh.triangles {
+        let edges = [(tri.v1, tri.v2), (tri.v2, tri.v3), (tri.v3, tri.v1)];
+        for edge in edges {
+            *directed_edge_counts.entry(edge).or_insert(0) += 1;
+        }
+    }
+
+    for (edge, count) in directed_edge_counts {
+        if count > 1 {
+            report.add_warning(
+                4004,
+                format!(
+                    "DisplacementMesh object {} has orientation mismatch or duplicate faces at edge {:?}",
+                    oid.0, edge
+                ),
+            );
+        }
+    }
+}
+
+fn check_displacement_degenerate_faces(
+    dmesh: &DisplacementMesh,
+    oid: ResourceId,
+    report: &mut ValidationReport,
+    unit: crate::model::Unit,
+) {
+    let scale = unit.scale_factor();
+    let epsilon = (1e-12 / (scale * scale)) as f32;
+
+    for (i, tri) in dmesh.triangles.iter().enumerate() {
+        // Compute triangle area using vertices
+        let v1 = &dmesh.vertices[tri.v1 as usize];
+        let v2 = &dmesh.vertices[tri.v2 as usize];
+        let v3 = &dmesh.vertices[tri.v3 as usize];
+
+        let edge1 = glam::Vec3::new(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z);
+        let edge2 = glam::Vec3::new(v3.x - v1.x, v3.y - v1.y, v3.z - v1.z);
+        let cross = edge1.cross(edge2);
+        let area = cross.length() / 2.0;
+
+        if area < epsilon {
+            report.add_warning(
+                4005,
+                format!(
+                    "Triangle {} in DisplacementMesh object {} has zero/near-zero area (unit scaled)",
+                    i, oid.0
+                ),
+            );
+        }
+    }
+}
+
+fn count_displacement_non_manifold_edges(dmesh: &DisplacementMesh) -> usize {
+    let mut edge_counts: HashMap<(u32, u32), usize> = HashMap::new();
+
+    for tri in &dmesh.triangles {
+        let edges = [
+            sort_edge(tri.v1, tri.v2),
+            sort_edge(tri.v2, tri.v3),
+            sort_edge(tri.v3, tri.v1),
+        ];
+        for e in edges {
+            *edge_counts.entry(e).or_insert(0) += 1;
+        }
+    }
+
     edge_counts.values().filter(|&&c| c != 2).count()
 }
