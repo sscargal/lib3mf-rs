@@ -1,5 +1,6 @@
 use crate::error::Result;
 use crate::model::{BooleanOperationType, Geometry, Model, Unit};
+use crate::writer::displacement_writer::{write_displacement_2d, write_displacement_mesh};
 use crate::writer::mesh_writer::write_mesh;
 use crate::writer::xml_writer::XmlWriter;
 use std::io::Write;
@@ -53,6 +54,10 @@ impl Model {
             .attr(
                 "xmlns:b",
                 "http://schemas.3mf.io/3dmanufacturing/booleanoperations/2023/07",
+            )
+            .attr(
+                "xmlns:d",
+                "http://schemas.microsoft.com/3dmanufacturing/displacement/2024/01",
             );
 
         // Add typical namespaces if needed (e.g. production, slice) - strictly core for now
@@ -158,6 +163,11 @@ impl Model {
                     .write_empty()?;
             }
             xml.end_element("m:multiproperties")?;
+        }
+
+        // Write displacement texture resources
+        for displacement_2d in self.resources.iter_displacement_2d() {
+            write_displacement_2d(&mut xml, displacement_2d)?;
         }
 
         // Write objects
@@ -282,9 +292,8 @@ impl Model {
                             // This case is handled in the outer match, will never reach here
                             unreachable!("BooleanShape handled in outer match")
                         }
-                        Geometry::DisplacementMesh(_mesh) => {
-                            // Displacement mesh writing will be implemented in mesh_writer.rs
-                            // For now, placeholder to allow compilation
+                        Geometry::DisplacementMesh(mesh) => {
+                            write_displacement_mesh(&mut xml, mesh)?;
                         }
                     }
 
