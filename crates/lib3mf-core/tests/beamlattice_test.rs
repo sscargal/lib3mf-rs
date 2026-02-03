@@ -387,3 +387,79 @@ fn test_beam_r2_defaults_to_r1() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+// ============================================================================
+// ERROR PATH TESTS
+// ============================================================================
+
+/// Test EOF during beamlattice element parsing
+#[test]
+fn test_beam_lattice_truncated_eof_in_beamlattice() {
+    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel">
+    <resources>
+        <object id="1" type="model">
+            <mesh>
+                <vertices>
+                    <vertex x="0" y="0" z="0" />
+                    <vertex x="1" y="0" z="0" />
+                </vertices>
+                <beamlattice minlength="0.1">
+                    <beams>"##; // Truncated here - EOF in beamlattice
+
+    let result = parse_model(Cursor::new(xml));
+    assert!(
+        result.is_err(),
+        "Should fail on truncated XML in beamlattice element"
+    );
+}
+
+/// Test EOF during beams element parsing
+#[test]
+fn test_beam_lattice_truncated_eof_in_beams() {
+    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel">
+    <resources>
+        <object id="1" type="model">
+            <mesh>
+                <vertices>
+                    <vertex x="0" y="0" z="0" />
+                    <vertex x="1" y="0" z="0" />
+                </vertices>
+                <beamlattice minlength="0.1">
+                    <beams>
+                        <beam v1="0" v2="1" r1="1.0" />"##; // Truncated here - EOF in beams
+
+    let result = parse_model(Cursor::new(xml));
+    assert!(
+        result.is_err(),
+        "Should fail on truncated XML in beams element"
+    );
+}
+
+/// Test EOF during beamsets element parsing
+#[test]
+fn test_beam_lattice_truncated_eof_in_beamsets() {
+    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel">
+    <resources>
+        <object id="1" type="model">
+            <mesh>
+                <vertices>
+                    <vertex x="0" y="0" z="0" />
+                    <vertex x="1" y="0" z="0" />
+                </vertices>
+                <beamlattice minlength="0.1">
+                    <beams>
+                        <beam v1="0" v2="1" r1="1.0" />
+                    </beams>
+                    <beamsets>
+                        <beamset name="Set1">
+                            <ref index="0" />"##; // Truncated here - EOF in beamsets
+
+    let result = parse_model(Cursor::new(xml));
+    assert!(
+        result.is_err(),
+        "Should fail on truncated XML in beamsets element"
+    );
+}
