@@ -1,3 +1,4 @@
+use base64::prelude::*;
 use lib3mf_core::parser::secure_content_parser::parse_keystore_content;
 use lib3mf_core::parser::xml_parser::XmlParser;
 use std::io::Cursor;
@@ -64,7 +65,9 @@ fn test_parse_secure_content() -> anyhow::Result<()> {
 
             assert_eq!(grp.access_rights.len(), 1);
             assert_eq!(grp.access_rights[0].consumer_id, "consumer-1");
-            assert_eq!(grp.access_rights[0].wrapped_key, b"Base64EncodedKeyData");
+            // Parser now decodes base64, so expect decoded bytes
+            let expected_key = BASE64_STANDARD.decode("Base64EncodedKeyData")?;
+            assert_eq!(grp.access_rights[0].wrapped_key, expected_key);
             break;
         }
     }

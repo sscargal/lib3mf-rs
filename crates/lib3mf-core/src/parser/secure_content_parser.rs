@@ -1,6 +1,7 @@
 use crate::error::{Lib3mfError, Result};
 use crate::model::{AccessRight, Consumer, KeyStore, ResourceDataGroup};
 use crate::parser::xml_parser::{XmlParser, get_attribute};
+use base64::prelude::*;
 use quick_xml::events::Event;
 use std::borrow::Cow;
 use std::io::BufRead;
@@ -122,12 +123,11 @@ fn parse_access_right_content<R: BufRead>(parser: &mut XmlParser<R>) -> Result<(
                         }
 
                         let text = parser.read_text_content()?;
-                        // Typically base64 encoded.
-                        // We will store as bytes.
-                        // For now just storing raw string bytes if base64 crate not present, or trying decode?
-                        // I'll assume text is base64 and store it as bytes (TODO: actual decode).
-                        // To allow compiling without base64 crate dependency if not yet added:
-                        wrapped_key = text.into_bytes();
+                        // Decode base64 to actual encrypted key bytes
+                        wrapped_key = BASE64_STANDARD
+                            .decode(text.as_bytes())
+                            .map_err(|e| Lib3mfError::Validation(
+                                format!("Invalid base64 wrapped key: {}", e)))?;
                     }
                     _ => {
                         let end_tag = e.name().as_ref().to_vec();
