@@ -498,3 +498,85 @@ fn test_slice_multiple_objects() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+// ============================================================================
+// ERROR PATH TESTS
+// ============================================================================
+
+/// Test EOF during slicestack element parsing
+#[test]
+fn test_slice_truncated_eof_in_slicestack() {
+    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel" xmlns:s="http://schemas.microsoft.com/3dmanufacturing/slice/2015/07">
+    <resources>
+        <slicestack id="10" zbottom="0.0">
+            <slice ztop="0.1">
+                <vertices>"##; // Truncated here - EOF in slicestack
+
+    let result = parse_model(Cursor::new(xml));
+    assert!(
+        result.is_err(),
+        "Should fail on truncated XML in slicestack element"
+    );
+}
+
+/// Test EOF during slice element parsing
+#[test]
+fn test_slice_truncated_eof_in_slice() {
+    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel" xmlns:s="http://schemas.microsoft.com/3dmanufacturing/slice/2015/07">
+    <resources>
+        <slicestack id="10" zbottom="0.0">
+            <slice ztop="0.1">
+                <vertices>
+                   <vertex x="0" y="0" />
+                   <vertex x="1" y="0" />
+                </vertices>
+                <polygon start="0">"##; // Truncated here - EOF in slice
+
+    let result = parse_model(Cursor::new(xml));
+    assert!(
+        result.is_err(),
+        "Should fail on truncated XML in slice element"
+    );
+}
+
+/// Test EOF during vertices element parsing
+#[test]
+fn test_slice_truncated_eof_in_vertices() {
+    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel" xmlns:s="http://schemas.microsoft.com/3dmanufacturing/slice/2015/07">
+    <resources>
+        <slicestack id="10" zbottom="0.0">
+            <slice ztop="0.1">
+                <vertices>
+                   <vertex x="0" y="0" />"##; // Truncated here - EOF in vertices
+
+    let result = parse_model(Cursor::new(xml));
+    assert!(
+        result.is_err(),
+        "Should fail on truncated XML in vertices element"
+    );
+}
+
+/// Test EOF during polygon element parsing
+#[test]
+fn test_slice_truncated_eof_in_polygon() {
+    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel" xmlns:s="http://schemas.microsoft.com/3dmanufacturing/slice/2015/07">
+    <resources>
+        <slicestack id="10" zbottom="0.0">
+            <slice ztop="0.1">
+                <vertices>
+                   <vertex x="0" y="0" />
+                   <vertex x="1" y="0" />
+                </vertices>
+                <polygon start="0">
+                   <segment v2="1" />"##; // Truncated here - EOF in polygon
+
+    let result = parse_model(Cursor::new(xml));
+    assert!(
+        result.is_err(),
+        "Should fail on truncated XML in polygon element"
+    );
+}
