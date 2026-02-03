@@ -464,17 +464,16 @@ else
 fi
 
 # Test 3: Invalid Material Reference (Negative Test)
-# NOTE: This test is currently SKIPPED because lib3mf-rs does not yet validate
-# material references at strict level. This is a known limitation tracked in TODO.md
-# Uncomment when validation is implemented.
-# INVALID_MAT_3MF="$QA_TMP_DIR/invalid_material.3mf"
-# create_materials_test_3mf "$INVALID_MAT_3MF" "invalid_material"
-# if [ -f "$INVALID_MAT_3MF" ]; then
-#     run_negative_cmd "$CLI_BIN validate $INVALID_MAT_3MF --level strict" "Materials: Reject invalid material reference (pid=999)"
-# else
-#     echo "Warning: Failed to create invalid material test 3MF, skipping test"
-# fi
-echo -e "${BLUE}[SKIP]${NC} Materials: Invalid material reference validation (not yet implemented)"
+# Tests semantic validation at Standard level - validates that invalid material
+# references (pid=999 with no corresponding resource) are properly detected.
+# Implemented in: lib3mf-core/src/validation/semantic.rs (error code 2002)
+INVALID_MAT_3MF="$QA_TMP_DIR/invalid_material.3mf"
+create_materials_test_3mf "$INVALID_MAT_3MF" "invalid_material"
+if [ -f "$INVALID_MAT_3MF" ]; then
+    run_negative_cmd "$CLI_BIN validate $INVALID_MAT_3MF --level standard" "Materials: Reject invalid material reference (pid=999)"
+else
+    echo "Warning: Failed to create invalid material test 3MF, skipping test"
+fi
 
 # Test 4: Round-trip Preservation
 if [ -f "$COLORGROUP_3MF" ]; then
