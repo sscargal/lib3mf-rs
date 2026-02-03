@@ -170,6 +170,10 @@ pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
                     }
                 }
             }
+            Geometry::DisplacementMesh(_mesh) => {
+                // Displacement mesh validation will be implemented in displacement.rs
+                // For now, just allow it to pass semantic checks
+            }
         }
     }
 }

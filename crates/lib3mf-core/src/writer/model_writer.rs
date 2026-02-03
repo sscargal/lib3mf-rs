@@ -282,6 +282,10 @@ impl Model {
                             // This case is handled in the outer match, will never reach here
                             unreachable!("BooleanShape handled in outer match")
                         }
+                        Geometry::DisplacementMesh(_mesh) => {
+                            // Displacement mesh writing will be implemented in mesh_writer.rs
+                            // For now, placeholder to allow compilation
+                        }
                     }
 
                     xml.end_element("object")?;

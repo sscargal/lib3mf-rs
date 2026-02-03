@@ -176,5 +176,6 @@ fn get_geometry_type_name(g: &crate::model::Geometry) -> &'static str {
         crate::model::Geometry::SliceStack(_) => "SliceStack",
         crate::model::Geometry::VolumetricStack(_) => "VolumetricStack",
         crate::model::Geometry::BooleanShape(_) => "BooleanShape",
+        crate::model::Geometry::DisplacementMesh(_) => "DisplacementMesh",
     }
 }

@@ -109,3 +109,49 @@ pub enum BlendMethod {
     Mix,
     Multiply,
 }
+
+/// Texture channel for displacement mapping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum Channel {
+    R,
+    #[default]
+    G,
+    B,
+    A,
+}
+
+/// Texture wrapping/tiling style.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum TileStyle {
+    #[default]
+    Wrap,
+    Mirror,
+    Clamp,
+    None,
+}
+
+/// Texture filtering mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum FilterMode {
+    #[default]
+    Linear,
+    Nearest,
+}
+
+/// A 2D displacement texture resource.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Displacement2D {
+    pub id: ResourceId,
+    pub path: String,
+    #[serde(default)]
+    pub channel: Channel,
+    #[serde(default)]
+    pub tile_style: TileStyle,
+    #[serde(default)]
+    pub filter: FilterMode,
+    pub height: f32,
+    #[serde(default)]
+    pub offset: f32,
+}

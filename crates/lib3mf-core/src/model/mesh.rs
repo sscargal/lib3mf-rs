@@ -113,6 +113,8 @@ pub enum Geometry {
     VolumetricStack(ResourceId),
     /// Boolean shape from CSG operations (Boolean Operations Extension).
     BooleanShape(BooleanShape),
+    /// A mesh with displacement mapping (Displacement Extension).
+    DisplacementMesh(DisplacementMesh),
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -466,4 +468,68 @@ pub struct Triangle {
     /// Property ID for the entire triangle (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pid: Option<u32>,
+}
+
+/// A normal vector for displacement mesh vertices.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
+pub struct NormalVector {
+    pub nx: f32,
+    pub ny: f32,
+    pub nz: f32,
+}
+
+/// A gradient vector for displacement texture mapping.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
+pub struct GradientVector {
+    pub gu: f32,
+    pub gv: f32,
+}
+
+/// A triangle in a displacement mesh with displacement coordinate indices.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+pub struct DisplacementTriangle {
+    /// Index of the first vertex.
+    pub v1: u32,
+    /// Index of the second vertex.
+    pub v2: u32,
+    /// Index of the third vertex.
+    pub v3: u32,
+
+    /// Displacement coordinate index for v1 (optional).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub d1: Option<u32>,
+    /// Displacement coordinate index for v2 (optional).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub d2: Option<u32>,
+    /// Displacement coordinate index for v3 (optional).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub d3: Option<u32>,
+
+    /// Property index for v1 (optional).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub p1: Option<u32>,
+    /// Property index for v2 (optional).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub p2: Option<u32>,
+    /// Property index for v3 (optional).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub p3: Option<u32>,
+
+    /// Property ID for the entire triangle (optional).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pid: Option<u32>,
+}
+
+/// A mesh with displacement mapping support.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct DisplacementMesh {
+    /// List of vertices (points in 3D space).
+    pub vertices: Vec<Vertex>,
+    /// List of triangles connecting vertices.
+    pub triangles: Vec<DisplacementTriangle>,
+    /// Per-vertex normal vectors (must match vertex count).
+    pub normals: Vec<NormalVector>,
+    /// Per-vertex gradient vectors (optional).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gradients: Option<Vec<GradientVector>>,
 }
