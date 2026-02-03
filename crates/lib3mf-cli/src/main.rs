@@ -134,12 +134,21 @@ enum Commands {
     /// # Extract content to stdout
     ///
     /// $ lib3mf extract model.3mf 3D/3dmodel.model
+    ///
+    /// # Extract displacement texture by resource ID
+    ///
+    /// $ lib3mf extract model.3mf --resource-id 100 --output height.png
     Extract {
         /// Path to the 3MF file
         file: PathBuf,
 
         /// Path to the file inside the archive to extract
-        inner_path: String,
+        #[arg(conflicts_with = "resource_id")]
+        inner_path: Option<String>,
+
+        /// Resource ID of a texture to extract (Displacement2D or Texture2D)
+        #[arg(long, conflicts_with = "inner_path")]
+        resource_id: Option<u32>,
 
         /// Output path (defaults to stdout)
         #[arg(long, short)]
@@ -418,9 +427,16 @@ fn main() -> anyhow::Result<()> {
         Commands::Extract {
             file,
             inner_path,
+            resource_id,
             output,
         } => {
-            commands::extract(file, inner_path, output)?;
+            if let Some(rid) = resource_id {
+                commands::extract_by_resource_id(file, rid, output)?;
+            } else if let Some(path) = inner_path {
+                commands::extract(file, path, output)?;
+            } else {
+                anyhow::bail!("Either inner_path or --resource-id must be provided");
+            }
         }
         Commands::Copy { input, output } => {
             commands::copy(input, output)?;

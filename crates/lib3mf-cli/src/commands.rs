@@ -241,6 +241,29 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
                 "  Object Thumbnails: {}",
                 stats.thumbnails.object_thumbnail_count
             );
+
+            // Displacement section
+            if stats.displacement.mesh_count > 0 || stats.displacement.texture_count > 0 {
+                println!("\nDisplacement:");
+                println!("  Meshes: {}", stats.displacement.mesh_count);
+                println!("  Textures: {}", stats.displacement.texture_count);
+                if stats.displacement.normal_count > 0 {
+                    println!("  Vertex Normals: {}", stats.displacement.normal_count);
+                }
+                if stats.displacement.gradient_count > 0 {
+                    println!("  Gradient Vectors: {}", stats.displacement.gradient_count);
+                }
+                if stats.displacement.total_triangle_count > 0 {
+                    let coverage = 100.0 * stats.displacement.displaced_triangle_count as f64
+                        / stats.displacement.total_triangle_count as f64;
+                    println!(
+                        "  Displaced Triangles: {} of {} ({:.1}%)",
+                        stats.displacement.displaced_triangle_count,
+                        stats.displacement.total_triangle_count,
+                        coverage
+                    );
+                }
+            }
         }
     }
     Ok(())
@@ -364,6 +387,45 @@ pub fn extract(path: PathBuf, inner_path: String, output: Option<PathBuf>) -> an
         std::io::stdout().write_all(&data)?;
     }
     Ok(())
+}
+
+pub fn extract_by_resource_id(
+    path: PathBuf,
+    resource_id: u32,
+    output: Option<PathBuf>,
+) -> anyhow::Result<()> {
+    let mut archiver = open_archive(&path)?;
+    let model_path = find_model_path(&mut archiver)?;
+    let model_data = archiver.read_entry(&model_path)?;
+    let model = parse_model(std::io::Cursor::new(model_data))?;
+
+    let resource_id = lib3mf_core::model::ResourceId(resource_id);
+
+    // Look up Displacement2D resource by ID
+    if let Some(disp2d) = model.resources.get_displacement_2d(resource_id) {
+        let texture_path = &disp2d.path;
+        let archive_path = texture_path.trim_start_matches('/');
+        let data = archiver
+            .read_entry(archive_path)
+            .map_err(|e| anyhow::anyhow!("Failed to read texture '{}': {}", archive_path, e))?;
+
+        if let Some(out_path) = output {
+            let mut f = File::create(&out_path)?;
+            f.write_all(&data)?;
+            println!(
+                "Extracted displacement texture (ID {}) to {:?}",
+                resource_id.0, out_path
+            );
+        } else {
+            std::io::stdout().write_all(&data)?;
+        }
+        return Ok(());
+    }
+
+    Err(anyhow::anyhow!(
+        "No displacement texture resource found with ID {}",
+        resource_id.0
+    ))
 }
 
 pub fn copy(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
