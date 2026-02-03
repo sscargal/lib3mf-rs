@@ -128,13 +128,13 @@ pub fn write_displacement_2d<W: Write>(
     Ok(())
 }
 
-/// Converts a Channel enum to its string representation (lowercase).
+/// Converts a Channel enum to its string representation (uppercase).
 fn channel_to_str(c: Channel) -> &'static str {
     match c {
-        Channel::R => "r",
-        Channel::G => "g",
-        Channel::B => "b",
-        Channel::A => "a",
+        Channel::R => "R",
+        Channel::G => "G",
+        Channel::B => "B",
+        Channel::A => "A",
     }
 }
 

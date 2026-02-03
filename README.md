@@ -165,6 +165,8 @@ cargo run -p lib3mf-core --example create_cube
 - `components_transform`: Efficient object instancing using components.
 - `metadata_properties`: Managing standard and custom model metadata.
 - `beam_lattice_ext`: Creating structural designs with the Beam Lattice extension.
+- `boolean_operations`: Boolean operations (union, difference, intersection).
+- `displacement_mesh`: Creating displacement meshes with texture-driven surface modification.
 - `slice_data`: Defining geometry using 2D slice stacks (DLP/SLA printing).
 - `streaming_stats`: SAX-style parser for massive files with constant memory.
 
