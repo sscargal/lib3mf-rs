@@ -673,120 +673,6 @@ else
     echo "Warning: Failed to create production path test 3MF, skipping tests"
 fi
 
-# --- Enhanced Secure Content Tests ---
-echo -e "${BLUE}=== Enhanced Secure Content Tests ===${NC}"
-
-# Pre-requisite: Ensure basic sign/verify/encrypt/decrypt work (tested in Command Discovery)
-# These tests add additional security validation scenarios
-
-# Test 1: Signature Tampering Detection
-if [ -f "$QA_TMP_DIR/signed.3mf" ]; then
-    TAMPERED_3MF="$QA_TMP_DIR/tampered_signature.3mf"
-    cp "$QA_TMP_DIR/signed.3mf" "$TAMPERED_3MF"
-
-    # Tamper with the content by modifying a byte in the middle of the file
-    # This should cause signature verification to fail
-    FILE_SIZE=$(stat -c%s "$TAMPERED_3MF" 2>/dev/null || stat -f%z "$TAMPERED_3MF" 2>/dev/null)
-    if [ -n "$FILE_SIZE" ] && [ "$FILE_SIZE" -gt 1000 ]; then
-        TAMPER_OFFSET=$((FILE_SIZE / 2))
-        printf "X" | dd of="$TAMPERED_3MF" bs=1 seek=$TAMPER_OFFSET conv=notrunc 2>/dev/null
-
-        run_negative_cmd "$CLI_BIN verify $TAMPERED_3MF" "Secure: Detect tampered signature"
-    else
-        echo "Warning: signed.3mf too small or not found, skipping tamper test"
-    fi
-else
-    echo "Warning: No signed.3mf available, skipping tamper detection test"
-fi
-
-# Test 2: Multiple Sign Operations
-# Test that signing an already-signed file works (or appropriately fails)
-if [ -f "$QA_TMP_DIR/signed.3mf" ]; then
-    DOUBLE_SIGNED_3MF="$QA_TMP_DIR/double_signed.3mf"
-
-    # Attempt to sign an already-signed file
-    $CLI_BIN sign "$QA_TMP_DIR/signed.3mf" "$DOUBLE_SIGNED_3MF" --key "$KEY_FILE" --cert "$CERT_FILE" >> "$CMD_LOG" 2>&1
-    SIGN_STATUS=$?
-
-    if [ $SIGN_STATUS -eq 0 ] && [ -f "$DOUBLE_SIGNED_3MF" ]; then
-        # If multiple signatures are supported, verify should still work
-        run_cmd "$CLI_BIN verify $DOUBLE_SIGNED_3MF" "Secure: Verify double-signed file"
-    else
-        # If multiple signatures not supported, that's OK - just log it
-        echo -e "${BLUE}[INFO]${NC} Multiple signatures not supported or failed (expected behavior)"
-        echo "[INFO] Multiple signatures not supported" >> "$REPORT_FILE"
-    fi
-else
-    echo "Warning: No signed.3mf available, skipping double-sign test"
-fi
-
-# Test 3: Encryption with Different Recipients
-# Test that encrypted content can only be decrypted with correct key
-if [ -f "$QA_TMP_DIR/encrypted.3mf" ]; then
-    # Generate a different key pair
-    WRONG_KEY_FILE="$QA_TMP_DIR/wrong_private.pem"
-    WRONG_CERT_FILE="$QA_TMP_DIR/wrong_public.crt"
-    openssl genrsa -out "$WRONG_KEY_FILE" 2048 2>/dev/null
-    openssl req -new -x509 -key "$WRONG_KEY_FILE" -out "$WRONG_CERT_FILE" -days 365 -subj "/CN=lib3mf-wrong" 2>/dev/null
-
-    # Try to decrypt with wrong key (should fail)
-    WRONG_DECRYPT_3MF="$QA_TMP_DIR/wrongly_decrypted.3mf"
-    run_negative_cmd "$CLI_BIN decrypt $QA_TMP_DIR/encrypted.3mf $WRONG_DECRYPT_3MF --key $WRONG_KEY_FILE" "Secure: Reject decryption with wrong key"
-else
-    echo "Warning: No encrypted.3mf available, skipping wrong-key test"
-fi
-
-# Test 4: Sign-then-Encrypt Workflow
-SIGN_THEN_ENCRYPT_3MF="$QA_TMP_DIR/signed_then_encrypted.3mf"
-if [ -f "$QA_TMP_DIR/signed.3mf" ]; then
-    # Encrypt an already-signed file
-    $CLI_BIN encrypt "$QA_TMP_DIR/signed.3mf" "$SIGN_THEN_ENCRYPT_3MF" --recipient "$CERT_FILE" >> "$CMD_LOG" 2>&1
-    ENCRYPT_STATUS=$?
-
-    if [ $ENCRYPT_STATUS -eq 0 ] && [ -f "$SIGN_THEN_ENCRYPT_3MF" ]; then
-        log_result "Secure: Sign-then-encrypt workflow" 0
-
-        # Decrypt and verify signature is still valid
-        DECRYPTED_SIGNED_3MF="$QA_TMP_DIR/decrypted_signed.3mf"
-        $CLI_BIN decrypt "$SIGN_THEN_ENCRYPT_3MF" "$DECRYPTED_SIGNED_3MF" --key "$KEY_FILE" >> "$CMD_LOG" 2>&1
-
-        if [ -f "$DECRYPTED_SIGNED_3MF" ]; then
-            run_cmd "$CLI_BIN verify $DECRYPTED_SIGNED_3MF" "Secure: Verify signature after decrypt"
-        fi
-    else
-        log_result "Secure: Sign-then-encrypt workflow" 1
-    fi
-else
-    echo "Warning: No signed.3mf available, skipping sign-then-encrypt test"
-fi
-
-# Test 5: Certificate Validation
-# Verify that verification fails without the correct certificate
-if [ -f "$QA_TMP_DIR/signed.3mf" ]; then
-    # Basic verify should work (uses embedded cert)
-    run_cmd "$CLI_BIN verify $QA_TMP_DIR/signed.3mf" "Secure: Verify with embedded certificate"
-else
-    echo "Warning: No signed.3mf available, skipping certificate validation test"
-fi
-
-# Test 6: Empty/Zero-byte Key Files (Negative Test)
-# NOTE: This test is currently SKIPPED because lib3mf-rs does not yet validate
-# key file contents before attempting crypto operations. Known limitation.
-# EMPTY_KEY="$QA_TMP_DIR/empty.pem"
-# touch "$EMPTY_KEY"
-# SIGN_EMPTY_KEY_OUT="$QA_TMP_DIR/sign_empty_key.3mf"
-# run_negative_cmd "$CLI_BIN sign $ASSET_3MF $SIGN_EMPTY_KEY_OUT --key $EMPTY_KEY --cert $CERT_FILE" "Secure: Reject empty key file"
-echo -e "${BLUE}[SKIP]${NC} Secure: Empty key file validation (not yet implemented)"
-
-# Test 7: Malformed Certificate (Negative Test)
-# NOTE: This test is currently SKIPPED because lib3mf-rs does not yet validate
-# certificate format before attempting crypto operations. Known limitation.
-# MALFORMED_CERT="$QA_TMP_DIR/malformed.crt"
-# echo "NOT A VALID CERTIFICATE" > "$MALFORMED_CERT"
-# SIGN_BAD_CERT_OUT="$QA_TMP_DIR/sign_bad_cert.3mf"
-# run_negative_cmd "$CLI_BIN sign $ASSET_3MF $SIGN_BAD_CERT_OUT --key $KEY_FILE --cert $MALFORMED_CERT" "Secure: Reject malformed certificate"
-echo -e "${BLUE}[SKIP]${NC} Secure: Malformed certificate validation (not yet implemented)"
-
 # --- Object Type Differentiation Tests ---
 echo -e "${BLUE}=== Object Type Differentiation Tests ===${NC}"
 
@@ -1854,6 +1740,124 @@ for CMD in $COMMANDS; do
         done
     done
 done
+
+echo ""
+
+# --- Enhanced Secure Content Tests ---
+# NOTE: These tests run AFTER Command Discovery because they depend on
+# signed.3mf and encrypted.3mf created during command discovery.
+echo -e "${BLUE}=== Enhanced Secure Content Tests ===${NC}"
+
+# Pre-requisite: signed.3mf and encrypted.3mf created during Command Discovery
+# These tests add additional security validation scenarios
+
+# Test 1: Signature Tampering Detection
+if [ -f "$QA_TMP_DIR/signed.3mf" ]; then
+    TAMPERED_3MF="$QA_TMP_DIR/tampered_signature.3mf"
+    cp "$QA_TMP_DIR/signed.3mf" "$TAMPERED_3MF"
+
+    # Tamper with the content by modifying a byte in the middle of the file
+    # This should cause signature verification to fail
+    FILE_SIZE=$(stat -c%s "$TAMPERED_3MF" 2>/dev/null || stat -f%z "$TAMPERED_3MF" 2>/dev/null)
+    if [ -n "$FILE_SIZE" ] && [ "$FILE_SIZE" -gt 1000 ]; then
+        TAMPER_OFFSET=$((FILE_SIZE / 2))
+        printf "X" | dd of="$TAMPERED_3MF" bs=1 seek=$TAMPER_OFFSET conv=notrunc 2>/dev/null
+
+        run_negative_cmd "$CLI_BIN verify $TAMPERED_3MF" "Secure: Detect tampered signature"
+    else
+        echo "Warning: signed.3mf too small or not found, skipping tamper test"
+    fi
+else
+    echo "Warning: No signed.3mf available, skipping tamper detection test"
+fi
+
+# Test 2: Multiple Sign Operations
+# Test that signing an already-signed file works (or appropriately fails)
+if [ -f "$QA_TMP_DIR/signed.3mf" ]; then
+    DOUBLE_SIGNED_3MF="$QA_TMP_DIR/double_signed.3mf"
+
+    # Attempt to sign an already-signed file
+    $CLI_BIN sign "$QA_TMP_DIR/signed.3mf" "$DOUBLE_SIGNED_3MF" --key "$KEY_FILE" --cert "$CERT_FILE" >> "$CMD_LOG" 2>&1
+    SIGN_STATUS=$?
+
+    if [ $SIGN_STATUS -eq 0 ] && [ -f "$DOUBLE_SIGNED_3MF" ]; then
+        # If multiple signatures are supported, verify should still work
+        run_cmd "$CLI_BIN verify $DOUBLE_SIGNED_3MF" "Secure: Verify double-signed file"
+    else
+        # If multiple signatures not supported, that's OK - just log it
+        echo -e "${BLUE}[INFO]${NC} Multiple signatures not supported or failed (expected behavior)"
+        echo "[INFO] Multiple signatures not supported" >> "$REPORT_FILE"
+    fi
+else
+    echo "Warning: No signed.3mf available, skipping double-sign test"
+fi
+
+# Test 3: Encryption with Different Recipients
+# Test that encrypted content can only be decrypted with correct key
+if [ -f "$QA_TMP_DIR/encrypted.3mf" ]; then
+    # Generate a different key pair
+    WRONG_KEY_FILE="$QA_TMP_DIR/wrong_private.pem"
+    WRONG_CERT_FILE="$QA_TMP_DIR/wrong_public.crt"
+    openssl genrsa -out "$WRONG_KEY_FILE" 2048 2>/dev/null
+    openssl req -new -x509 -key "$WRONG_KEY_FILE" -out "$WRONG_CERT_FILE" -days 365 -subj "/CN=lib3mf-wrong" 2>/dev/null
+
+    # Try to decrypt with wrong key (should fail)
+    WRONG_DECRYPT_3MF="$QA_TMP_DIR/wrongly_decrypted.3mf"
+    run_negative_cmd "$CLI_BIN decrypt $QA_TMP_DIR/encrypted.3mf $WRONG_DECRYPT_3MF --key $WRONG_KEY_FILE" "Secure: Reject decryption with wrong key"
+else
+    echo "Warning: No encrypted.3mf available, skipping wrong-key test"
+fi
+
+# Test 4: Sign-then-Encrypt Workflow
+SIGN_THEN_ENCRYPT_3MF="$QA_TMP_DIR/signed_then_encrypted.3mf"
+if [ -f "$QA_TMP_DIR/signed.3mf" ]; then
+    # Encrypt an already-signed file
+    $CLI_BIN encrypt "$QA_TMP_DIR/signed.3mf" "$SIGN_THEN_ENCRYPT_3MF" --recipient "$CERT_FILE" >> "$CMD_LOG" 2>&1
+    ENCRYPT_STATUS=$?
+
+    if [ $ENCRYPT_STATUS -eq 0 ] && [ -f "$SIGN_THEN_ENCRYPT_3MF" ]; then
+        log_result "Secure: Sign-then-encrypt workflow" 0
+
+        # Decrypt and verify signature is still valid
+        DECRYPTED_SIGNED_3MF="$QA_TMP_DIR/decrypted_signed.3mf"
+        $CLI_BIN decrypt "$SIGN_THEN_ENCRYPT_3MF" "$DECRYPTED_SIGNED_3MF" --key "$KEY_FILE" >> "$CMD_LOG" 2>&1
+
+        if [ -f "$DECRYPTED_SIGNED_3MF" ]; then
+            run_cmd "$CLI_BIN verify $DECRYPTED_SIGNED_3MF" "Secure: Verify signature after decrypt"
+        fi
+    else
+        log_result "Secure: Sign-then-encrypt workflow" 1
+    fi
+else
+    echo "Warning: No signed.3mf available, skipping sign-then-encrypt test"
+fi
+
+# Test 5: Certificate Validation
+# Verify that verification fails without the correct certificate
+if [ -f "$QA_TMP_DIR/signed.3mf" ]; then
+    # Basic verify should work (uses embedded cert)
+    run_cmd "$CLI_BIN verify $QA_TMP_DIR/signed.3mf" "Secure: Verify with embedded certificate"
+else
+    echo "Warning: No signed.3mf available, skipping certificate validation test"
+fi
+
+# Test 6: Empty/Zero-byte Key Files (Negative Test)
+# NOTE: This test is currently SKIPPED because lib3mf-rs does not yet validate
+# key file contents before attempting crypto operations. Known limitation.
+# EMPTY_KEY="$QA_TMP_DIR/empty.pem"
+# touch "$EMPTY_KEY"
+# SIGN_EMPTY_KEY_OUT="$QA_TMP_DIR/sign_empty_key.3mf"
+# run_negative_cmd "$CLI_BIN sign $ASSET_3MF $SIGN_EMPTY_KEY_OUT --key $EMPTY_KEY --cert $CERT_FILE" "Secure: Reject empty key file"
+echo -e "${BLUE}[SKIP]${NC} Secure: Empty key file validation (not yet implemented)"
+
+# Test 7: Malformed Certificate (Negative Test)
+# NOTE: This test is currently SKIPPED because lib3mf-rs does not yet validate
+# certificate format before attempting crypto operations. Known limitation.
+# MALFORMED_CERT="$QA_TMP_DIR/malformed.crt"
+# echo "NOT A VALID CERTIFICATE" > "$MALFORMED_CERT"
+# SIGN_BAD_CERT_OUT="$QA_TMP_DIR/sign_bad_cert.3mf"
+# run_negative_cmd "$CLI_BIN sign $ASSET_3MF $SIGN_BAD_CERT_OUT --key $KEY_FILE --cert $MALFORMED_CERT" "Secure: Reject malformed certificate"
+echo -e "${BLUE}[SKIP]${NC} Secure: Malformed certificate validation (not yet implemented)"
 
 echo ""
 echo "================================================" >> "$REPORT_FILE"
