@@ -59,3 +59,22 @@ GEMINI.md
 *.agent-context.json
 ai-notes/
 ai-scratch/
+
+# Fuzzing artifacts (crashes, hangs, slow units)
+fuzz/artifacts/
+fuzz/corpus/**/crash-*
+fuzz/corpus/**/leak-*
+fuzz/corpus/**/timeout-*
+fuzz/corpus/**/slow-unit-*
+fuzz/corpus/**/oom-*
+
+# Keep seed files, ignore generated corpus
+!fuzz/corpus/**/seed.*
+!fuzz/corpus/**/*.xml
+!fuzz/corpus/**/.gitkeep
+
+# Fuzzing coverage data
+fuzz/coverage/
+
+# libFuzzer temp files
+fuzz/*.log
