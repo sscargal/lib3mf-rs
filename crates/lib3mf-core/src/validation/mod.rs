@@ -1,4 +1,5 @@
 pub mod bvh;
+pub mod displacement;
 pub mod geometry;
 pub mod report;
 pub mod schema;
@@ -23,5 +24,6 @@ pub enum ValidationLevel {
 }
 
 // Re-exports
+pub use displacement::validate_displacement;
 pub use geometry::validate_geometry;
 pub use report::{ValidationReport, ValidationSeverity};
