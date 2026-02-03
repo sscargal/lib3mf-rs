@@ -27,6 +27,7 @@ rayon = { workspace = true, optional = true }
 x509-parser.workspace = true
 rand.workspace = true
 lexical-core.workspace = true
+png = { version = "0.17", optional = true }
 
 [dev-dependencies]
 proptest = "1.6.0"
@@ -40,3 +41,4 @@ harness = false
 default = ["parallel"]
 async = ["dep:tokio"]
 parallel = ["dep:rayon"]
+png-validation = ["dep:png"]
