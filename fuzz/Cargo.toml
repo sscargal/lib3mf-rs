@@ -10,9 +10,46 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 lib3mf-core = { path = "../crates/lib3mf-core" }
+arbitrary = { version = "1", features = ["derive"] }
 
 [[bin]]
 name = "parse_model"
 path = "fuzz_targets/parse_model.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "parse_xml"
+path = "fuzz_targets/parse_xml.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "parse_materials"
+path = "fuzz_targets/parse_materials.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "parse_crypto"
+path = "fuzz_targets/parse_crypto.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "parse_extensions"
+path = "fuzz_targets/parse_extensions.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "parse_opc"
+path = "fuzz_targets/parse_opc.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "writer_roundtrip"
+path = "fuzz_targets/writer_roundtrip.rs"
 test = false
 doc = false
