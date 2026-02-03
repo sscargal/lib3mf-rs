@@ -1,7 +1,7 @@
 use crate::error::{Lib3mfError, Result};
 use crate::model::{
-    BaseMaterialsGroup, ColorGroup, CompositeMaterials, KeyStore, MultiProperties, Object,
-    SliceStack, Texture2DGroup, VolumetricStack,
+    BaseMaterialsGroup, ColorGroup, CompositeMaterials, Displacement2D, KeyStore, MultiProperties,
+    Object, SliceStack, Texture2DGroup, VolumetricStack,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -21,6 +21,7 @@ pub struct ResourceCollection {
     texture_2d_groups: HashMap<ResourceId, Texture2DGroup>,
     composite_materials: HashMap<ResourceId, CompositeMaterials>,
     multi_properties: HashMap<ResourceId, MultiProperties>,
+    displacement_2d: HashMap<ResourceId, Displacement2D>,
     pub key_store: Option<KeyStore>, // Usually one KeyStore per model/part
 }
 
@@ -38,6 +39,7 @@ impl ResourceCollection {
             || self.texture_2d_groups.contains_key(&id)
             || self.composite_materials.contains_key(&id)
             || self.multi_properties.contains_key(&id)
+            || self.displacement_2d.contains_key(&id)
     }
 
     pub fn add_object(&mut self, object: Object) -> Result<()> {
@@ -214,5 +216,28 @@ impl ResourceCollection {
 
     pub fn iter_multi_properties(&self) -> impl Iterator<Item = &MultiProperties> {
         self.multi_properties.values()
+    }
+
+    pub fn add_displacement_2d(&mut self, res: Displacement2D) -> Result<()> {
+        if self.exists(res.id) {
+            return Err(Lib3mfError::Validation(format!(
+                "Duplicate resource ID: {}",
+                res.id.0
+            )));
+        }
+        self.displacement_2d.insert(res.id, res);
+        Ok(())
+    }
+
+    pub fn get_displacement_2d(&self, id: ResourceId) -> Option<&Displacement2D> {
+        self.displacement_2d.get(&id)
+    }
+
+    pub fn displacement_2d_count(&self) -> usize {
+        self.displacement_2d.len()
+    }
+
+    pub fn iter_displacement_2d(&self) -> impl Iterator<Item = &Displacement2D> {
+        self.displacement_2d.values()
     }
 }
