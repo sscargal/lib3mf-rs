@@ -4,6 +4,7 @@ pub mod boolean_parser;
 pub mod build_parser;
 pub mod component_parser;
 pub mod crypto_parser;
+pub mod displacement_parser;
 pub mod material_parser;
 pub mod mesh_parser;
 pub mod model_parser;

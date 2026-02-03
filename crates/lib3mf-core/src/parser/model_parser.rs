@@ -3,6 +3,7 @@ use crate::model::{Geometry, Model, Object, Unit};
 use crate::parser::boolean_parser::parse_boolean_shape;
 use crate::parser::build_parser::parse_build;
 use crate::parser::component_parser::parse_components;
+use crate::parser::displacement_parser::{parse_displacement_2d, parse_displacement_mesh};
 use crate::parser::material_parser::{
     parse_base_materials, parse_color_group, parse_composite_materials, parse_multi_properties,
     parse_texture_2d_group,
@@ -249,6 +250,58 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                         };
                         model.resources.add_object(object)?;
                     }
+                    b"displacement2d" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let path = get_attribute(&e, b"path")
+                            .ok_or_else(|| {
+                                Lib3mfError::Validation(
+                                    "displacement2d missing path attribute".to_string(),
+                                )
+                            })?
+                            .into_owned();
+
+                        let channel = if let Some(ch_str) = get_attribute(&e, b"channel") {
+                            match ch_str.as_ref() {
+                                "R" => crate::model::Channel::R,
+                                "G" => crate::model::Channel::G,
+                                "B" => crate::model::Channel::B,
+                                "A" => crate::model::Channel::A,
+                                _ => crate::model::Channel::G,
+                            }
+                        } else {
+                            crate::model::Channel::G
+                        };
+
+                        let tile_style = if let Some(ts_str) = get_attribute(&e, b"tilestyle") {
+                            match ts_str.to_lowercase().as_str() {
+                                "wrap" => crate::model::TileStyle::Wrap,
+                                "mirror" => crate::model::TileStyle::Mirror,
+                                "clamp" => crate::model::TileStyle::Clamp,
+                                "none" => crate::model::TileStyle::None,
+                                _ => crate::model::TileStyle::Wrap,
+                            }
+                        } else {
+                            crate::model::TileStyle::Wrap
+                        };
+
+                        let filter = if let Some(f_str) = get_attribute(&e, b"filter") {
+                            match f_str.to_lowercase().as_str() {
+                                "linear" => crate::model::FilterMode::Linear,
+                                "nearest" => crate::model::FilterMode::Nearest,
+                                _ => crate::model::FilterMode::Linear,
+                            }
+                        } else {
+                            crate::model::FilterMode::Linear
+                        };
+
+                        let height = get_attribute_f32(&e, b"height")?;
+                        let offset = get_attribute_f32(&e, b"offset").unwrap_or(0.0);
+
+                        let displacement = parse_displacement_2d(
+                            parser, id, path, channel, tile_style, filter, height, offset,
+                        )?;
+                        model.resources.add_displacement_2d(displacement)?;
+                    }
                     _ => {}
                 }
             }
@@ -276,15 +329,21 @@ fn parse_object_geometry<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Geomet
 
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) => match e.name().as_ref() {
-                b"mesh" => {
-                    geometry = Geometry::Mesh(parse_mesh(parser)?);
+            Event::Start(e) => {
+                let local_name = e.local_name();
+                match local_name.as_ref() {
+                    b"mesh" => {
+                        geometry = Geometry::Mesh(parse_mesh(parser)?);
+                    }
+                    b"components" => {
+                        geometry = Geometry::Components(parse_components(parser)?);
+                    }
+                    b"displacementmesh" => {
+                        geometry = Geometry::DisplacementMesh(parse_displacement_mesh(parser)?);
+                    }
+                    _ => {}
                 }
-                b"components" => {
-                    geometry = Geometry::Components(parse_components(parser)?);
-                }
-                _ => {}
-            },
+            }
             Event::End(e) if e.name().as_ref() == b"object" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
