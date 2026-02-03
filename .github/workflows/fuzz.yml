@@ -1,0 +1,197 @@
+name: Fuzz Testing
+
+on:
+  pull_request:
+    branches: ["main"]
+
+# Fuzzing only runs on Linux (libFuzzer requirement)
+# Don't block PRs on fuzzing failures - crashes are warnings, not blockers
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false  # Continue other targets if one crashes
+      matrix:
+        target:
+          - parse_model
+          - parse_xml
+          - parse_materials
+          - parse_crypto
+          - parse_extensions
+          - parse_opc
+          - writer_roundtrip
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz -> target
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+
+      - name: Run Fuzz Target (60s smoke test)
+        id: fuzz
+        continue-on-error: true  # Don't fail the job on crashes
+        run: |
+          cd fuzz
+          cargo +nightly fuzz run ${{ matrix.target }} -- \
+            -max_total_time=60 \
+            -verbosity=1 \
+            -dict=dictionaries/3mf.dict \
+            2>&1 | tee fuzz_output.log
+
+          # Check for crashes
+          if ls artifacts/${{ matrix.target }}/crash-* 2>/dev/null; then
+            echo "crash_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "crash_found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Minimize Crashes
+        if: steps.fuzz.outputs.crash_found == 'true'
+        run: |
+          cd fuzz
+          for crash in artifacts/${{ matrix.target }}/crash-*; do
+            if [ -f "$crash" ]; then
+              echo "Minimizing: $crash"
+              cargo +nightly fuzz tmin ${{ matrix.target }} "$crash" -runs=1000 || true
+            fi
+          done
+
+      - name: Upload Crash Artifacts
+        if: steps.fuzz.outputs.crash_found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes-${{ matrix.target }}
+          path: |
+            fuzz/artifacts/${{ matrix.target }}/
+            fuzz/fuzz_output.log
+          retention-days: 30
+
+      - name: Comment on PR (Crash Found)
+        if: steps.fuzz.outputs.crash_found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const target = '${{ matrix.target }}';
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+
+            // Check if we already commented about this target
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.data.find(c =>
+              c.body.includes(`Fuzzing crash in \`${target}\``)
+            );
+
+            if (!existingComment) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `## Fuzzing crash in \`${target}\`
+
+            The fuzzer found a crash during PR testing. This is a **warning** - the PR is not blocked.
+
+            **Download crash artifacts:** [Actions Run](${runUrl})
+
+            <details>
+            <summary>What to do</summary>
+
+            1. Download the crash artifact from the Actions run
+            2. Reproduce locally: \`cargo +nightly fuzz run ${target} fuzz/artifacts/${target}/crash-*\`
+            3. Debug and fix the issue
+            4. Add a regression test
+
+            </details>
+
+            ---
+            *Fuzzing runs 60-second smoke tests on each PR. Deep fuzzing happens in scheduled runs.*
+            `
+              });
+            }
+
+      - name: Create Issue for Crash
+        if: steps.fuzz.outputs.crash_found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const target = '${{ matrix.target }}';
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const prNumber = context.issue.number;
+
+            // Check if issue already exists for this target + PR
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'fuzzing,crash',
+            });
+
+            const existingIssue = issues.data.find(i =>
+              i.title.includes(`[Fuzz] ${target}`) && i.body.includes(`PR #${prNumber}`)
+            );
+
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[Fuzz] ${target}: Crash found in PR #${prNumber}`,
+                body: `## Fuzzing Crash Report
+
+            **Target:** \`${target}\`
+            **PR:** #${prNumber}
+            **Actions Run:** ${runUrl}
+
+            ### Reproduction
+
+            \`\`\`bash
+            # Download crash artifact from Actions run, then:
+            cargo +nightly fuzz run ${target} path/to/crash-file
+            \`\`\`
+
+            ### Checklist
+
+            - [ ] Crash reproduced locally
+            - [ ] Root cause identified
+            - [ ] Fix implemented
+            - [ ] Regression test added to \`tests/fuzz_regression/\`
+
+            ---
+            *Auto-generated by fuzzing CI*
+            `,
+                labels: ['fuzzing', 'crash', 'security']
+              });
+            }
+
+  # Summary job to report overall fuzzing status
+  fuzz-summary:
+    name: Fuzzing Summary
+    runs-on: ubuntu-latest
+    needs: fuzz
+    if: always()
+    steps:
+      - name: Check Fuzzing Results
+        run: |
+          echo "Fuzzing smoke tests completed."
+          echo "Check individual target jobs for crash details."
+          echo "Note: Fuzzing crashes are warnings, not PR blockers."
