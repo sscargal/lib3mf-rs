@@ -1105,16 +1105,26 @@ fn load_model(path: &PathBuf) -> anyhow::Result<lib3mf_core::model::Model> {
     }
 }
 
-pub fn sign(input: PathBuf, output: PathBuf, key: PathBuf, cert: PathBuf) -> anyhow::Result<()> {
-    println!("Signing {:?} with key {:?} and cert {:?}", input, key, cert);
-    let model = load_model(&input)?;
-    let file = File::create(&output)
-        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
-    model
-        .write(file)
-        .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
-    println!("Signed file written to {:?}", output);
-    Ok(())
+pub fn sign(
+    _input: PathBuf,
+    _output: PathBuf,
+    _key: PathBuf,
+    _cert: PathBuf,
+) -> anyhow::Result<()> {
+    anyhow::bail!(
+        "Sign command not implemented: lib3mf-rs currently supports reading/verifying \
+        signed 3MF files but does not support creating signatures.\n\n\
+        Implementing signing requires:\n\
+        - RSA signing with PEM private keys\n\
+        - XML-DSIG structure creation and canonicalization\n\
+        - OPC package modification with signature relationships\n\
+        - X.509 certificate embedding\n\n\
+        To create signed 3MF files, use the official 3MF SDK or other tools.\n\
+        Verification of existing signatures works via: {} verify <file>",
+        std::env::args()
+            .next()
+            .unwrap_or_else(|| "lib3mf-cli".to_string())
+    );
 }
 
 pub fn verify(file: PathBuf) -> anyhow::Result<()> {
@@ -1140,8 +1150,14 @@ pub fn verify(file: PathBuf) -> anyhow::Result<()> {
 
     println!("Found {} signatures to verify.", sig_rels.len());
 
+    // Track verification results
+    let mut all_valid = true;
+    let mut signature_count = 0;
+    let mut failed_signatures = Vec::new();
+
     for rel in sig_rels {
         println!("Verifying signature: {}", rel.target);
+        signature_count += 1;
         // Target is usually absolute path like "/Metadata/sig.xml"
         let target_path = rel.target.trim_start_matches('/');
 
@@ -1149,6 +1165,8 @@ pub fn verify(file: PathBuf) -> anyhow::Result<()> {
             Ok(b) => b,
             Err(e) => {
                 println!("  [ERROR] Failed to read signature part: {}", e);
+                all_valid = false;
+                failed_signatures.push(rel.target.clone());
                 continue;
             }
         };
@@ -1163,6 +1181,8 @@ pub fn verify(file: PathBuf) -> anyhow::Result<()> {
             Ok(s) => s,
             Err(e) => {
                 println!("  [ERROR] Failed to parse signature XML: {}", e);
+                all_valid = false;
+                failed_signatures.push(rel.target.clone());
                 continue;
             }
         };
@@ -1178,6 +1198,8 @@ pub fn verify(file: PathBuf) -> anyhow::Result<()> {
             Ok(b) => b,
             Err(e) => {
                 println!("  [ERROR] Failed to extract/canonicalize SignedInfo: {}", e);
+                all_valid = false;
+                failed_signatures.push(rel.target.clone());
                 continue;
             }
         };
@@ -1235,7 +1257,7 @@ pub fn verify(file: PathBuf) -> anyhow::Result<()> {
         ) {
             Ok(valid) => {
                 if valid {
-                    println!("  [PASS] Signature is VALD.");
+                    println!("  [PASS] Signature is VALID.");
                     // Check certificate trust if present
                     if let Some(mut ki) = signature.key_info {
                         if let Some(x509) = ki.x509_data.take() {
@@ -1251,33 +1273,61 @@ pub fn verify(file: PathBuf) -> anyhow::Result<()> {
                     }
                 } else {
                     println!("  [FAIL] Signature is INVALID (Verification returned false).");
+                    all_valid = false;
+                    failed_signatures.push(rel.target.clone());
                 }
             }
-            Err(e) => println!("  [FAIL] Verification Error: {}", e),
+            Err(e) => {
+                println!("  [FAIL] Verification Error: {}", e);
+                all_valid = false;
+                failed_signatures.push(rel.target.clone());
+            }
         }
     }
 
+    // Return error if any signatures failed
+    if !all_valid {
+        anyhow::bail!(
+            "Signature verification failed for {} of {} signature(s): {:?}",
+            failed_signatures.len(),
+            signature_count,
+            failed_signatures
+        );
+    }
+
+    println!(
+        "\nAll {} signature(s) verified successfully.",
+        signature_count
+    );
     Ok(())
 }
 
-pub fn encrypt(input: PathBuf, output: PathBuf, recipient: PathBuf) -> anyhow::Result<()> {
-    println!("Encrypting {:?} for recipient {:?}", input, recipient);
-    let model = load_model(&input)?;
-    let file = File::create(&output)
-        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
-    model
-        .write(file)
-        .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
-    Ok(())
+pub fn encrypt(_input: PathBuf, _output: PathBuf, _recipient: PathBuf) -> anyhow::Result<()> {
+    anyhow::bail!(
+        "Encrypt command not implemented: lib3mf-rs currently supports reading/parsing \
+        encrypted 3MF files but does not support creating encrypted packages.\n\n\
+        Implementing encryption requires:\n\
+        - AES-256-GCM content encryption\n\
+        - RSA-OAEP key wrapping for recipients\n\
+        - KeyStore XML structure creation\n\
+        - OPC package modification with encrypted content types\n\
+        - Encrypted relationship handling\n\n\
+        To create encrypted 3MF files, use the official 3MF SDK or other tools.\n\
+        Decryption of existing encrypted files is also not yet implemented."
+    );
 }
 
-pub fn decrypt(input: PathBuf, output: PathBuf, key: PathBuf) -> anyhow::Result<()> {
-    println!("Decrypting {:?} with key {:?}", input, key);
-    let model = load_model(&input)?;
-    let file = File::create(&output)
-        .map_err(|e| anyhow::anyhow!("Failed to create output file: {}", e))?;
-    model
-        .write(file)
-        .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
-    Ok(())
+pub fn decrypt(_input: PathBuf, _output: PathBuf, _key: PathBuf) -> anyhow::Result<()> {
+    anyhow::bail!(
+        "Decrypt command not implemented: lib3mf-rs currently supports reading/parsing \
+        encrypted 3MF files but does not support decrypting content.\n\n\
+        Implementing decryption requires:\n\
+        - KeyStore parsing and key unwrapping\n\
+        - RSA-OAEP private key operations\n\
+        - AES-256-GCM content decryption\n\
+        - OPC package reconstruction with decrypted parts\n\
+        - Consumer authorization validation\n\n\
+        To decrypt 3MF files, use the official 3MF SDK or other tools.\n\
+        The library can parse KeyStore and encryption metadata from encrypted files."
+    );
 }
