@@ -1,4 +1,4 @@
-use crate::model::{DisplacementMesh, Displacement2D, Geometry, Model, ResourceId};
+use crate::model::{DisplacementMesh, Geometry, Model, ObjectType, ResourceId, Unit};
 use crate::validation::{ValidationLevel, ValidationReport};
 
 /// Validate displacement-specific resources and geometry.
@@ -24,6 +24,122 @@ pub fn validate_displacement(model: &Model, level: ValidationLevel, report: &mut
                 report,
                 &model.resources,
             );
+        }
+    }
+}
+
+/// Validate DisplacementMesh geometry (called from geometry validator).
+pub fn validate_displacement_mesh_geometry(
+    mesh: &DisplacementMesh,
+    oid: ResourceId,
+    _object_type: ObjectType,
+    level: ValidationLevel,
+    report: &mut ValidationReport,
+    _unit: Unit,
+) {
+    // For now, we don't need object_type or unit, but they're here for consistency
+    // with validate_mesh signature. Resources need to be passed differently.
+    // This is a simplified wrapper - full validation requires model context.
+
+    // Basic validation without resource context
+    if mesh.vertices.is_empty() {
+        report.add_error(
+            5010,
+            format!("DisplacementMesh object {} has no vertices", oid.0),
+        );
+    }
+
+    if mesh.triangles.is_empty() {
+        report.add_error(
+            5011,
+            format!("DisplacementMesh object {} has no triangles", oid.0),
+        );
+    }
+
+    // Critical: Normal count must match vertex count
+    if mesh.normals.len() != mesh.vertices.len() {
+        report.add_error(
+            5012,
+            format!(
+                "Object {} has {} vertices but {} normals",
+                oid.0,
+                mesh.vertices.len(),
+                mesh.normals.len()
+            ),
+        );
+    }
+
+    // Validate triangle vertex indices
+    let vertex_count = mesh.vertices.len();
+    for (i, tri) in mesh.triangles.iter().enumerate() {
+        if tri.v1 as usize >= vertex_count
+            || tri.v2 as usize >= vertex_count
+            || tri.v3 as usize >= vertex_count
+        {
+            report.add_error(
+                5013,
+                format!(
+                    "Triangle {} in object {} has out-of-bounds vertex index",
+                    i, oid.0
+                ),
+            );
+        }
+    }
+
+    // Validate gradient count if present
+    if let Some(gradients) = &mesh.gradients
+        && gradients.len() != mesh.vertices.len()
+    {
+        report.add_error(
+            5015,
+            format!(
+                "Object {} has {} vertices but {} gradient vectors",
+                oid.0,
+                mesh.vertices.len(),
+                gradients.len()
+            ),
+        );
+    }
+
+    // Paranoid level: Geometric correctness
+    if level >= ValidationLevel::Paranoid {
+        for (i, normal) in mesh.normals.iter().enumerate() {
+            if !normal.nx.is_finite() || !normal.ny.is_finite() || !normal.nz.is_finite() {
+                report.add_error(
+                    5020,
+                    format!(
+                        "Normal {} in object {} contains non-finite values",
+                        i, oid.0
+                    ),
+                );
+            }
+
+            // Check unit length (with tolerance)
+            let length_sq = normal.nx * normal.nx + normal.ny * normal.ny + normal.nz * normal.nz;
+            if (length_sq - 1.0).abs() > 1e-4 {
+                report.add_warning(
+                    5021,
+                    format!(
+                        "Normal {} in object {} is not unit length (length^2 = {})",
+                        i, oid.0, length_sq
+                    ),
+                );
+            }
+        }
+
+        // Validate gradient vectors
+        if let Some(gradients) = &mesh.gradients {
+            for (i, grad) in gradients.iter().enumerate() {
+                if !grad.gu.is_finite() || !grad.gv.is_finite() {
+                    report.add_error(
+                        5022,
+                        format!(
+                            "Gradient {} in object {} contains non-finite values",
+                            i, oid.0
+                        ),
+                    );
+                }
+            }
         }
     }
 }
@@ -74,87 +190,15 @@ fn validate_displacement_resources(model: &Model, level: ValidationLevel, report
                 );
             }
 
-            // PNG validation (if feature enabled)
-            #[cfg(feature = "png-validation")]
-            {
-                if !res.path.is_empty() {
-                    if let Some(data) = model.attachments.get(&res.path) {
-                        validate_png_texture(&res.path, res, data, report);
-                    }
-                }
-            }
+            // PNG validation (not yet implemented)
+            // TODO: Add PNG validation when png-validation feature is added
+            let _ = model; // Suppress unused variable warning
         }
     }
 }
 
-/// Validate PNG texture data (only with png-validation feature).
-#[cfg(feature = "png-validation")]
-fn validate_png_texture(
-    path: &str,
-    texture: &Displacement2D,
-    data: &[u8],
-    report: &mut ValidationReport,
-) {
-    use png::{ColorType, Decoder};
-    use std::io::Cursor;
-
-    let decoder = match Decoder::new(Cursor::new(data)) {
-        Ok(d) => d,
-        Err(e) => {
-            report.add_error(
-                5030,
-                format!(
-                    "Displacement texture {} PNG decode failed: {}",
-                    texture.id.0, e
-                ),
-            );
-            return;
-        }
-    };
-
-    let reader = match decoder.read_info() {
-        Ok(r) => r,
-        Err(e) => {
-            report.add_error(
-                5030,
-                format!(
-                    "Displacement texture {} PNG info read failed: {}",
-                    texture.id.0, e
-                ),
-            );
-            return;
-        }
-    };
-
-    let info = reader.info();
-    let color_type = info.color_type;
-
-    // Check if requested channel is available
-    let channel_available = match texture.channel {
-        crate::model::Channel::R => {
-            matches!(color_type, ColorType::Rgb | ColorType::Rgba | ColorType::Grayscale | ColorType::GrayscaleAlpha)
-        }
-        crate::model::Channel::G => {
-            matches!(color_type, ColorType::Rgb | ColorType::Rgba | ColorType::Grayscale | ColorType::GrayscaleAlpha)
-        }
-        crate::model::Channel::B => {
-            matches!(color_type, ColorType::Rgb | ColorType::Rgba)
-        }
-        crate::model::Channel::A => {
-            matches!(color_type, ColorType::Rgba | ColorType::GrayscaleAlpha)
-        }
-    };
-
-    if !channel_available {
-        report.add_warning(
-            5031,
-            format!(
-                "Displacement texture {} specifies channel {:?} but PNG has color type {:?}",
-                texture.id.0, texture.channel, color_type
-            ),
-        );
-    }
-}
+// PNG validation function removed - requires png-validation feature to be added to Cargo.toml
+// TODO: Add back when png dependency is added
 
 /// Validate DisplacementMesh geometry.
 fn validate_displacement_mesh(
@@ -225,18 +269,18 @@ fn validate_displacement_mesh(
         }
 
         // Validate gradient count if present
-        if let Some(gradients) = &mesh.gradients {
-            if gradients.len() != mesh.vertices.len() {
-                report.add_error(
-                    5015,
-                    format!(
-                        "Object {} has {} vertices but {} gradient vectors",
-                        oid.0,
-                        mesh.vertices.len(),
-                        gradients.len()
-                    ),
-                );
-            }
+        if let Some(gradients) = &mesh.gradients
+            && gradients.len() != mesh.vertices.len()
+        {
+            report.add_error(
+                5015,
+                format!(
+                    "Object {} has {} vertices but {} gradient vectors",
+                    oid.0,
+                    mesh.vertices.len(),
+                    gradients.len()
+                ),
+            );
         }
     }
 
