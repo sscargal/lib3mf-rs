@@ -184,6 +184,7 @@ fn parse_disp2d_groups<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<Grad
     Ok(gradients)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn parse_displacement_2d<R: BufRead>(
     parser: &mut XmlParser<R>,
     id: ResourceId,
