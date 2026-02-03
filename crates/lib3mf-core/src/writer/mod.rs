@@ -1,3 +1,4 @@
+pub mod displacement_writer;
 pub mod mesh_writer;
 pub mod model_write_zip;
 pub mod model_writer;
