@@ -406,7 +406,10 @@ fn test_volumetric_stack_with_unexpected_mesh_content() -> anyhow::Result<()> {
 </model>"##;
 
     let model = parse_model(Cursor::new(xml))?;
-    let obj = model.resources.get_object(ResourceId(1)).expect("Object 1 missing");
+    let obj = model
+        .resources
+        .get_object(ResourceId(1))
+        .expect("Object 1 missing");
 
     // VolumetricStack takes precedence - mesh content is discarded with warning
     match &obj.geometry {
