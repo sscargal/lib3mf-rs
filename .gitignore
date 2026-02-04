@@ -6,6 +6,7 @@ Cargo.lock
 *.swp
 .DS_Store
 /tmp
+qa_report.txt
 
 # --- AI coding agents: local state, logs, scratchpads ---
 
