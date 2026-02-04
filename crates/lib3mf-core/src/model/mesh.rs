@@ -117,6 +117,26 @@ pub enum Geometry {
     DisplacementMesh(DisplacementMesh),
 }
 
+impl Geometry {
+    /// Returns true if this geometry contains actual content (non-empty mesh,
+    /// components, boolean shapes, or displacement meshes).
+    ///
+    /// A default-constructed `Geometry::Mesh(Mesh::default())` has no content
+    /// (no vertices, no triangles). This is the default return from
+    /// `parse_object_geometry` when no `<mesh>` or `<components>` child element
+    /// is present.
+    pub fn has_content(&self) -> bool {
+        match self {
+            Geometry::Mesh(mesh) => !mesh.vertices.is_empty() || !mesh.triangles.is_empty(),
+            Geometry::Components(c) => !c.components.is_empty(),
+            Geometry::BooleanShape(_) => true,
+            Geometry::DisplacementMesh(_) => true,
+            // SliceStack and VolumetricStack are references, not inline content
+            Geometry::SliceStack(_) | Geometry::VolumetricStack(_) => false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Components {
     pub components: Vec<Component>,

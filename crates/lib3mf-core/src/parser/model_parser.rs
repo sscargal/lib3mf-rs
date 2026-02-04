@@ -116,9 +116,20 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                         let geometry_content = parse_object_geometry(parser)?;
 
                         let geometry = if let Some(ssid) = slice_stack_id {
-                            // TODO: Warn if geometry_content is not empty?
+                            if geometry_content.has_content() {
+                                eprintln!(
+                                    "Warning: Object {} has slicestackid but also contains geometry content; geometry will be ignored",
+                                    id.0
+                                );
+                            }
                             crate::model::Geometry::SliceStack(ssid)
                         } else if let Some(vsid) = vol_stack_id {
+                            if geometry_content.has_content() {
+                                eprintln!(
+                                    "Warning: Object {} has volumetricstackid but also contains geometry content; geometry will be ignored",
+                                    id.0
+                                );
+                            }
                             crate::model::Geometry::VolumetricStack(vsid)
                         } else {
                             geometry_content
