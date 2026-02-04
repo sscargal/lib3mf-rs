@@ -9,7 +9,7 @@ readme.workspace = true
 description = "Core implementation of the 3D Manufacturing Format (3MF) in Rust"
 
 [dependencies]
-aes-gcm = "0.10.3"
+aes-gcm = { version = "0.10.3", optional = true }
 anyhow.workspace = true
 byteorder.workspace = true
 glam.workspace = true
@@ -19,13 +19,13 @@ thiserror.workspace = true
 tokio = { workspace = true, optional = true }
 uuid.workspace = true
 zip = { version = "2.2.0", default-features = false, features = ["deflate"] }
-rsa.workspace = true
-sha2.workspace = true
-sha1.workspace = true
-base64 = "0.22.1"
+rsa = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+sha1 = { workspace = true, optional = true }
+base64 = { version = "0.22.1", optional = true }
 rayon = { workspace = true, optional = true }
-x509-parser.workspace = true
-rand.workspace = true
+x509-parser = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
 lexical-core.workspace = true
 png = { version = "0.17", optional = true }
 
@@ -38,7 +38,17 @@ name = "core_bench"
 harness = false
 
 [features]
-default = ["parallel"]
+default = []
 async = ["dep:tokio"]
 parallel = ["dep:rayon"]
 png-validation = ["dep:png"]
+crypto = [
+    "dep:aes-gcm",
+    "dep:rsa",
+    "dep:sha1",
+    "dep:sha2",
+    "dep:x509-parser",
+    "dep:rand",
+    "dep:base64",
+]
+full = ["crypto", "parallel", "png-validation"]
