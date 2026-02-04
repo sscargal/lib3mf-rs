@@ -1,12 +1,14 @@
-#![cfg(feature = "crypto")]
-
+#[cfg(feature = "crypto")]
 use base64::prelude::*;
+#[cfg(feature = "crypto")]
 use lib3mf_core::model::crypto::{
     CanonicalizationMethod, DigestMethod, DigestValue, KeyInfo, KeyValue, RSAKeyValue, Reference,
     Signature, SignatureMethod, SignatureValue, SignedInfo,
 };
+#[cfg(feature = "crypto")]
 use rsa::RsaPublicKey;
 
+#[cfg(feature = "crypto")]
 fn main() -> anyhow::Result<()> {
     println!("--- 3MF Secure Content Example ---");
 
@@ -96,6 +98,13 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[cfg(not(feature = "crypto"))]
+fn main() {
+    eprintln!("This example requires the 'crypto' feature to be enabled.");
+    eprintln!("Run with: cargo run --example secure_content --features crypto");
+}
+
+#[cfg(feature = "crypto")]
 fn verify_reference<F>(reference: &Reference, resolver: &F) -> anyhow::Result<()>
 where
     F: Fn(&str) -> lib3mf_core::error::Result<Vec<u8>>,
@@ -118,6 +127,7 @@ where
     }
 }
 
+#[cfg(feature = "crypto")]
 // Deterministic mock key
 fn get_mock_rsa_public_key() -> (rsa::BigUint, rsa::BigUint) {
     // 2048-bit modulus (fake small one for example speed/code size)
