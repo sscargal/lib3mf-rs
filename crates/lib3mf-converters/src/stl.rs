@@ -1,9 +1,73 @@
+//! Binary STL format import and export.
+//!
+//! This module provides conversion between binary STL files and 3MF [`Model`] structures.
+//!
+//! ## STL Format
+//!
+//! The binary STL format consists of:
+//! - 80-byte header (typically unused, set to zeros)
+//! - 4-byte little-endian unsigned integer triangle count
+//! - For each triangle:
+//!   - 12 bytes: normal vector (3 × f32, often ignored by importers)
+//!   - 12 bytes: vertex 1 (x, y, z as f32)
+//!   - 12 bytes: vertex 2 (x, y, z as f32)
+//!   - 12 bytes: vertex 3 (x, y, z as f32)
+//!   - 2 bytes: attribute byte count (typically 0)
+//!
+//! **Note:** ASCII STL format is not supported.
+//!
+//! ## Examples
+//!
+//! ### Importing STL
+//!
+//! ```no_run
+//! use lib3mf_converters::stl::StlImporter;
+//! use std::fs::File;
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let file = File::open("model.stl")?;
+//! let model = StlImporter::read(file)?;
+//! println!("Imported {} vertices",
+//!     model.resources.iter_objects()
+//!         .filter_map(|obj| match &obj.geometry {
+//!             lib3mf_core::model::Geometry::Mesh(m) => Some(m.vertices.len()),
+//!             _ => None,
+//!         })
+//!         .sum::<usize>()
+//! );
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ### Exporting STL
+//!
+//! ```no_run
+//! use lib3mf_converters::stl::StlExporter;
+//! use lib3mf_core::model::Model;
+//! use std::fs::File;
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! # let model = Model::default();
+//! let file = File::create("output.stl")?;
+//! StlExporter::write(&model, file)?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! [`Model`]: lib3mf_core::model::Model
+
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use lib3mf_core::error::{Lib3mfError, Result};
 use lib3mf_core::model::resources::ResourceId;
 use lib3mf_core::model::{BuildItem, Mesh, Model, Triangle, Vertex};
 use std::io::{Read, Write};
 
+/// Imports binary STL files into 3MF [`Model`] structures.
+///
+/// The importer reads binary STL format and creates a single mesh object with ResourceId(1).
+/// Vertices are deduplicated using bitwise float comparison during import.
+///
+/// [`Model`]: lib3mf_core::model::Model
 pub struct StlImporter;
 
 impl Default for StlImporter {
@@ -13,10 +77,65 @@ impl Default for StlImporter {
 }
 
 impl StlImporter {
+    /// Creates a new STL importer instance.
     pub fn new() -> Self {
         Self
     }
 
+    /// Reads a binary STL file and converts it to a 3MF [`Model`].
+    ///
+    /// # Arguments
+    ///
+    /// * `reader` - Any type implementing [`Read`] containing binary STL data
+    ///
+    /// # Returns
+    ///
+    /// A [`Model`] containing:
+    /// - Single mesh object with ResourceId(1) named "STL Import"
+    /// - All triangles from the STL file
+    /// - Deduplicated vertices (using bitwise float comparison)
+    /// - Single build item referencing the mesh object
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Lib3mfError::Io`] if:
+    /// - Cannot read 80-byte header
+    /// - Cannot read triangle count
+    /// - Cannot read triangle data (normals, vertices, attribute bytes)
+    ///
+    /// Returns [`Lib3mfError::Validation`] if triangle count field cannot be parsed.
+    ///
+    /// # Format Details
+    ///
+    /// - **Vertex deduplication**: Uses HashMap with bitwise float comparison `[x.to_bits(), y.to_bits(), z.to_bits()]`
+    ///   as key. Only exactly identical vertices (bitwise) are merged.
+    /// - **Normal vectors**: Read from STL but ignored (not stored in Model).
+    /// - **Attribute bytes**: Read but ignored (2-byte field after each triangle).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use lib3mf_converters::stl::StlImporter;
+    /// use std::fs::File;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let file = File::open("cube.stl")?;
+    /// let model = StlImporter::read(file)?;
+    ///
+    /// // Access the imported mesh
+    /// let obj = model.resources.get_object(lib3mf_core::model::resources::ResourceId(1))
+    ///     .expect("STL import creates object with ID 1");
+    /// if let lib3mf_core::model::Geometry::Mesh(mesh) = &obj.geometry {
+    ///     println!("Imported {} vertices, {} triangles",
+    ///         mesh.vertices.len(), mesh.triangles.len());
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// [`Model`]: lib3mf_core::model::Model
+    /// [`Lib3mfError::Io`]: lib3mf_core::error::Lib3mfError::Io
+    /// [`Lib3mfError::Validation`]: lib3mf_core::error::Lib3mfError::Validation
     pub fn read<R: Read>(mut reader: R) -> Result<Model> {
         // STL Format:
         // 80 bytes header
@@ -96,9 +215,62 @@ impl StlImporter {
     }
 }
 
+/// Exports 3MF [`Model`] structures to binary STL files.
+///
+/// The exporter flattens all mesh objects referenced in build items into a single STL file,
+/// applying build item transformations to vertex coordinates.
+///
+/// [`Model`]: lib3mf_core::model::Model
 pub struct StlExporter;
 
 impl StlExporter {
+    /// Writes a 3MF [`Model`] to binary STL format.
+    ///
+    /// # Arguments
+    ///
+    /// * `model` - The 3MF model to export
+    /// * `writer` - Any type implementing [`Write`] to receive STL data
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` on successful export.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Lib3mfError::Io`] if any write operation fails.
+    ///
+    /// # Format Details
+    ///
+    /// - **Header**: 80 zero bytes (standard for most STL files)
+    /// - **Normals**: Written as (0, 0, 0) - viewers must compute face normals
+    /// - **Transformations**: Build item transforms are applied to vertex coordinates
+    /// - **Attribute bytes**: Written as 0 (no extended attributes)
+    ///
+    /// # Behavior
+    ///
+    /// - Only mesh objects from `model.build.items` are exported
+    /// - Non-mesh geometries (Components, BooleanShape, etc.) are skipped
+    /// - Each build item's transformation matrix is applied to its mesh vertices
+    /// - All triangles from all build items are combined into a single STL file
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use lib3mf_converters::stl::StlExporter;
+    /// use lib3mf_core::model::Model;
+    /// use std::fs::File;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let model = Model::default();
+    /// let output = File::create("exported.stl")?;
+    /// StlExporter::write(&model, output)?;
+    /// println!("Model exported successfully");
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// [`Model`]: lib3mf_core::model::Model
+    /// [`Lib3mfError::Io`]: lib3mf_core::error::Lib3mfError::Io
     pub fn write<W: Write>(model: &Model, mut writer: W) -> Result<()> {
         // 1. Collect all triangles from all build items
         let mut triangles: Vec<(glam::Vec3, glam::Vec3, glam::Vec3)> = Vec::new(); // v1, v2, v3
@@ -190,6 +362,60 @@ impl StlExporter {
 
         Ok(())
     }
+
+    /// Writes a 3MF [`Model`] to binary STL format with support for multi-part 3MF files.
+    ///
+    /// This method extends [`write`] by recursively resolving component references and external
+    /// model parts using a [`PartResolver`]. This is necessary for 3MF files with the Production
+    /// Extension that reference objects from external model parts.
+    ///
+    /// # Arguments
+    ///
+    /// * `model` - The root 3MF model to export
+    /// * `resolver` - A [`PartResolver`] for loading external model parts from the 3MF archive
+    /// * `writer` - Any type implementing [`Write`] to receive STL data
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` on successful export.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Lib3mfError::Io`] if any write operation fails.
+    ///
+    /// Returns errors from the resolver if external parts cannot be loaded.
+    ///
+    /// # Behavior
+    ///
+    /// - Recursively resolves component hierarchies using the PartResolver
+    /// - Follows external references via component `path` attributes
+    /// - Applies accumulated transformations through the component tree
+    /// - Flattens all resolved meshes into a single STL file
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use lib3mf_converters::stl::StlExporter;
+    /// use lib3mf_core::archive::ZipArchiver;
+    /// use lib3mf_core::model::resolver::PartResolver;
+    /// use std::fs::File;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let model = lib3mf_core::model::Model::default();
+    /// let archive_file = File::open("multipart.3mf")?;
+    /// let mut archiver = ZipArchiver::new(archive_file)?;
+    /// let resolver = PartResolver::new(&mut archiver, model.clone());
+    ///
+    /// let output = File::create("output.stl")?;
+    /// StlExporter::write_with_resolver(&model, resolver, output)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// [`write`]: StlExporter::write
+    /// [`Model`]: lib3mf_core::model::Model
+    /// [`PartResolver`]: lib3mf_core::model::resolver::PartResolver
+    /// [`Lib3mfError::Io`]: lib3mf_core::error::Lib3mfError::Io
     pub fn write_with_resolver<W: Write, A: lib3mf_core::archive::ArchiveReader>(
         model: &Model,
         mut resolver: lib3mf_core::model::resolver::PartResolver<A>,

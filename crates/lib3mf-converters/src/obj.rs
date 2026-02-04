@@ -1,11 +1,127 @@
+//! Wavefront OBJ format import and export.
+//!
+//! This module provides conversion between OBJ files and 3MF [`Model`] structures.
+//!
+//! ## OBJ Format
+//!
+//! The Wavefront OBJ format is a text-based 3D geometry format. This implementation supports
+//! a basic subset of the full OBJ specification:
+//!
+//! **Supported features:**
+//! - `v` - Vertex positions (x, y, z)
+//! - `f` - Faces (vertex indices)
+//! - Polygon faces (automatically triangulated using fan triangulation)
+//!
+//! **Ignored features:**
+//! - `vt` - Texture coordinates
+//! - `vn` - Vertex normals
+//! - `g` - Group names
+//! - `usemtl` - Material references
+//! - `mtllib` - Material library files
+//!
+//! ## Examples
+//!
+//! ### Importing OBJ
+//!
+//! ```no_run
+//! use lib3mf_converters::obj::ObjImporter;
+//! use std::fs::File;
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let file = File::open("model.obj")?;
+//! let model = ObjImporter::read(file)?;
+//! println!("Imported model with {} build items", model.build.items.len());
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ### Exporting OBJ
+//!
+//! ```no_run
+//! use lib3mf_converters::obj::ObjExporter;
+//! use lib3mf_core::model::Model;
+//! use std::fs::File;
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! # let model = Model::default();
+//! let file = File::create("output.obj")?;
+//! ObjExporter::write(&model, file)?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! [`Model`]: lib3mf_core::model::Model
+
 use lib3mf_core::error::{Lib3mfError, Result};
 use lib3mf_core::model::resources::ResourceId;
 use lib3mf_core::model::{BuildItem, Mesh, Model, Triangle};
 use std::io::{BufRead, BufReader, Read, Write};
 
+/// Imports Wavefront OBJ files into 3MF [`Model`] structures.
+///
+/// Parses vertex positions (`v`) and faces (`f`) from OBJ text format. Polygonal faces
+/// with more than 3 vertices are automatically triangulated using fan triangulation.
+///
+/// [`Model`]: lib3mf_core::model::Model
 pub struct ObjImporter;
 
 impl ObjImporter {
+    /// Reads an OBJ file and converts it to a 3MF [`Model`].
+    ///
+    /// # Arguments
+    ///
+    /// * `reader` - Any type implementing [`Read`] containing OBJ text data
+    ///
+    /// # Returns
+    ///
+    /// A [`Model`] containing:
+    /// - Single mesh object with ResourceId(1) named "OBJ Import"
+    /// - All triangles from the OBJ file (polygons triangulated via fan method)
+    /// - All vertices from the OBJ file
+    /// - Single build item referencing the mesh object
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Lib3mfError::Validation`] if:
+    /// - Vertex line has fewer than 4 fields (v x y z)
+    /// - Face line has fewer than 4 fields (f v1 v2 v3...)
+    /// - Float parsing fails for vertex coordinates
+    /// - Integer parsing fails for face indices
+    /// - Relative indices (negative values) are used (not supported)
+    ///
+    /// Returns [`Lib3mfError::Io`] if reading from the input fails.
+    ///
+    /// # Format Details
+    ///
+    /// - **Index conversion**: OBJ uses 1-based indices, converted to 0-based for internal mesh
+    /// - **Fan triangulation**: Polygons with N vertices create N-2 triangles using first vertex as fan apex
+    /// - **Ignored elements**: Texture coords (vt), normals (vn), groups (g), materials (usemtl, mtllib)
+    /// - **Comments**: Lines starting with `#` are skipped
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use lib3mf_converters::obj::ObjImporter;
+    /// use std::fs::File;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let file = File::open("cube.obj")?;
+    /// let model = ObjImporter::read(file)?;
+    ///
+    /// // Access the imported mesh
+    /// let obj = model.resources.get_object(lib3mf_core::model::resources::ResourceId(1))
+    ///     .expect("OBJ import creates object with ID 1");
+    /// if let lib3mf_core::model::Geometry::Mesh(mesh) = &obj.geometry {
+    ///     println!("Imported {} vertices, {} triangles",
+    ///         mesh.vertices.len(), mesh.triangles.len());
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// [`Model`]: lib3mf_core::model::Model
+    /// [`Lib3mfError::Validation`]: lib3mf_core::error::Lib3mfError::Validation
+    /// [`Lib3mfError::Io`]: lib3mf_core::error::Lib3mfError::Io
     pub fn read<R: Read>(reader: R) -> Result<Model> {
         let mut reader = BufReader::new(reader);
         let mut line = String::new();
@@ -119,9 +235,63 @@ impl ObjImporter {
     }
 }
 
+/// Exports 3MF [`Model`] structures to Wavefront OBJ files.
+///
+/// The exporter writes all mesh objects from build items to OBJ format, creating
+/// separate groups for each object and applying build item transformations.
+///
+/// [`Model`]: lib3mf_core::model::Model
 pub struct ObjExporter;
 
 impl ObjExporter {
+    /// Writes a 3MF [`Model`] to OBJ text format.
+    ///
+    /// # Arguments
+    ///
+    /// * `model` - The 3MF model to export
+    /// * `writer` - Any type implementing [`Write`] to receive OBJ text data
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` on successful export.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Lib3mfError::Io`] if any write operation fails.
+    ///
+    /// # Format Details
+    ///
+    /// - **Groups**: Each mesh object creates an OBJ group (`g`) with the object's name or "Object"
+    /// - **Vertex indices**: Written as 1-based indices (OBJ convention)
+    /// - **Transformations**: Build item transforms are applied to vertex coordinates
+    /// - **Materials**: Not exported (OBJ output is geometry-only)
+    /// - **Normals/UVs**: Not exported
+    ///
+    /// # Behavior
+    ///
+    /// - Only mesh objects from `model.build.items` are exported
+    /// - Non-mesh geometries (Components, BooleanShape, etc.) are skipped
+    /// - Vertex indices are offset correctly across multiple objects
+    /// - Each object's vertices and faces are written in sequence
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use lib3mf_converters::obj::ObjExporter;
+    /// use lib3mf_core::model::Model;
+    /// use std::fs::File;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let model = Model::default();
+    /// let output = File::create("exported.obj")?;
+    /// ObjExporter::write(&model, output)?;
+    /// println!("Model exported successfully");
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// [`Model`]: lib3mf_core::model::Model
+    /// [`Lib3mfError::Io`]: lib3mf_core::error::Lib3mfError::Io
     pub fn write<W: Write>(model: &Model, mut writer: W) -> Result<()> {
         let mut vertex_offset = 1;
 
