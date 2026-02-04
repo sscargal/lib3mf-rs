@@ -1,4 +1,5 @@
 pub mod archive;
+#[cfg(feature = "crypto")]
 pub mod crypto;
 pub mod error;
 pub mod model;

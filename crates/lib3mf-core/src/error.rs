@@ -15,6 +15,9 @@ pub enum Lib3mfError {
     InvalidStructure(String),
     #[error("Encryption error: {0}")]
     EncryptionError(String),
+
+    #[error("Feature not enabled: {0}. Rebuild with `cargo build --features {1}`")]
+    FeatureNotEnabled(String, String),
 }
 
 pub type Result<T> = std::result::Result<T, Lib3mfError>;
