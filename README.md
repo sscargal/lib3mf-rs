@@ -9,6 +9,7 @@
   <br>
   <a href="https://github.com/sscargal/lib3mf-rs/actions"><img src="https://github.com/sscargal/lib3mf-rs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="https://sscargal.github.io/lib3mf-rs/"><img src="https://img.shields.io/badge/docs-guide-blue.svg" alt="Documentation"></a>
 </p>
 
 Memory-safe, high-performance library for reading, writing, and processing [3MF files](https://3mf.io/) used in 3D printing, additive manufacturing, and CAD workflows. Supports digital signatures, encryption, advanced materials, slicing, boolean operations, and all 9 official 3MF specifications.
@@ -51,6 +52,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 **[📖 More Examples](examples/)** | **[📋 Full Feature List](docs/features.md)** | **[🔧 API Documentation](https://docs.rs/lib3mf-core)**
+
+---
+
+## Documentation
+
+Comprehensive documentation is available at **[sscargal.github.io/lib3mf-rs](https://sscargal.github.io/lib3mf-rs/)**:
+
+- **[User Guide](https://sscargal.github.io/lib3mf-rs/stable/book/)** – Tutorial, architecture overview, and practical examples
+- **[API Reference](https://sscargal.github.io/lib3mf-rs/stable/rustdoc/lib3mf_core/)** – Complete rustdoc for all public APIs
+- **[Dev Docs](https://sscargal.github.io/lib3mf-rs/dev/book/)** – Latest unreleased changes on main branch
+
+The documentation covers:
+- Getting Started tutorial with step-by-step examples
+- Architecture deep-dive into parsing, validation, and writing
+- Extension guides for Materials, Secure Content, Boolean Operations, Slicing, and more
+- Advanced topics: streaming parsing, mesh repair, format conversion
+- Full API documentation with testable code examples
 
 ---
 

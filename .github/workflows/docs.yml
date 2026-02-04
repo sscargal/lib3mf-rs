@@ -1,0 +1,130 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # Install mdBook
+      - name: Install mdBook
+        uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: 'latest'
+
+      # Test doc examples first
+      - name: Test documentation examples
+        run: cargo test --doc --all-features
+
+      # Build rustdoc
+      - name: Build API documentation
+        run: cargo doc --workspace --all-features --no-deps
+
+      # Build mdBook
+      - name: Build guide
+        run: mdbook build book
+
+      # Determine version and organize
+      - name: Organize documentation
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            VERSION="stable"
+          else
+            VERSION="dev"
+          fi
+
+          mkdir -p deploy/$VERSION
+          cp -r target/doc deploy/$VERSION/rustdoc
+          cp -r book/book deploy/$VERSION/book
+
+          # Version-specific index redirect
+          cat > deploy/$VERSION/index.html <<'HEREDOC'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; URL=./book/index.html">
+            <link rel="canonical" href="./book/index.html">
+            <title>lib3mf-rs Documentation</title>
+          </head>
+          <body>
+            <p>Redirecting to <a href="./book/index.html">documentation</a>...</p>
+          </body>
+          </html>
+          HEREDOC
+
+          # Root landing page
+          cat > deploy/index.html <<'HEREDOC'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <title>lib3mf-rs Documentation</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 700px; margin: 60px auto; padding: 0 20px; color: #333; line-height: 1.6; }
+              h1 { border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+              .version { display: block; margin: 15px 0; padding: 20px; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; text-decoration: none; color: inherit; transition: background 0.2s; }
+              .version:hover { background: #e9ecef; }
+              .version strong { color: #0366d6; font-size: 1.1em; }
+              .version p { margin: 5px 0 0; color: #666; }
+              .links { margin-top: 30px; font-size: 0.9em; color: #666; }
+              .links a { color: #0366d6; }
+            </style>
+          </head>
+          <body>
+            <h1>lib3mf-rs Documentation</h1>
+            <p>Pure Rust implementation of the 3D Manufacturing Format (3MF) specification.</p>
+
+            <a class="version" href="./stable/book/">
+              <strong>Stable Documentation</strong>
+              <p>Latest released version - recommended for most users.</p>
+            </a>
+
+            <a class="version" href="./dev/book/">
+              <strong>Development Documentation</strong>
+              <p>Main branch - includes unreleased changes.</p>
+            </a>
+
+            <div class="links">
+              <p>
+                <a href="https://github.com/sscargal/lib3mf-rs">GitHub Repository</a> |
+                <a href="https://crates.io/crates/lib3mf-core">crates.io</a> |
+                <a href="https://docs.rs/lib3mf-core">docs.rs</a>
+              </p>
+            </div>
+          </body>
+          </html>
+          HEREDOC
+
+          touch deploy/.nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: deploy
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

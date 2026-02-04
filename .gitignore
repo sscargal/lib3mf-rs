@@ -79,3 +79,6 @@ fuzz/*.log
 # Optional: Keep seed corpus if you create one
 # Use fuzz/seeds/ directory for hand-picked examples instead
 !fuzz/seeds/
+
+# mdBook build output
+book/book/
