@@ -1,19 +1,29 @@
 use crate::model::Mesh;
 use std::collections::HashMap;
 
+/// Configuration options for mesh repair operations.
+///
+/// Controls which repair operations to apply and their parameters.
+/// The default configuration applies common, safe repairs suitable
+/// for most 3D printing scenarios.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RepairOptions {
-    /// Epsilon for merging vertices. Vertices closer than this will be merged.
+    /// Epsilon for merging vertices (default: 1e-4 = 0.1 microns).
+    /// Vertices closer than this distance will be merged into one.
+    /// Set to 0.0 to disable vertex stitching.
     pub stitch_epsilon: f32,
-    /// Whether to remove triangles with zero/near-zero area.
+    /// Whether to remove triangles with zero or near-zero area (default: true).
     pub remove_degenerate: bool,
-    /// Whether to remove duplicate triangles (sharing same sorted vertices).
+    /// Whether to remove duplicate triangles sharing the same vertices (default: true).
     pub remove_duplicate_faces: bool,
-    /// Whether to harmonize triangle winding (orientations).
+    /// Whether to harmonize triangle winding for consistent normals (default: true).
+    /// Uses BFS to propagate consistent orientation through connected components.
     pub harmonize_orientations: bool,
-    /// Whether to remove disconnected components (islands). If true, only the largest component is kept.
+    /// Whether to remove disconnected islands, keeping only the largest component (default: false).
+    /// Useful for removing unwanted floating geometry.
     pub remove_islands: bool,
-    /// Whether to attempt to fill holes (boundary loops).
+    /// Whether to attempt to fill holes using simple fan triangulation (default: false).
+    /// Detects boundary loops and caps them with triangles.
     pub fill_holes: bool,
 }
 
@@ -30,17 +40,58 @@ impl Default for RepairOptions {
     }
 }
 
+/// Trait for mesh repair operations.
+///
+/// Provides automatic mesh repair functionality to fix common geometry issues
+/// such as duplicate vertices, degenerate triangles, inconsistent orientation,
+/// holes, and disconnected components.
+///
+/// # Examples
+///
+/// ```
+/// use lib3mf_core::model::{Mesh, repair::{MeshRepair, RepairOptions}};
+///
+/// let mut mesh = Mesh::new();
+/// // ... add geometry ...
+///
+/// let options = RepairOptions::default();
+/// let stats = mesh.repair(options);
+/// println!("Removed {} degenerate triangles", stats.triangles_removed);
+/// ```
 pub trait MeshRepair {
-    /// Attempt to repair the mesh in-place based on the provided options.
-    /// Returns a report of what was done (e.g., number of vertices merged).
+    /// Attempts to repair the mesh in-place based on the provided options.
+    ///
+    /// Applies the requested repair operations in order:
+    /// 1. Vertex stitching (merge nearby vertices)
+    /// 2. Remove degenerate/duplicate triangles
+    /// 3. Remove unused vertices
+    /// 4. Remove disconnected islands (keep largest component)
+    /// 5. Fill holes (simple fan triangulation)
+    /// 6. Harmonize orientation (consistent winding)
+    ///
+    /// # Arguments
+    ///
+    /// * `options` - Configuration for which repairs to apply and their parameters
+    ///
+    /// # Returns
+    ///
+    /// Statistics about what repairs were performed (vertices/triangles removed, etc.)
     fn repair(&mut self, options: RepairOptions) -> RepairStats;
 }
 
+/// Statistics from mesh repair operations.
+///
+/// Records what changes were made during repair so users can understand
+/// what was fixed and verify the results are acceptable.
 #[derive(Debug, Clone, Default)]
 pub struct RepairStats {
+    /// Number of vertices removed (merged duplicates or unused)
     pub vertices_removed: usize,
+    /// Number of triangles removed (degenerate, duplicates, or from islands)
     pub triangles_removed: usize,
+    /// Number of triangles flipped for consistent orientation
     pub triangles_flipped: usize,
+    /// Number of triangles added (hole filling)
     pub triangles_added: usize,
 }
 

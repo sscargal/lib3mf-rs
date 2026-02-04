@@ -3,17 +3,32 @@ use crate::utils::hardware::HardwareCapabilities;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Comprehensive statistics and metadata for a 3MF model.
+///
+/// Aggregates various statistics about the model's geometry, materials,
+/// production metadata, and vendor-specific information. Used by the CLI
+/// `stats` command and for model analysis.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ModelStats {
+    /// Unit of measurement for the model
     pub unit: Unit,
+    /// Software that generated the model (from metadata)
     pub generator: Option<String>,
+    /// Custom metadata key-value pairs from the model
     pub metadata: HashMap<String, String>,
+    /// Geometric statistics (vertices, triangles, volume, etc.)
     pub geometry: GeometryStats,
+    /// Material and property statistics
     pub materials: MaterialsStats,
+    /// Production extension metadata statistics
     pub production: ProductionStats,
+    /// Displacement extension statistics
     pub displacement: DisplacementStats,
+    /// Vendor-specific data (e.g., Bambu Studio project info)
     pub vendor: VendorData,
+    /// System hardware capabilities info
     pub system_info: HardwareCapabilities,
+    /// Thumbnail statistics
     pub thumbnails: ThumbnailStats,
 }
 
@@ -32,24 +47,43 @@ pub struct MaterialsStats {
     pub multi_properties_count: usize,
 }
 
+/// Geometric statistics for the model.
+///
+/// Aggregates counts and measurements of the model's geometry including
+/// vertices, triangles, bounding box, surface area, and volume.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GeometryStats {
+    /// Total number of object resources
     pub object_count: usize,
+    /// Number of build items (instances to print)
     pub instance_count: usize,
+    /// Total number of triangles across all meshes
     pub triangle_count: u64,
+    /// Total number of vertices across all meshes
     pub vertex_count: u64,
+    /// Axis-aligned bounding box of the entire model
     pub bounding_box: Option<BoundingBox>,
+    /// Total surface area in square model units
     pub surface_area: f64,
+    /// Total volume in cubic model units
     pub volume: f64,
+    /// Whether all meshes are manifold (watertight)
     pub is_manifold: bool,
-    /// Object counts by type
+    /// Count of objects by type (e.g., {"model": 5, "support": 2})
     #[serde(default)]
     pub type_counts: HashMap<String, usize>,
 }
 
+/// An axis-aligned bounding box in 3D space.
+///
+/// Represents the smallest box (aligned with coordinate axes) that
+/// contains all geometry. Useful for understanding model size and
+/// for spatial queries.
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct BoundingBox {
+    /// Minimum corner coordinates [x, y, z]
     pub min: [f32; 3],
+    /// Maximum corner coordinates [x, y, z]
     pub max: [f32; 3],
 }
 
