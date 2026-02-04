@@ -5,7 +5,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-readme.workspace = true
+readme = "README.md"
 description = "Core implementation of the 3D Manufacturing Format (3MF) in Rust"
 
 [dependencies]
