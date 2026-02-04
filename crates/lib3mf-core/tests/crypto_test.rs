@@ -1,3 +1,5 @@
+#![cfg(feature = "crypto")]
+
 use lib3mf_core::crypto::encryption::{decrypt_aes256gcm, encrypt_aes256gcm};
 use lib3mf_core::crypto::keys::KeyManager;
 use lib3mf_core::model::KeyStore;

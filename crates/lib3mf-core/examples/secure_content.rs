@@ -1,3 +1,5 @@
+#![cfg(feature = "crypto")]
+
 use base64::prelude::*;
 use lib3mf_core::model::crypto::{
     CanonicalizationMethod, DigestMethod, DigestValue, KeyInfo, KeyValue, RSAKeyValue, Reference,

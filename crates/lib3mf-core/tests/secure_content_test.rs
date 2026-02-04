@@ -1,3 +1,5 @@
+#![cfg(feature = "crypto")]
+
 use base64::prelude::*;
 use lib3mf_core::parser::secure_content_parser::parse_keystore_content;
 use lib3mf_core::parser::xml_parser::XmlParser;
