@@ -145,6 +145,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### Feature Flags
+
+lib3mf-core uses cargo feature flags to keep dependencies minimal. By default, no optional features are enabled.
+
+| Feature | Description | Dependencies Added |
+|---------|-------------|--------------------|
+| `crypto` | Digital signatures and encryption (Secure Content Extension) | aes-gcm, rsa, sha1, sha2, x509-parser, rand, base64 |
+| `parallel` | Multi-threaded mesh processing for large files | rayon |
+| `png-validation` | Validate PNG texture files | png |
+| `full` | All features enabled | all of the above |
+
+**Usage examples:**
+
+```toml
+# Minimal (smallest dependency footprint)
+lib3mf-core = { version = "0.1", default-features = false }
+
+# With parallel processing (recommended for large files)
+lib3mf-core = { version = "0.1", features = ["parallel"] }
+
+# With crypto support (for signed/encrypted 3MF files)
+lib3mf-core = { version = "0.1", features = ["crypto"] }
+
+# Everything enabled
+lib3mf-core = { version = "0.1", features = ["full"] }
+```
+
+Note: The `3mf` CLI binary enables all features by default.
+
 ### Code Examples
 
 You can run any of the examples using `cargo run -p <crate> --example <name>`.

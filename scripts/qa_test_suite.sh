@@ -139,8 +139,39 @@ run_cmd "cargo fmt --check" "Checking Format"
 run_cmd "cargo test" "Running Tests"
 run_cmd "cargo bench" "Running Benchmarks"
 
+# --- Feature Flag Validation ---
+echo -e "\n${BLUE}=== Feature Flag Validation ===${NC}"
+
+echo -n "Building lib3mf-core (no default features)... "
+if cargo build -p lib3mf-core --no-default-features >> "$CMD_LOG" 2>&1; then
+    log_result "build: no-default-features" 0
+else
+    log_result "build: no-default-features" 1
+fi
+
+echo -n "Building lib3mf-core (crypto only)... "
+if cargo build -p lib3mf-core --no-default-features --features crypto >> "$CMD_LOG" 2>&1; then
+    log_result "build: crypto-only" 0
+else
+    log_result "build: crypto-only" 1
+fi
+
+echo -n "Testing lib3mf-core (no default features)... "
+if cargo test -p lib3mf-core --no-default-features >> "$CMD_LOG" 2>&1; then
+    log_result "test: no-default-features" 0
+else
+    log_result "test: no-default-features" 1
+fi
+
+echo -n "Testing lib3mf-core (all features)... "
+if cargo test -p lib3mf-core --all-features >> "$CMD_LOG" 2>&1; then
+    log_result "test: all-features" 0
+else
+    log_result "test: all-features" 1
+fi
+
 # --- Asset Generation (from test_cli.sh) ---
-echo -e "${BLUE}=== Generating Test Assets ===${NC}"
+echo -e "\n${BLUE}=== Generating Test Assets ===${NC}"
 
 # 1. Crypto Assets
 KEY_FILE="$QA_TMP_DIR/private.pem"
