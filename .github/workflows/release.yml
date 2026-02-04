@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write  # Required for npm Trusted Publishing (OIDC)
 
 jobs:
   test:
@@ -71,9 +72,11 @@ jobs:
         with:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
+      - name: Upgrade npm to latest
+        run: npm install -g npm@latest
       - name: Build WASM
-        run: cd crates/lib3mf-wasm && wasm-pack build --scope sscargal
-      - name: Publish to NPM
-        run: cd crates/lib3mf-wasm/pkg && npm publish --access public
+        run: cd crates/lib3mf-wasm && wasm-pack build --scope lib3mf-rs
+      - name: Publish to NPM with Trusted Publishing
+        run: cd crates/lib3mf-wasm/pkg && npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
