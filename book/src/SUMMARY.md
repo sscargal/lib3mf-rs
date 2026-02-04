@@ -14,4 +14,3 @@
 - [Architecture Overview](architecture.md)
 - [Extensions](extensions.md)
 - [Contributing](contributing.md)
-

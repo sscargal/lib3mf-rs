@@ -58,7 +58,9 @@ This guide is organized into two main sections:
 - [Extensions](extensions.md) — Details on all 9 3MF extensions
 - [Contributing](contributing.md) — Development setup, testing, adding features
 
-For detailed API documentation, see the [rustdoc reference](../rustdoc/lib3mf_core/index.html).
+**API Reference** — For complete API documentation:
+- **[Rustdoc API Reference](https://sscargal.github.io/lib3mf-rs/dev/rustdoc/lib3mf_core/)** — Module, struct, and function documentation with examples
+- **[docs.rs](https://docs.rs/lib3mf-core)** — Versioned API docs for released crates
 
 ## Quick Example
 
