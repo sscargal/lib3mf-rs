@@ -3,7 +3,6 @@ title = "lib3mf-rs Guide"
 authors = ["Steve Scargall"]
 description = "Comprehensive guide to lib3mf-rs, the pure Rust 3MF library"
 language = "en"
-multilingual = false
 src = "src"
 
 [build]
