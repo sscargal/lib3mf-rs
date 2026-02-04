@@ -14,3 +14,7 @@
 - [Architecture Overview](architecture.md)
 - [Extensions](extensions.md)
 - [Contributing](contributing.md)
+
+# Rust API
+
+- [API Documentation](rust-api.md)
