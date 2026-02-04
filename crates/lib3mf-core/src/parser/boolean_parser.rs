@@ -5,7 +5,7 @@ use crate::parser::xml_parser::{XmlParser, get_attribute, get_attribute_u32};
 use quick_xml::events::Event;
 use std::io::BufRead;
 
-/// Parse a <booleanshape> element into a BooleanShape structure.
+/// Parse a `<booleanshape>` element into a BooleanShape structure.
 ///
 /// A booleanshape defines geometry through constructive solid geometry (CSG)
 /// operations on referenced objects.
@@ -14,7 +14,7 @@ use std::io::BufRead;
 /// - Requires base objectid attribute (parsed by caller)
 /// - Optional transform on base (parsed by caller)
 /// - Optional p:path for external references (parsed by caller)
-/// - Contains nested <boolean> elements defining operations
+/// - Contains nested `<boolean>` elements defining operations
 pub fn parse_boolean_shape<R: BufRead>(
     parser: &mut XmlParser<R>,
     base_object_id: ResourceId,

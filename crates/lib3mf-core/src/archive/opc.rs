@@ -72,7 +72,7 @@ pub fn parse_relationships(xml_content: &[u8]) -> Result<Vec<Relationship>> {
     Ok(rels)
 }
 
-/// Parses [Content_Types].xml.
+/// Parses `[Content_Types].xml`.
 pub fn parse_content_types(xml_content: &[u8]) -> Result<Vec<ContentType>> {
     let mut reader = Reader::from_reader(xml_content);
     reader.config_mut().trim_text(true);

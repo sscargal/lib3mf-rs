@@ -83,7 +83,7 @@ impl ObjectType {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Object {
     /// Unique identifier for this resource within the model.
-    /// See [`ResourceId`](crate::model::ResourceId) for details on the global namespace.
+    /// See [`ResourceId`] for details on the global namespace.
     pub id: ResourceId,
     /// Object type determining validation rules and build behavior.
     #[serde(default)]
@@ -223,7 +223,7 @@ pub enum BooleanOperationType {
 
 /// A single boolean operation applied to a shape.
 ///
-/// Represents one <boolean> element within a <booleanshape>.
+/// Represents one `<boolean>` element within a `<booleanshape>`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BooleanOperation {
     /// Type of boolean operation (union, difference, intersection)
@@ -241,7 +241,7 @@ pub struct BooleanOperation {
 
 /// A boolean shape combining multiple objects with CSG operations.
 ///
-/// Represents a <booleanshape> resource that defines geometry through
+/// Represents a `<booleanshape>` resource that defines geometry through
 /// constructive solid geometry (CSG) operations.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BooleanShape {
