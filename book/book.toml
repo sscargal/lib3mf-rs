@@ -1,0 +1,29 @@
+[book]
+title = "lib3mf-rs Guide"
+authors = ["Steve Scargall"]
+description = "Comprehensive guide to lib3mf-rs, the pure Rust 3MF library"
+language = "en"
+multilingual = false
+src = "src"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/sscargal/lib3mf-rs"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/sscargal/lib3mf-rs/edit/main/book/{path}"
+site-url = "/lib3mf-rs/"
+
+[output.html.search]
+enable = true
+limit-results = 30
+use-boolean-and = true
+expand = true
+heading-split-level = 3
+
+[output.html.playground]
+runnable = false
