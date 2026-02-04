@@ -1,28 +1,58 @@
 use serde::{Deserialize, Serialize};
 
-/// Units of measurement used in the 3MF model.
+/// Units of measurement for the 3MF model.
 ///
-/// Affects how vertex coordinates are interpreted in real-world dimensions.
+/// Defines how vertex coordinates and dimensions are interpreted in real-world
+/// measurements. The unit applies to all geometric coordinates in the model
+/// (vertices, transformations, radii, etc.).
+///
+/// Per the 3MF specification, the default unit is Millimeter if not specified.
+///
+/// # Examples
+///
+/// ```
+/// use lib3mf_core::model::Unit;
+///
+/// // Default is millimeter
+/// let unit = Unit::default();
+/// assert_eq!(unit, Unit::Millimeter);
+///
+/// // Convert between units
+/// let inches = Unit::Inch.convert(1.0, Unit::Millimeter);
+/// assert!((inches - 25.4).abs() < 1e-5);
+///
+/// // Get scale factor to meters
+/// assert_eq!(Unit::Millimeter.scale_factor(), 0.001);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Unit {
-    /// 0.000001 meters
+    /// Micrometers - 0.000001 meters (1 μm)
     Micron,
-    /// 0.001 meters (Default)
+    /// Millimeters - 0.001 meters (1 mm) - Default per 3MF spec
     #[default]
     Millimeter,
-    /// 0.01 meters
+    /// Centimeters - 0.01 meters (1 cm)
     Centimeter,
-    /// 0.0254 meters
+    /// Inches - 0.0254 meters (1 in)
     Inch,
-    /// 0.3048 meters
+    /// Feet - 0.3048 meters (1 ft)
     Foot,
-    /// 1.0 meters
+    /// Meters - 1.0 meters (1 m)
     Meter,
 }
 
 impl Unit {
     /// Returns the scale factor to convert this unit to meters.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lib3mf_core::model::Unit;
+    ///
+    /// assert_eq!(Unit::Millimeter.scale_factor(), 0.001);
+    /// assert_eq!(Unit::Meter.scale_factor(), 1.0);
+    /// ```
     pub fn scale_factor(&self) -> f64 {
         match self {
             Unit::Micron => 1e-6,
@@ -35,6 +65,29 @@ impl Unit {
     }
 
     /// Converts a value from this unit to another target unit.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value in this unit
+    /// * `target` - The unit to convert to
+    ///
+    /// # Returns
+    ///
+    /// The value converted to the target unit.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lib3mf_core::model::Unit;
+    ///
+    /// // 1 inch = 25.4 mm
+    /// let mm = Unit::Inch.convert(1.0, Unit::Millimeter);
+    /// assert!((mm - 25.4).abs() < 1e-5);
+    ///
+    /// // 1000 mm = 1 meter
+    /// let m = Unit::Millimeter.convert(1000.0, Unit::Meter);
+    /// assert!((m - 1.0).abs() < 1e-5);
+    /// ```
     pub fn convert(&self, value: f64, target: Unit) -> f64 {
         if *self == target {
             return value;
