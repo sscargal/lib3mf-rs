@@ -32,7 +32,10 @@ fn main() -> anyhow::Result<()> {
     // 3. Inspect layers
     println!("\nLayers:");
     for (i, layer) in stack.layers.iter().enumerate() {
-        println!("  [{}] z={:.2} -> {}", i, layer.z_height, layer.content_path);
+        println!(
+            "  [{}] z={:.2} -> {}",
+            i, layer.z_height, layer.content_path
+        );
     }
 
     // 4. Inspect external references

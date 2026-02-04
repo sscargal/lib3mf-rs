@@ -116,7 +116,10 @@ fn test_beam_lattice_clipping_modes() -> anyhow::Result<()> {
 </model>"##;
 
     let model = parse_model(Cursor::new(xml_none))?;
-    let obj = model.resources.get_object(lib3mf_core::model::ResourceId(1)).unwrap();
+    let obj = model
+        .resources
+        .get_object(lib3mf_core::model::ResourceId(1))
+        .unwrap();
     if let Geometry::Mesh(mesh) = &obj.geometry {
         let lattice = mesh.beam_lattice.as_ref().unwrap();
         assert_eq!(lattice.clipping_mode, ClippingMode::None);
@@ -144,7 +147,10 @@ fn test_beam_lattice_clipping_modes() -> anyhow::Result<()> {
 </model>"##;
 
     let model = parse_model(Cursor::new(xml_inside))?;
-    let obj = model.resources.get_object(lib3mf_core::model::ResourceId(1)).unwrap();
+    let obj = model
+        .resources
+        .get_object(lib3mf_core::model::ResourceId(1))
+        .unwrap();
     if let Geometry::Mesh(mesh) = &obj.geometry {
         let lattice = mesh.beam_lattice.as_ref().unwrap();
         assert_eq!(lattice.clipping_mode, ClippingMode::Inside);
@@ -172,7 +178,10 @@ fn test_beam_lattice_clipping_modes() -> anyhow::Result<()> {
 </model>"##;
 
     let model = parse_model(Cursor::new(xml_outside))?;
-    let obj = model.resources.get_object(lib3mf_core::model::ResourceId(1)).unwrap();
+    let obj = model
+        .resources
+        .get_object(lib3mf_core::model::ResourceId(1))
+        .unwrap();
     if let Geometry::Mesh(mesh) = &obj.geometry {
         let lattice = mesh.beam_lattice.as_ref().unwrap();
         assert_eq!(lattice.clipping_mode, ClippingMode::Outside);
@@ -208,7 +217,10 @@ fn test_beam_lattice_property_indices() -> anyhow::Result<()> {
 </model>"##;
 
     let model = parse_model(Cursor::new(xml))?;
-    let obj = model.resources.get_object(lib3mf_core::model::ResourceId(1)).unwrap();
+    let obj = model
+        .resources
+        .get_object(lib3mf_core::model::ResourceId(1))
+        .unwrap();
 
     if let Geometry::Mesh(mesh) = &obj.geometry {
         let lattice = mesh.beam_lattice.as_ref().unwrap();
@@ -274,7 +286,10 @@ fn test_beam_lattice_multiple_beam_sets() -> anyhow::Result<()> {
 </model>"##;
 
     let model = parse_model(Cursor::new(xml))?;
-    let obj = model.resources.get_object(lib3mf_core::model::ResourceId(1)).unwrap();
+    let obj = model
+        .resources
+        .get_object(lib3mf_core::model::ResourceId(1))
+        .unwrap();
 
     if let Geometry::Mesh(mesh) = &obj.geometry {
         let lattice = mesh.beam_lattice.as_ref().unwrap();
@@ -328,7 +343,10 @@ fn test_beam_lattice_empty() -> anyhow::Result<()> {
 </model>"##;
 
     let model = parse_model(Cursor::new(xml))?;
-    let obj = model.resources.get_object(lib3mf_core::model::ResourceId(1)).unwrap();
+    let obj = model
+        .resources
+        .get_object(lib3mf_core::model::ResourceId(1))
+        .unwrap();
 
     if let Geometry::Mesh(mesh) = &obj.geometry {
         let lattice = mesh.beam_lattice.as_ref().unwrap();
@@ -369,7 +387,10 @@ fn test_beam_r2_defaults_to_r1() -> anyhow::Result<()> {
 </model>"##;
 
     let model = parse_model(Cursor::new(xml))?;
-    let obj = model.resources.get_object(lib3mf_core::model::ResourceId(1)).unwrap();
+    let obj = model
+        .resources
+        .get_object(lib3mf_core::model::ResourceId(1))
+        .unwrap();
 
     if let Geometry::Mesh(mesh) = &obj.geometry {
         let lattice = mesh.beam_lattice.as_ref().unwrap();

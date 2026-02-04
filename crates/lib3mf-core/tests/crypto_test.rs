@@ -2,10 +2,10 @@ use lib3mf_core::crypto::encryption::{decrypt_aes256gcm, encrypt_aes256gcm};
 use lib3mf_core::crypto::keys::KeyManager;
 use lib3mf_core::model::KeyStore;
 use rand::RngCore;
+use rsa::RsaPrivateKey;
 use rsa::pkcs1::DecodeRsaPrivateKey;
 use rsa::pkcs8::DecodePrivateKey;
 use rsa::traits::PublicKeyParts;
-use rsa::RsaPrivateKey;
 
 // ============================================================================
 // AES-256-GCM Tests
@@ -23,15 +23,26 @@ fn test_aes_gcm_roundtrip_success() {
     let (encrypted, nonce) = encrypt_aes256gcm(&key, &data).expect("Encryption should succeed");
 
     // Verify ciphertext is different from plaintext
-    assert_ne!(data.as_slice(), encrypted.as_slice(), "Ciphertext should differ from plaintext");
+    assert_ne!(
+        data.as_slice(),
+        encrypted.as_slice(),
+        "Ciphertext should differ from plaintext"
+    );
 
     // Verify ciphertext is longer (includes authentication tag)
-    assert!(encrypted.len() >= data.len(), "Ciphertext should be at least as long as plaintext");
+    assert!(
+        encrypted.len() >= data.len(),
+        "Ciphertext should be at least as long as plaintext"
+    );
 
     let decrypted = decrypt_aes256gcm(&key, &nonce, &encrypted).expect("Decryption should succeed");
 
     // CRITICAL: Verify decrypted data matches original
-    assert_eq!(data.as_slice(), decrypted.as_slice(), "Decrypted data must match original plaintext");
+    assert_eq!(
+        data.as_slice(),
+        decrypted.as_slice(),
+        "Decrypted data must match original plaintext"
+    );
 }
 
 #[test]
@@ -42,10 +53,18 @@ fn test_aes_gcm_roundtrip() {
     let data = b"Top secret 3D model data that needs encryption.";
 
     let (encrypted, nonce) = encrypt_aes256gcm(&key, data).expect("Encryption failed");
-    assert_ne!(data.as_ref(), encrypted.as_slice(), "Ciphertext should differ from plaintext");
+    assert_ne!(
+        data.as_ref(),
+        encrypted.as_slice(),
+        "Ciphertext should differ from plaintext"
+    );
 
     let decrypted = decrypt_aes256gcm(&key, &nonce, &encrypted).expect("Decryption failed");
-    assert_eq!(data.as_ref(), decrypted.as_slice(), "Decrypted data should match original");
+    assert_eq!(
+        data.as_ref(),
+        decrypted.as_slice(),
+        "Decrypted data should match original"
+    );
 }
 
 #[test]
@@ -55,13 +74,22 @@ fn test_aes_gcm_empty_plaintext() {
 
     let data = b"";
 
-    let (encrypted, nonce) = encrypt_aes256gcm(&key, data).expect("Encrypting empty data should succeed");
+    let (encrypted, nonce) =
+        encrypt_aes256gcm(&key, data).expect("Encrypting empty data should succeed");
 
     // Empty plaintext still produces ciphertext (just the authentication tag)
-    assert!(!encrypted.is_empty(), "Encrypted empty data should still have authentication tag");
+    assert!(
+        !encrypted.is_empty(),
+        "Encrypted empty data should still have authentication tag"
+    );
 
-    let decrypted = decrypt_aes256gcm(&key, &nonce, &encrypted).expect("Decrypting empty data should succeed");
-    assert_eq!(data.as_ref(), decrypted.as_slice(), "Decrypted empty data should match");
+    let decrypted =
+        decrypt_aes256gcm(&key, &nonce, &encrypted).expect("Decrypting empty data should succeed");
+    assert_eq!(
+        data.as_ref(),
+        decrypted.as_slice(),
+        "Decrypted empty data should match"
+    );
 }
 
 #[test]
@@ -73,10 +101,16 @@ fn test_aes_gcm_large_data() {
     let mut data = vec![0u8; 1024 * 1024];
     rand::thread_rng().fill_bytes(&mut data);
 
-    let (encrypted, nonce) = encrypt_aes256gcm(&key, &data).expect("Encrypting large data should succeed");
-    let decrypted = decrypt_aes256gcm(&key, &nonce, &encrypted).expect("Decrypting large data should succeed");
+    let (encrypted, nonce) =
+        encrypt_aes256gcm(&key, &data).expect("Encrypting large data should succeed");
+    let decrypted =
+        decrypt_aes256gcm(&key, &nonce, &encrypted).expect("Decrypting large data should succeed");
 
-    assert_eq!(data.as_slice(), decrypted.as_slice(), "Large data should roundtrip correctly");
+    assert_eq!(
+        data.as_slice(),
+        decrypted.as_slice(),
+        "Large data should roundtrip correctly"
+    );
 }
 
 #[test]
@@ -96,8 +130,11 @@ fn test_aes_gcm_wrong_key_fails() {
 
     if let Err(e) = result {
         let err_msg = format!("{}", e);
-        assert!(err_msg.contains("Decryption failed") || err_msg.contains("EncryptionError"),
-            "Error should indicate decryption failure: {}", err_msg);
+        assert!(
+            err_msg.contains("Decryption failed") || err_msg.contains("EncryptionError"),
+            "Error should indicate decryption failure: {}",
+            err_msg
+        );
     }
 }
 
@@ -128,8 +165,11 @@ fn test_aes_gcm_invalid_key_length() {
 
     if let Err(e) = result {
         let err_msg = format!("{}", e);
-        assert!(err_msg.contains("Invalid key length"),
-            "Error should mention invalid key length: {}", err_msg);
+        assert!(
+            err_msg.contains("Invalid key length"),
+            "Error should mention invalid key length: {}",
+            err_msg
+        );
     }
 
     let long_key = [0u8; 64]; // 512-bit key
@@ -172,7 +212,10 @@ fn test_aes_gcm_tampered_ciphertext() {
     }
 
     let result = decrypt_aes256gcm(&key, &nonce, &encrypted);
-    assert!(result.is_err(), "Decryption of tampered ciphertext should fail (authentication failure)");
+    assert!(
+        result.is_err(),
+        "Decryption of tampered ciphertext should fail (authentication failure)"
+    );
 }
 
 // ============================================================================
@@ -198,14 +241,27 @@ fn test_key_wrap_unwrap_roundtrip() {
     let wrapped = KeyManager::wrap_key(&public_key, &cek).expect("Key wrapping should succeed");
 
     // Verify wrapped key is different from CEK and is RSA-sized (256 bytes for 2048-bit key)
-    assert_ne!(wrapped.as_slice(), cek.as_ref(), "Wrapped key should differ from CEK");
-    assert_eq!(wrapped.len(), 256, "Wrapped key should be 256 bytes for 2048-bit RSA key");
+    assert_ne!(
+        wrapped.as_slice(),
+        cek.as_ref(),
+        "Wrapped key should differ from CEK"
+    );
+    assert_eq!(
+        wrapped.len(),
+        256,
+        "Wrapped key should be 256 bytes for 2048-bit RSA key"
+    );
 
     // Unwrap the key with the private key
-    let unwrapped = KeyManager::unwrap_key(&private_key, &wrapped).expect("Key unwrapping should succeed");
+    let unwrapped =
+        KeyManager::unwrap_key(&private_key, &wrapped).expect("Key unwrapping should succeed");
 
     // CRITICAL: Verify unwrapped key matches original CEK
-    assert_eq!(unwrapped.as_slice(), cek.as_ref(), "Unwrapped key must match original CEK");
+    assert_eq!(
+        unwrapped.as_slice(),
+        cek.as_ref(),
+        "Unwrapped key must match original CEK"
+    );
 }
 
 #[test]
@@ -222,8 +278,11 @@ fn test_wrap_key_too_large() {
 
     if let Err(e) = result {
         let err_msg = format!("{}", e);
-        assert!(err_msg.contains("Key wrapping failed") || err_msg.contains("EncryptionError"),
-            "Error should indicate key wrapping failure: {}", err_msg);
+        assert!(
+            err_msg.contains("Key wrapping failed") || err_msg.contains("EncryptionError"),
+            "Error should indicate key wrapping failure: {}",
+            err_msg
+        );
     }
 }
 
@@ -245,10 +304,13 @@ fn test_load_private_key_pkcs1_der() {
     let private_key = generate_test_key();
     use rsa::pkcs1::EncodeRsaPrivateKey;
 
-    let der = private_key.to_pkcs1_der().expect("Failed to encode key to DER");
+    let der = private_key
+        .to_pkcs1_der()
+        .expect("Failed to encode key to DER");
 
     // Load back from DER
-    let loaded = RsaPrivateKey::from_pkcs1_der(der.as_bytes()).expect("Loading PKCS#1 DER should succeed");
+    let loaded =
+        RsaPrivateKey::from_pkcs1_der(der.as_bytes()).expect("Loading PKCS#1 DER should succeed");
     assert_eq!(loaded.size(), 256, "Key should be 2048 bits (256 bytes)");
 }
 
@@ -258,10 +320,13 @@ fn test_load_private_key_pkcs8_pem() {
     let private_key = generate_test_key();
     use rsa::pkcs8::EncodePrivateKey;
 
-    let pem = private_key.to_pkcs8_pem(rsa::pkcs8::LineEnding::LF).expect("Failed to encode key to PEM");
+    let pem = private_key
+        .to_pkcs8_pem(rsa::pkcs8::LineEnding::LF)
+        .expect("Failed to encode key to PEM");
 
     // Load back from PEM
-    let loaded = RsaPrivateKey::from_pkcs8_pem(pem.as_str()).expect("Loading PKCS#8 PEM should succeed");
+    let loaded =
+        RsaPrivateKey::from_pkcs8_pem(pem.as_str()).expect("Loading PKCS#8 PEM should succeed");
     assert_eq!(loaded.size(), 256, "Key should be 2048 bits (256 bytes)");
 }
 
@@ -272,8 +337,16 @@ fn test_load_private_key_pkcs8_pem() {
 #[test]
 fn test_keystore_creation() {
     let keystore = KeyStore::default();
-    assert_eq!(keystore.consumers.len(), 0, "New keystore should have no consumers");
-    assert_eq!(keystore.resource_data_groups.len(), 0, "New keystore should have no resource data groups");
+    assert_eq!(
+        keystore.consumers.len(),
+        0,
+        "New keystore should have no consumers"
+    );
+    assert_eq!(
+        keystore.resource_data_groups.len(),
+        0,
+        "New keystore should have no resource data groups"
+    );
 }
 
 #[test]
@@ -299,9 +372,19 @@ fn test_keystore_add_consumer() {
         key_value: None,
     });
 
-    assert_eq!(keystore.consumers.len(), 2, "Keystore should have 2 consumers");
-    assert_eq!(keystore.consumers[0].id, "alice@example.com", "First consumer ID should match");
-    assert_eq!(keystore.consumers[1].id, "bob@example.com", "Second consumer ID should match");
+    assert_eq!(
+        keystore.consumers.len(),
+        2,
+        "Keystore should have 2 consumers"
+    );
+    assert_eq!(
+        keystore.consumers[0].id, "alice@example.com",
+        "First consumer ID should match"
+    );
+    assert_eq!(
+        keystore.consumers[1].id, "bob@example.com",
+        "Second consumer ID should match"
+    );
 }
 
 #[test]
@@ -333,15 +416,23 @@ fn test_keystore_add_resource_group() {
         ],
     });
 
-    assert_eq!(keystore.resource_data_groups.len(), 1, "Keystore should have 1 resource data group");
+    assert_eq!(
+        keystore.resource_data_groups.len(),
+        1,
+        "Keystore should have 1 resource data group"
+    );
     let group = &keystore.resource_data_groups[0];
     assert_eq!(group.key_uuid, group_uuid, "Group UUID should match");
-    assert_eq!(group.access_rights.len(), 2, "Group should have 2 access rights");
+    assert_eq!(
+        group.access_rights.len(),
+        2,
+        "Group should have 2 access rights"
+    );
 }
 
 #[test]
 fn test_keystore_structure() {
-    use lib3mf_core::model::{Consumer, AccessRight, ResourceDataGroup};
+    use lib3mf_core::model::{AccessRight, Consumer, ResourceDataGroup};
     use uuid::Uuid;
 
     // Test that we can build a complete keystore structure
@@ -350,31 +441,35 @@ fn test_keystore_structure() {
 
     let keystore = KeyStore {
         uuid: keystore_uuid,
-        consumers: vec![
-            Consumer {
-                id: "test@example.com".to_string(),
-                key_id: Some("key-123".to_string()),
-                key_value: None,
-            },
-        ],
-        resource_data_groups: vec![
-            ResourceDataGroup {
-                key_uuid: group_uuid,
-                access_rights: vec![
-                    AccessRight {
-                        consumer_id: "test@example.com".to_string(),
-                        algorithm: "RSA-OAEP".to_string(),
-                        wrapped_key: vec![0xDE, 0xAD, 0xBE, 0xEF],
-                    },
-                ],
-            },
-        ],
+        consumers: vec![Consumer {
+            id: "test@example.com".to_string(),
+            key_id: Some("key-123".to_string()),
+            key_value: None,
+        }],
+        resource_data_groups: vec![ResourceDataGroup {
+            key_uuid: group_uuid,
+            access_rights: vec![AccessRight {
+                consumer_id: "test@example.com".to_string(),
+                algorithm: "RSA-OAEP".to_string(),
+                wrapped_key: vec![0xDE, 0xAD, 0xBE, 0xEF],
+            }],
+        }],
     };
 
     // Verify structure integrity
     assert_eq!(keystore.uuid, keystore_uuid, "Keystore UUID should match");
     assert_eq!(keystore.consumers.len(), 1, "Should have 1 consumer");
-    assert_eq!(keystore.resource_data_groups.len(), 1, "Should have 1 resource data group");
-    assert_eq!(keystore.resource_data_groups[0].key_uuid, group_uuid, "Group UUID should match");
-    assert_eq!(keystore.resource_data_groups[0].access_rights[0].consumer_id, "test@example.com", "Consumer ID should match");
+    assert_eq!(
+        keystore.resource_data_groups.len(),
+        1,
+        "Should have 1 resource data group"
+    );
+    assert_eq!(
+        keystore.resource_data_groups[0].key_uuid, group_uuid,
+        "Group UUID should match"
+    );
+    assert_eq!(
+        keystore.resource_data_groups[0].access_rights[0].consumer_id, "test@example.com",
+        "Consumer ID should match"
+    );
 }

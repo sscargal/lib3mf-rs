@@ -174,13 +174,12 @@ fn test_volumetric_and_materials() -> anyhow::Result<()> {
         .resources
         .get_base_materials(ResourceId(5))
         .expect("BaseMaterials 5 should exist");
-    assert_eq!(
-        materials.materials.len(),
-        2,
-        "Should have 2 base materials"
-    );
+    assert_eq!(materials.materials.len(), 2, "Should have 2 base materials");
     assert_eq!(materials.materials[0].name, "Red", "First material is Red");
-    assert_eq!(materials.materials[1].name, "Blue", "Second material is Blue");
+    assert_eq!(
+        materials.materials[1].name, "Blue",
+        "Second material is Blue"
+    );
 
     // Verify volumetric stack
     let vol_stack = model
@@ -188,10 +187,7 @@ fn test_volumetric_and_materials() -> anyhow::Result<()> {
         .get_volumetric_stack(ResourceId(10))
         .expect("VolumetricStack 10 should exist");
     assert_eq!(vol_stack.layers.len(), 2, "Should have 2 layers");
-    assert_eq!(
-        vol_stack.layers[0].z_height, 0.0,
-        "First layer at z=0.0"
-    );
+    assert_eq!(vol_stack.layers[0].z_height, 0.0, "First layer at z=0.0");
     assert_eq!(vol_stack.layers[1].z_height, 1.0, "Second layer at z=1.0");
 
     // Verify object references both
@@ -397,9 +393,21 @@ fn test_extension_roundtrip() -> anyhow::Result<()> {
     // Add a simple mesh object with material reference
     let mesh = lib3mf_core::model::Mesh {
         vertices: vec![
-            lib3mf_core::model::Vertex { x: 0.0, y: 0.0, z: 0.0 },
-            lib3mf_core::model::Vertex { x: 10.0, y: 0.0, z: 0.0 },
-            lib3mf_core::model::Vertex { x: 0.0, y: 10.0, z: 0.0 },
+            lib3mf_core::model::Vertex {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            },
+            lib3mf_core::model::Vertex {
+                x: 10.0,
+                y: 0.0,
+                z: 0.0,
+            },
+            lib3mf_core::model::Vertex {
+                x: 0.0,
+                y: 10.0,
+                z: 0.0,
+            },
         ],
         triangles: vec![lib3mf_core::model::Triangle {
             v1: 0,
@@ -443,15 +451,8 @@ fn test_extension_roundtrip() -> anyhow::Result<()> {
         .resources
         .get_base_materials(ResourceId(1))
         .expect("BaseMaterials should exist in model");
-    assert_eq!(
-        materials.materials.len(),
-        2,
-        "Should have 2 materials"
-    );
-    assert_eq!(
-        materials.materials[0].name, "Red",
-        "First material is Red"
-    );
+    assert_eq!(materials.materials.len(), 2, "Should have 2 materials");
+    assert_eq!(materials.materials[0].name, "Red", "First material is Red");
     assert_eq!(
         materials.materials[1].name, "Green",
         "Second material is Green"
@@ -470,26 +471,14 @@ fn test_extension_roundtrip() -> anyhow::Result<()> {
     assert_eq!(obj.pindex, Some(0), "Material index should be 0");
 
     if let Geometry::Mesh(mesh) = &obj.geometry {
-        assert_eq!(
-            mesh.vertices.len(),
-            3,
-            "Mesh should have 3 vertices"
-        );
-        assert_eq!(
-            mesh.triangles.len(),
-            1,
-            "Mesh should have 1 triangle"
-        );
+        assert_eq!(mesh.vertices.len(), 3, "Mesh should have 3 vertices");
+        assert_eq!(mesh.triangles.len(), 1, "Mesh should have 1 triangle");
     } else {
         panic!("Object should have Mesh geometry");
     }
 
     // Verify build item references object
-    assert_eq!(
-        model.build.items.len(),
-        1,
-        "Build should have 1 item"
-    );
+    assert_eq!(model.build.items.len(), 1, "Build should have 1 item");
     assert_eq!(
         model.build.items[0].object_id,
         ResourceId(2),
@@ -639,10 +628,7 @@ fn test_empty_model_with_extension_namespaces() -> anyhow::Result<()> {
     if let Geometry::Mesh(mesh) = &obj.geometry {
         assert_eq!(mesh.vertices.len(), 3, "Should have 3 vertices");
         assert_eq!(mesh.triangles.len(), 1, "Should have 1 triangle");
-        assert!(
-            mesh.beam_lattice.is_none(),
-            "Should have no beam lattice"
-        );
+        assert!(mesh.beam_lattice.is_none(), "Should have no beam lattice");
     } else {
         panic!("Object should have Mesh geometry");
     }
