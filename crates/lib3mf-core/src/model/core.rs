@@ -45,6 +45,55 @@ pub struct Model {
 }
 
 impl Model {
+    /// Validates the 3MF model at the specified validation level.
+    ///
+    /// The validation system is progressive, with four levels of increasing strictness:
+    ///
+    /// - **Minimal**: Basic structural checks (required attributes, valid XML structure)
+    /// - **Standard**: Reference integrity checks (resource IDs exist, build references valid objects)
+    /// - **Strict**: Full spec compliance (metadata presence, no unknown attributes)
+    /// - **Paranoid**: Deep geometry analysis (manifoldness, self-intersection, orientation consistency)
+    ///
+    /// # Parameters
+    ///
+    /// - `level`: The [`ValidationLevel`](crate::validation::ValidationLevel) to apply. Higher levels
+    ///   include all checks from lower levels.
+    ///
+    /// # Returns
+    ///
+    /// A [`ValidationReport`](crate::validation::ValidationReport) containing all errors, warnings,
+    /// and info messages found during validation. Check [`has_errors()`](crate::validation::ValidationReport::has_errors)
+    /// to determine if the model passed validation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lib3mf_core::{Model, validation::ValidationLevel};
+    ///
+    /// let model = Model::default();
+    ///
+    /// // Quick structural check
+    /// let report = model.validate(ValidationLevel::Minimal);
+    /// assert!(!report.has_errors());
+    ///
+    /// // Recommended for production use
+    /// let report = model.validate(ValidationLevel::Standard);
+    /// if report.has_errors() {
+    ///     for item in &report.items {
+    ///         eprintln!("Error: {}", item.message);
+    ///     }
+    /// }
+    ///
+    /// // Deep inspection (expensive, for critical applications)
+    /// let report = model.validate(ValidationLevel::Paranoid);
+    /// ```
+    ///
+    /// # Performance
+    ///
+    /// - **Minimal**: Very fast, suitable for quick checks
+    /// - **Standard**: Fast, recommended for most use cases
+    /// - **Strict**: Moderate, includes metadata and attribute checks
+    /// - **Paranoid**: Slow, performs O(n²) geometry checks with BVH acceleration
     pub fn validate(
         &self,
         level: crate::validation::ValidationLevel,
