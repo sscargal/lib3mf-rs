@@ -1,6 +1,6 @@
-mod commands;
 use clap::{Parser, Subcommand};
-use commands::{OutputFormat, RepairType};
+use lib3mf_cli::commands;
+use lib3mf_cli::commands::{OutputFormat, RepairType};
 use std::path::PathBuf;
 
 #[derive(Parser)]

@@ -1,3 +1,8 @@
+//! Command implementations for the 3mf CLI tool.
+//!
+//! This module contains the core logic for all CLI commands. Each public function
+//! corresponds to a CLI subcommand and can be called programmatically.
+
 pub mod thumbnails;
 
 use clap::ValueEnum;
@@ -9,13 +14,22 @@ use std::fs::File;
 use std::io::{Read, Seek, Write};
 use std::path::PathBuf;
 
+/// Output format for CLI commands.
+///
+/// Controls how command results are displayed to the user.
 #[derive(Clone, ValueEnum, Debug, PartialEq)]
 pub enum OutputFormat {
+    /// Human-readable text output (default)
     Text,
+    /// JSON output for machine parsing
     Json,
+    /// Tree-structured visualization
     Tree,
 }
 
+/// Types of mesh repair operations.
+///
+/// Specifies which geometric repairs to perform on 3MF meshes.
 #[derive(Clone, ValueEnum, Debug, PartialEq, Copy)]
 pub enum RepairType {
     /// Remove degenerate triangles (zero area)
@@ -82,6 +96,31 @@ fn open_model(path: &PathBuf) -> anyhow::Result<ModelSource> {
     }
 }
 
+/// Generate statistics and metadata for a 3MF file.
+///
+/// Computes and reports key metrics including unit of measurement, geometry counts,
+/// material groups, metadata, and system information.
+///
+/// # Arguments
+///
+/// * `path` - Path to the 3MF file or supported format (STL, OBJ)
+/// * `format` - Output format (Text, Json, or Tree visualization)
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, parsed, or if statistics computation fails.
+///
+/// # Example
+///
+/// ```no_run
+/// use lib3mf_cli::commands::{stats, OutputFormat};
+/// use std::path::PathBuf;
+///
+/// # fn main() -> anyhow::Result<()> {
+/// stats(PathBuf::from("model.3mf"), OutputFormat::Text)?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
     let mut source = open_model(&path)?;
     let stats = match source {
@@ -269,6 +308,18 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// List all entries in a 3MF archive.
+///
+/// Displays all files contained within the 3MF OPC (ZIP) archive in flat or tree format.
+///
+/// # Arguments
+///
+/// * `path` - Path to the 3MF file
+/// * `format` - Output format (Text for flat list, Json for structured, Tree for directory view)
+///
+/// # Errors
+///
+/// Returns an error if the archive cannot be opened or entries cannot be listed.
 pub fn list(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
     let source = open_model(&path)?;
 
@@ -300,6 +351,19 @@ pub fn list(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Inspect OPC relationships and content types.
+///
+/// Dumps the Open Packaging Convention (OPC) relationships from `_rels/.rels` and
+/// content types from `[Content_Types].xml`.
+///
+/// # Arguments
+///
+/// * `path` - Path to the 3MF file
+/// * `format` - Output format (Text or Json)
+///
+/// # Errors
+///
+/// Returns an error if the archive cannot be opened.
 pub fn rels(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
     let mut archiver = open_archive(&path)?;
 
@@ -351,6 +415,18 @@ pub fn rels(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Dump the raw parsed Model structure for debugging.
+///
+/// Outputs the in-memory representation of the 3MF model for developer inspection.
+///
+/// # Arguments
+///
+/// * `path` - Path to the 3MF file
+/// * `format` - Output format (Text for debug format, Json for structured)
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be parsed.
 pub fn dump(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
     let mut archiver = open_archive(&path)?;
     let model_path = find_model_path(&mut archiver)
@@ -372,6 +448,19 @@ pub fn dump(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Extract a file from the 3MF archive by path.
+///
+/// Copies a specific file from inside the ZIP archive to the local filesystem or stdout.
+///
+/// # Arguments
+///
+/// * `path` - Path to the 3MF file
+/// * `inner_path` - Path to the file inside the archive
+/// * `output` - Output path (None = stdout)
+///
+/// # Errors
+///
+/// Returns an error if the archive cannot be opened or the entry doesn't exist.
 pub fn extract(path: PathBuf, inner_path: String, output: Option<PathBuf>) -> anyhow::Result<()> {
     let mut archiver = open_archive(&path)?;
     let data = archiver
@@ -389,6 +478,19 @@ pub fn extract(path: PathBuf, inner_path: String, output: Option<PathBuf>) -> an
     Ok(())
 }
 
+/// Extract a texture resource by resource ID.
+///
+/// Extracts displacement or texture resources by their ID rather than archive path.
+///
+/// # Arguments
+///
+/// * `path` - Path to the 3MF file
+/// * `resource_id` - Resource ID of the texture (Displacement2D or Texture2D)
+/// * `output` - Output path (None = stdout)
+///
+/// # Errors
+///
+/// Returns an error if the resource doesn't exist or cannot be extracted.
 pub fn extract_by_resource_id(
     path: PathBuf,
     resource_id: u32,
@@ -428,6 +530,19 @@ pub fn extract_by_resource_id(
     ))
 }
 
+/// Copy and re-package a 3MF file.
+///
+/// Reads the input file, parses it into memory, and writes it back to a new file.
+/// This verifies that lib3mf can successfully parse and re-serialize the model.
+///
+/// # Arguments
+///
+/// * `input` - Input 3MF file path
+/// * `output` - Output 3MF file path
+///
+/// # Errors
+///
+/// Returns an error if parsing or writing fails.
 pub fn copy(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
     let mut archiver = open_archive(&input)?;
     let model_path = find_model_path(&mut archiver)
@@ -779,6 +894,36 @@ mod node {
     }
 }
 
+/// Convert between 3D formats (3MF, STL, OBJ).
+///
+/// Auto-detects formats based on file extensions and performs the appropriate conversion.
+///
+/// Supported conversions:
+/// - STL (binary) → 3MF
+/// - OBJ → 3MF
+/// - 3MF → STL (binary)
+/// - 3MF → OBJ
+///
+/// # Arguments
+///
+/// * `input` - Input file path
+/// * `output` - Output file path
+///
+/// # Errors
+///
+/// Returns an error if the format is unsupported or conversion fails.
+///
+/// # Example
+///
+/// ```no_run
+/// use lib3mf_cli::commands::convert;
+/// use std::path::PathBuf;
+///
+/// # fn main() -> anyhow::Result<()> {
+/// convert(PathBuf::from("mesh.stl"), PathBuf::from("model.3mf"))?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
     let output_ext = output
         .extension()
@@ -853,6 +998,26 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Validate a 3MF file against the specification.
+///
+/// Performs semantic validation at the specified strictness level:
+/// - `minimal`: Basic file integrity checks
+/// - `standard`: Reference integrity and structure validation
+/// - `strict`: Full spec compliance including unit consistency
+/// - `paranoid`: Deep geometry analysis (manifoldness, self-intersection)
+///
+/// # Arguments
+///
+/// * `path` - Path to the 3MF file
+/// * `level` - Validation level string (minimal, standard, strict, paranoid)
+///
+/// # Errors
+///
+/// Returns an error if validation fails (errors found) or the file cannot be parsed.
+///
+/// # Exit Code
+///
+/// Exits with code 1 if validation errors are found, 0 if passed.
 pub fn validate(path: PathBuf, level: String) -> anyhow::Result<()> {
     use lib3mf_core::validation::{ValidationLevel, ValidationSeverity};
 
@@ -900,6 +1065,26 @@ pub fn validate(path: PathBuf, level: String) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Repair mesh geometry in a 3MF file.
+///
+/// Performs geometric processing to improve printability:
+/// - Vertex stitching (merge vertices within epsilon tolerance)
+/// - Degenerate triangle removal
+/// - Duplicate triangle removal
+/// - Orientation harmonization (consistent winding)
+/// - Island removal (disconnected components)
+/// - Hole filling (boundary loop triangulation)
+///
+/// # Arguments
+///
+/// * `input` - Input 3MF file path
+/// * `output` - Output 3MF file path
+/// * `epsilon` - Vertex merge tolerance for stitching
+/// * `fixes` - List of repair types to perform
+///
+/// # Errors
+///
+/// Returns an error if parsing or writing fails.
 pub fn repair(
     input: PathBuf,
     output: PathBuf,
@@ -1001,6 +1186,18 @@ pub fn repair(
     Ok(())
 }
 
+/// Benchmark loading and parsing performance.
+///
+/// Measures time taken for ZIP archive opening, XML parsing, and statistics calculation.
+/// Useful for performance profiling and identifying bottlenecks.
+///
+/// # Arguments
+///
+/// * `path` - Path to the 3MF file
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened or parsed.
 pub fn benchmark(path: PathBuf) -> anyhow::Result<()> {
     use std::time::Instant;
 
@@ -1048,6 +1245,20 @@ pub fn benchmark(path: PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Compare two 3MF files structurally.
+///
+/// Performs a detailed comparison detecting differences in metadata, resource counts,
+/// and build items.
+///
+/// # Arguments
+///
+/// * `file1` - First 3MF file path
+/// * `file2` - Second 3MF file path
+/// * `format` - Output format ("text" or "json")
+///
+/// # Errors
+///
+/// Returns an error if either file cannot be parsed.
 pub fn diff(file1: PathBuf, file2: PathBuf, format: &str) -> anyhow::Result<()> {
     println!("Comparing {:?} and {:?}...", file1, file2);
 
@@ -1105,6 +1316,21 @@ fn load_model(path: &PathBuf) -> anyhow::Result<lib3mf_core::model::Model> {
     }
 }
 
+/// Sign a 3MF file using an RSA key.
+///
+/// **Status:** Not yet implemented. lib3mf-rs currently supports verifying existing
+/// signatures but not creating new ones.
+///
+/// # Arguments
+///
+/// * `_input` - Input 3MF file path
+/// * `_output` - Output 3MF file path
+/// * `_key` - Path to PEM-encoded private key
+/// * `_cert` - Path to PEM-encoded certificate
+///
+/// # Errors
+///
+/// Always returns an error indicating the feature is not implemented.
 pub fn sign(
     _input: PathBuf,
     _output: PathBuf,
@@ -1127,6 +1353,22 @@ pub fn sign(
     );
 }
 
+/// Verify digital signatures in a 3MF file.
+///
+/// Checks all digital signatures present in the 3MF package and reports their validity.
+/// Requires the `crypto` feature to be enabled.
+///
+/// # Arguments
+///
+/// * `file` - Path to the 3MF file
+///
+/// # Errors
+///
+/// Returns an error if signature verification fails or if any signatures are invalid.
+///
+/// # Feature Gate
+///
+/// This function is only available when compiled with the `crypto` feature.
 #[cfg(feature = "crypto")]
 pub fn verify(file: PathBuf) -> anyhow::Result<()> {
     println!("Verifying signatures in {:?}...", file);
@@ -1303,6 +1545,13 @@ pub fn verify(file: PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Verify digital signatures (crypto feature disabled).
+///
+/// This is a stub function that returns an error when the `crypto` feature is not enabled.
+///
+/// # Errors
+///
+/// Always returns an error indicating the crypto feature is required.
 #[cfg(not(feature = "crypto"))]
 pub fn verify(_file: PathBuf) -> anyhow::Result<()> {
     anyhow::bail!(
@@ -1311,6 +1560,20 @@ pub fn verify(_file: PathBuf) -> anyhow::Result<()> {
     )
 }
 
+/// Encrypt a 3MF file.
+///
+/// **Status:** Not yet implemented. lib3mf-rs currently supports parsing encrypted files
+/// but not creating them.
+///
+/// # Arguments
+///
+/// * `_input` - Input 3MF file path
+/// * `_output` - Output 3MF file path
+/// * `_recipient` - Recipient certificate (PEM)
+///
+/// # Errors
+///
+/// Always returns an error indicating the feature is not implemented.
 pub fn encrypt(_input: PathBuf, _output: PathBuf, _recipient: PathBuf) -> anyhow::Result<()> {
     anyhow::bail!(
         "Encrypt command not implemented: lib3mf-rs currently supports reading/parsing \
@@ -1326,6 +1589,20 @@ pub fn encrypt(_input: PathBuf, _output: PathBuf, _recipient: PathBuf) -> anyhow
     );
 }
 
+/// Decrypt a 3MF file.
+///
+/// **Status:** Not yet implemented. lib3mf-rs currently supports parsing encrypted files
+/// but not decrypting them.
+///
+/// # Arguments
+///
+/// * `_input` - Input 3MF file path
+/// * `_output` - Output 3MF file path
+/// * `_key` - Private key (PEM)
+///
+/// # Errors
+///
+/// Always returns an error indicating the feature is not implemented.
 pub fn decrypt(_input: PathBuf, _output: PathBuf, _key: PathBuf) -> anyhow::Result<()> {
     anyhow::bail!(
         "Decrypt command not implemented: lib3mf-rs currently supports reading/parsing \

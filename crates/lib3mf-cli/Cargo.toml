@@ -12,6 +12,14 @@ default = ["crypto", "parallel"]
 crypto = ["lib3mf-core/crypto"]
 parallel = ["lib3mf-core/parallel"]
 
+[lib]
+name = "lib3mf_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "3mf"
+path = "src/main.rs"
+
 [dependencies]
 lib3mf-core.workspace = true
 lib3mf-converters.workspace = true
