@@ -499,6 +499,53 @@ fn test_slice_multiple_objects() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Test that slicestackid takes precedence when object also has mesh content.
+/// The parser should still produce Geometry::SliceStack (mesh is discarded).
+#[test]
+fn test_slice_stack_with_unexpected_mesh_content() -> anyhow::Result<()> {
+    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"
+       xmlns:s="http://schemas.microsoft.com/3dmanufacturing/slice/2015/07">
+    <resources>
+        <slicestack id="10" zbottom="0.0">
+            <slice ztop="1.0">
+                <vertices>
+                    <vertex x="0" y="0" />
+                    <vertex x="10" y="0" />
+                    <vertex x="10" y="10" />
+                </vertices>
+            </slice>
+        </slicestack>
+        <object id="1" type="model" slicestackid="10">
+            <mesh>
+                <vertices>
+                    <vertex x="0" y="0" z="0" />
+                    <vertex x="1" y="0" z="0" />
+                    <vertex x="0" y="1" z="0" />
+                </vertices>
+                <triangles>
+                    <triangle v1="0" v2="1" v3="2" />
+                </triangles>
+            </mesh>
+        </object>
+    </resources>
+    <build>
+        <item objectid="1" />
+    </build>
+</model>"##;
+
+    let model = parse_model(Cursor::new(xml))?;
+    let obj = model.resources.get_object(ResourceId(1)).expect("Object 1 missing");
+
+    // SliceStack takes precedence - mesh content is discarded with warning
+    match &obj.geometry {
+        Geometry::SliceStack(ssid) => assert_eq!(*ssid, ResourceId(10)),
+        other => panic!("Expected SliceStack, got {:?}", other),
+    }
+
+    Ok(())
+}
+
 // ============================================================================
 // ERROR PATH TESTS
 // ============================================================================

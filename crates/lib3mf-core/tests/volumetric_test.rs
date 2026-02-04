@@ -95,7 +95,12 @@ fn test_volumetric_layer_ordering() -> anyhow::Result<()> {
 
     // Verify z-height values in order
     let expected_z_heights = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
-    for (i, (layer, expected_z)) in stack.layers.iter().zip(expected_z_heights.iter()).enumerate() {
+    for (i, (layer, expected_z)) in stack
+        .layers
+        .iter()
+        .zip(expected_z_heights.iter())
+        .enumerate()
+    {
         assert_eq!(
             layer.z_height, *expected_z,
             "Layer {} z_height mismatch: expected {}, got {}",
@@ -368,6 +373,46 @@ fn test_volumetric_object_geometry_binding() -> anyhow::Result<()> {
         .get_volumetric_stack(ResourceId(71))
         .expect("Stack 71 missing");
     assert_eq!(stack71.layers.len(), 2, "Stack 71 should have 2 layers");
+
+    Ok(())
+}
+
+/// Test that volumetricstackid takes precedence when object also has mesh content.
+/// The parser should still produce Geometry::VolumetricStack (mesh is discarded).
+#[test]
+fn test_volumetric_stack_with_unexpected_mesh_content() -> anyhow::Result<()> {
+    let xml = r##"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"
+       xmlns:v="http://schemas.microsoft.com/3dmanufacturing/volumetric/2018/11">
+    <resources>
+        <v:volumestack id="10">
+        </v:volumestack>
+        <object id="1" type="model" volumetricstackid="10">
+            <mesh>
+                <vertices>
+                    <vertex x="0" y="0" z="0" />
+                    <vertex x="1" y="0" z="0" />
+                    <vertex x="0" y="1" z="0" />
+                </vertices>
+                <triangles>
+                    <triangle v1="0" v2="1" v3="2" />
+                </triangles>
+            </mesh>
+        </object>
+    </resources>
+    <build>
+        <item objectid="1" />
+    </build>
+</model>"##;
+
+    let model = parse_model(Cursor::new(xml))?;
+    let obj = model.resources.get_object(ResourceId(1)).expect("Object 1 missing");
+
+    // VolumetricStack takes precedence - mesh content is discarded with warning
+    match &obj.geometry {
+        Geometry::VolumetricStack(vsid) => assert_eq!(*vsid, ResourceId(10)),
+        other => panic!("Expected VolumetricStack, got {:?}", other),
+    }
 
     Ok(())
 }
