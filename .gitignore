@@ -60,21 +60,21 @@ GEMINI.md
 ai-notes/
 ai-scratch/
 
+# Fuzzing build artifacts
+fuzz/target/
+
 # Fuzzing artifacts (crashes, hangs, slow units)
 fuzz/artifacts/
-fuzz/corpus/**/crash-*
-fuzz/corpus/**/leak-*
-fuzz/corpus/**/timeout-*
-fuzz/corpus/**/slow-unit-*
-fuzz/corpus/**/oom-*
 
-# Keep seed files, ignore generated corpus
-!fuzz/corpus/**/seed.*
-!fuzz/corpus/**/*.xml
-!fuzz/corpus/**/.gitkeep
+# Auto-generated corpus (regenerable by running fuzzer)
+fuzz/corpus/
 
 # Fuzzing coverage data
 fuzz/coverage/
 
 # libFuzzer temp files
 fuzz/*.log
+
+# Optional: Keep seed corpus if you create one
+# Use fuzz/seeds/ directory for hand-picked examples instead
+!fuzz/seeds/
