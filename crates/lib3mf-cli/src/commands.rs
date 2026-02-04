@@ -1127,6 +1127,7 @@ pub fn sign(
     );
 }
 
+#[cfg(feature = "crypto")]
 pub fn verify(file: PathBuf) -> anyhow::Result<()> {
     println!("Verifying signatures in {:?}...", file);
     let mut archiver = open_archive(&file)?;
@@ -1300,6 +1301,14 @@ pub fn verify(file: PathBuf) -> anyhow::Result<()> {
         signature_count
     );
     Ok(())
+}
+
+#[cfg(not(feature = "crypto"))]
+pub fn verify(_file: PathBuf) -> anyhow::Result<()> {
+    anyhow::bail!(
+        "Signature verification requires the 'crypto' feature to be enabled.\n\
+        The CLI was built without cryptographic support."
+    )
 }
 
 pub fn encrypt(_input: PathBuf, _output: PathBuf, _recipient: PathBuf) -> anyhow::Result<()> {

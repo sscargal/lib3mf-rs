@@ -8,7 +8,7 @@ edition = "2021"
 description = "Command-line tool for analyzing and processing 3MF files"
 
 [dependencies]
-lib3mf-core = { workspace = true, features = ["parallel"] }
+lib3mf-core = { workspace = true, features = ["crypto", "parallel"] }
 lib3mf-converters.workspace = true
 clap = { version = "4.5", features = ["derive"] }
 serde.workspace = true

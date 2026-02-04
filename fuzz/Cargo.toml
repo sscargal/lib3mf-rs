@@ -9,7 +9,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-lib3mf-core = { path = "../crates/lib3mf-core" }
+lib3mf-core = { path = "../crates/lib3mf-core", features = ["crypto", "parallel"] }
 arbitrary = { version = "1", features = ["derive"] }
 
 [[bin]]
