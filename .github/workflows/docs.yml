@@ -17,11 +17,10 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for tags and branches
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
@@ -46,18 +45,22 @@ jobs:
       # Determine version and organize
       - name: Organize documentation
         run: |
+          # Determine which version we're building
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
-            VERSION="stable"
+            CURRENT_VERSION="stable"
           else
-            VERSION="dev"
+            CURRENT_VERSION="dev"
           fi
 
-          mkdir -p deploy/$VERSION
-          cp -r target/doc deploy/$VERSION/rustdoc
-          cp -r book/book deploy/$VERSION/book
+          echo "Building $CURRENT_VERSION documentation"
 
-          # Version-specific index redirect
-          cat > deploy/$VERSION/index.html <<'HEREDOC'
+          # Create directories for current version
+          mkdir -p deploy/$CURRENT_VERSION
+          cp -r target/doc deploy/$CURRENT_VERSION/rustdoc
+          cp -r book/book deploy/$CURRENT_VERSION/book
+
+          # Version-specific index redirect for current version
+          cat > deploy/$CURRENT_VERSION/index.html <<'HEREDOC'
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -71,6 +74,65 @@ jobs:
           </body>
           </html>
           HEREDOC
+
+          # If building dev, also preserve stable if it exists (build from latest tag)
+          if [[ $CURRENT_VERSION == "dev" ]]; then
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [[ -n "$LATEST_TAG" ]]; then
+              echo "Found latest tag: $LATEST_TAG - building stable docs from it"
+              git checkout $LATEST_TAG
+              cargo doc --workspace --all-features --no-deps
+              mdbook build book
+              git checkout -
+
+              mkdir -p deploy/stable
+              cp -r target/doc deploy/stable/rustdoc
+              cp -r book/book deploy/stable/book
+
+              cat > deploy/stable/index.html <<'HEREDOC'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; URL=./book/index.html">
+            <link rel="canonical" href="./book/index.html">
+            <title>lib3mf-rs Documentation</title>
+          </head>
+          <body>
+            <p>Redirecting to <a href="./book/index.html">documentation</a>...</p>
+          </body>
+          </html>
+          HEREDOC
+            fi
+          fi
+
+          # If building stable, also preserve dev (build from main)
+          if [[ $CURRENT_VERSION == "stable" ]]; then
+            echo "Building dev docs from main branch"
+            git checkout main
+            cargo doc --workspace --all-features --no-deps
+            mdbook build book
+            git checkout -
+
+            mkdir -p deploy/dev
+            cp -r target/doc deploy/dev/rustdoc
+            cp -r book/book deploy/dev/book
+
+            cat > deploy/dev/index.html <<'HEREDOC'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; URL=./book/index.html">
+            <link rel="canonical" href="./book/index.html">
+            <title>lib3mf-rs Documentation</title>
+          </head>
+          <body>
+            <p>Redirecting to <a href="./book/index.html">documentation</a>...</p>
+          </body>
+          </html>
+          HEREDOC
+          fi
 
           # Root landing page
           cat > deploy/index.html <<'HEREDOC'
