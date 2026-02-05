@@ -32,3 +32,8 @@ anyhow.workspace = true
 
 [build-dependencies]
 vergen-gix = { version = "9.1.0", features = ["build", "cargo", "si"] }
+
+# Configure docs.rs
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

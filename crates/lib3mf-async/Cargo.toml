@@ -20,3 +20,8 @@ uuid.workspace = true
 
 [dev-dependencies]
 anyhow.workspace = true
+
+# Configure docs.rs
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
