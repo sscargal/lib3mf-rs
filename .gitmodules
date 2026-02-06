@@ -1,0 +1,3 @@
+[submodule "tests/conformance/3mf-samples"]
+	path = tests/conformance/3mf-samples
+	url = https://github.com/3MFConsortium/3mf-samples.git
