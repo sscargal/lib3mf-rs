@@ -6,7 +6,10 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
-description = "Asynchronous I/O support for lib3mf-rs"
+description = "Non-blocking async 3MF parsing with tokio - high-throughput manufacturing data processing"
+keywords = ["3mf", "async", "tokio", "3d-printing", "streaming"]
+categories = ["asynchronous", "parser-implementations"]
+homepage = "https://sscargal.github.io/lib3mf-rs/"
 
 [dependencies]
 async-trait = "0.1.89"

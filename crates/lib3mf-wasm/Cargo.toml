@@ -5,7 +5,10 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "WebAssembly bindings for lib3mf-rs"
+description = "WebAssembly bindings for 3MF parsing - browser and edge deployment"
+keywords = ["3mf", "wasm", "webassembly", "browser", "3d-printing"]
+categories = ["wasm", "parser-implementations"]
+homepage = "https://sscargal.github.io/lib3mf-rs/"
 
 [dependencies]
 wasm-bindgen = "0.2"
@@ -24,3 +27,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
+
+# Configure docs.rs
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

@@ -6,7 +6,10 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
-description = "STL and OBJ converters for lib3mf-rs"
+description = "Convert between 3MF, STL, and OBJ formats for 3D printing workflows"
+keywords = ["3mf", "stl", "obj", "converter", "mesh"]
+categories = ["encoding", "parser-implementations"]
+homepage = "https://sscargal.github.io/lib3mf-rs/"
 
 [dependencies]
 lib3mf-core = { workspace = true, features = ["parallel"] }

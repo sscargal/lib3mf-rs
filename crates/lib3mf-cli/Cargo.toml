@@ -6,7 +6,10 @@ license.workspace = true
 repository.workspace = true
 readme = "README.md"
 edition = "2021"
-description = "Command-line tool for analyzing and processing 3MF files"
+description = "Command-line tool for analyzing, validating, and processing 3MF files"
+keywords = ["3mf", "cli", "3d-printing", "validation", "analysis"]
+categories = ["command-line-utilities", "parser-implementations"]
+homepage = "https://sscargal.github.io/lib3mf-rs/"
 
 [features]
 default = ["crypto", "parallel"]

@@ -6,7 +6,10 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
-description = "Core implementation of the 3D Manufacturing Format (3MF) in Rust"
+description = "Parse and validate 3MF files for manufacturing workflows - production-ready with streaming parser and comprehensive validation"
+keywords = ["3mf", "3d-printing", "manufacturing", "cad", "mesh"]
+categories = ["parser-implementations", "encoding"]
+homepage = "https://sscargal.github.io/lib3mf-rs/"
 
 [dependencies]
 aes-gcm = { version = "0.10.3", optional = true }
