@@ -1,8 +1,36 @@
 # lib3mf-async
 
-Asynchronous I/O support for [`lib3mf-core`](https://crates.io/crates/lib3mf-core).
+[![Crates.io](https://img.shields.io/crates/v/lib3mf-async.svg)](https://crates.io/crates/lib3mf-async)
+[![docs.rs](https://docs.rs/lib3mf-async/badge.svg)](https://docs.rs/lib3mf-async)
 
-This crate provides async/await compatible interfaces for reading and parsing 3MF files using [Tokio](https://tokio.rs/).
+Non-blocking async 3MF parsing with tokio - high-throughput manufacturing data processing.
+
+## When to Use This Crate
+
+Use `lib3mf-async` when you need:
+- Non-blocking I/O for web servers or async applications
+- High-throughput processing of multiple 3MF files
+- Integration with tokio-based async ecosystems
+
+## Quick Start
+
+```toml
+[dependencies]
+lib3mf-async = "0.1"
+tokio = { version = "1", features = ["full"] }
+```
+
+```rust
+use lib3mf_async::AsyncZipArchiver;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let archiver = AsyncZipArchiver::from_file("model.3mf").await?;
+    let model = archiver.parse_model().await?;
+    println!("Loaded model with {} objects", model.iter_objects().count());
+    Ok(())
+}
+```
 
 ## Features
 
@@ -11,32 +39,35 @@ This crate provides async/await compatible interfaces for reading and parsing 3M
 - Compatible with Tokio runtime
 - Seamless integration with `lib3mf-core` types
 
-## Example
+## Performance
+
+Async I/O allows processing multiple 3MF files concurrently without blocking:
 
 ```rust
 use lib3mf_async::AsyncZipArchiver;
-use lib3mf_core::archive::{ArchiveReader, find_model_path};
-use lib3mf_core::parser::parse_model;
 use tokio::fs::File;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let file = File::open("model.3mf").await?;
-    let mut archiver = AsyncZipArchiver::new(file).await?;
+    // Process multiple files concurrently
+    let handles: Vec<_> = files.iter().map(|path| {
+        tokio::spawn(async move {
+            let archiver = AsyncZipArchiver::from_file(path).await?;
+            archiver.parse_model().await
+        })
+    }).collect();
 
-    let model_path = find_model_path(&mut archiver)?;
-    let model_data = archiver.read_entry(&model_path).await?;
-    let model = parse_model(std::io::Cursor::new(model_data))?;
-
-    println!("Loaded model with {} objects", model.resources.objects.len());
+    // Wait for all to complete
+    let models = futures::future::join_all(handles).await;
     Ok(())
 }
 ```
 
-## Documentation
+## Related
 
-See the [full documentation](https://docs.rs/lib3mf-async) for more details.
+- [lib3mf-core](https://crates.io/crates/lib3mf-core) - Core parsing library (required dependency)
+- [Full Documentation](https://sscargal.github.io/lib3mf-rs/)
 
 ## License
 
-Licensed under either of Apache License, Version 2.0 or MIT license at your option.
+MIT OR Apache-2.0
