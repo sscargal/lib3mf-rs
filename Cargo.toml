@@ -5,6 +5,27 @@ members = [
 ]
 exclude = ["fuzz"]
 
+[package]
+name = "lib3mf-workspace"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+lib3mf-core = { path = "crates/lib3mf-core", version = "0.1.0", features = ["full"] }
+
+[dev-dependencies]
+criterion = "0.5"
+
+# For conformance tests
+[dev-dependencies.lib3mf-core]
+path = "crates/lib3mf-core"
+features = ["full"]
+
+[[bench]]
+name = "comparison_bench"
+harness = false
+
 [workspace.package]
 version = "0.1.0"
 authors = ["Steve Scargall <steve@example.com>"]
