@@ -23,6 +23,8 @@ jobs:
         rust: [stable]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
@@ -53,6 +55,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -81,6 +85,8 @@ jobs:
             flags: "--all-features"
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Rust Cache
