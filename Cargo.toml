@@ -7,12 +7,12 @@ exclude = ["fuzz"]
 
 [package]
 name = "lib3mf-workspace"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 publish = false
 
 [dependencies]
-lib3mf-core = { path = "crates/lib3mf-core", version = "0.1.0", features = ["full"] }
+lib3mf-core = { path = "crates/lib3mf-core", version = "0.2.0", features = ["full"] }
 
 [dev-dependencies]
 criterion = "0.5"
@@ -27,7 +27,7 @@ name = "comparison_bench"
 harness = false
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Steve Scargall"]
 edition = "2024"
 license = "BSD-2-Clause"
@@ -37,8 +37,8 @@ documentation = "https://docs.rs/lib3mf-core"
 readme = "README.md"
 
 [workspace.dependencies]
-lib3mf-core = { path = "crates/lib3mf-core", version = "0.1.0", default-features = false }
-lib3mf-converters = { path = "crates/lib3mf-converters", version = "0.1.0" }
+lib3mf-core = { path = "crates/lib3mf-core", version = "0.2.0", default-features = false }
+lib3mf-converters = { path = "crates/lib3mf-converters", version = "0.2.0" }
 anyhow = "1.0"
 byteorder = "1.5"
 glam = { version = "0.31.0", features = ["serde"] }
