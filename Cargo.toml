@@ -28,9 +28,9 @@ harness = false
 
 [workspace.package]
 version = "0.1.0"
-authors = ["Steve Scargall <steve@example.com>"]
+authors = ["Steve Scargall"]
 edition = "2024"
-license = "MIT OR Apache-2.0"
+license = "BSD-2-Clause"
 repository = "https://github.com/sscargal/lib3mf-rs"
 homepage = "https://github.com/sscargal/lib3mf-rs"
 documentation = "https://docs.rs/lib3mf-core"
@@ -52,7 +52,7 @@ x509-parser = "0.16"
 rsa = { version = "0.9.10", features = ["sha2"] }
 sha2 = "0.10"
 rand = "0.8"
-lexical-core = "^1.0.6"
+lexical-core = "1.0.6"
 criterion = "0.5"
 
 
