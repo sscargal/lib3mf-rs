@@ -36,7 +36,7 @@ jobs:
 
       # Build rustdoc
       - name: Build API documentation
-        run: cargo doc --workspace --all-features --no-deps
+        run: cargo doc --workspace --exclude lib3mf-workspace --all-features --no-deps
 
       # Build mdBook
       - name: Build guide
@@ -81,7 +81,7 @@ jobs:
             if [[ -n "$LATEST_TAG" ]]; then
               echo "Found latest tag: $LATEST_TAG - building stable docs from it"
               git checkout $LATEST_TAG
-              cargo doc --workspace --all-features --no-deps
+              cargo doc --workspace --exclude lib3mf-workspace --all-features --no-deps
               mdbook build book
               git checkout -
 
@@ -110,7 +110,7 @@ jobs:
           if [[ $CURRENT_VERSION == "stable" ]]; then
             echo "Building dev docs from main branch"
             git checkout main
-            cargo doc --workspace --all-features --no-deps
+            cargo doc --workspace --exclude lib3mf-workspace --all-features --no-deps
             mdbook build book
             git checkout -
 
