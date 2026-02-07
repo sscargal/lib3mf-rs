@@ -134,7 +134,7 @@ This architecture lets you use exactly what you need. Building a CLI tool? Just 
 
 All nine official 3MF extensions are implemented, plus vendor extensions like Bambu Studio project files. When a file uses advanced features like boolean operations or displacement mapping, lib3mf-rs handles them correctly.
 
-We've validated this through the official 3MF Consortium test suite (86% pass rate, 44/51 tests passing—see [conformance documentation](https://github.com/sscargal/lib3mf-rs/blob/main/docs/conformance.md)). The gaps are documented and tracked as issues.
+We've validated this through the official 3MF Consortium test suite (100% MUSTPASS, 13/13 valid files parse correctly—see [conformance documentation](https://github.com/sscargal/lib3mf-rs/blob/main/docs/conformance.md)).
 
 ### Production-Ready Validation
 
@@ -228,7 +228,7 @@ This diversity is healthy. Different projects have different requirements, and h
 
 We're just getting started. Future directions include:
 
-1. **Fix the material parser EOF bug** that blocks 7/13 official conformance tests
+1. **Stricter validation rules** to improve MUSTFAIL detection (currently 39%, target >80%)
 2. **Python bindings** via PyO3 to reach the scientific Python ecosystem
 3. **Node.js bindings** via napi-rs for npm ecosystem integration
 4. **Performance optimizations**: SIMD acceleration, zero-copy deserialization

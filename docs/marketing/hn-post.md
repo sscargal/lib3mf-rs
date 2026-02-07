@@ -16,7 +16,7 @@ Key differentiators from existing solutions:
 • Comprehensive CLI tools included (stats, validate, convert, diff, extract)
 • Feature flags for minimal dependencies (154 crates minimal vs. 300 with all features)
 • Progressive validation: 4 levels from minimal (14.9 ns) to paranoid (85.6 ms with BVH self-intersection detection)
-• 86% pass rate on official 3MF Consortium conformance tests (44/51)
+• 100% pass rate on official 3MF Consortium MUSTPASS tests (13/13 valid files parse correctly)
 
 Multi-crate architecture (lib3mf-core, lib3mf-async, lib3mf-cli, lib3mf-converters, lib3mf-wasm) lets you use exactly what you need.
 

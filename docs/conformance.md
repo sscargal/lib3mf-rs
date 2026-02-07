@@ -13,13 +13,31 @@ The official test suite is integrated as a git submodule at `tests/conformance/3
 
 | Category | Tests | Passing | Pass Rate | Notes |
 |----------|-------|---------|-----------|-------|
-| MUSTPASS | 13 | 6 | 46% | 7 failing due to parser bug (see Known Gaps) |
-| MUSTFAIL | 38 | 38 | 100% | All invalid files correctly detected |
-| **Total** | **51** | **44** | **86%** | |
+| MUSTPASS | 13 | 13 | 100% | All valid files parse successfully ✓ |
+| MUSTFAIL | 38 | 15 | 39% | Parser too lenient on some validation rules |
+| **Total** | **51** | **28** | **55%** | |
 
-### MUSTFAIL Tests: 100% Pass Rate ✓
+### MUSTPASS Tests: 13/13 Passing ✓
 
-All 38 MUSTFAIL tests correctly detect invalid files. These tests verify:
+All 13 MUSTPASS tests successfully parse valid 3MF files and pass validation. These include:
+
+✓ Chapter 2.1 - OPC parts and relationships
+✓ Chapter 2.2 - Part naming conventions
+✓ Chapter 2.3a - Ignorable markup handling
+✓ Chapter 3.2b - Units of measurement (millimeters)
+✓ Chapter 3.2c - Multiple items with transformations
+✓ Chapter 3.4.1c - Undefined metadata names (ignored correctly)
+✓ Chapter 3.4.2 - Metadata, resources, and build structure
+✓ Chapter 3.4.3a - Non-referenced objects handling
+✓ Chapter 4.1 - Explicit support objects
+✓ Chapter 4.2 - Component references
+✓ Chapter 5.1a - Composite and multi-properties materials
+✓ Chapter 5.1b - Multi-object composite and multi-properties
+✓ Chapter 5.1c - sRGB and RGB color materials
+
+### MUSTFAIL Tests: 15/38 Passing
+
+The parser correctly detects 15 invalid files but is too lenient on 23 others. Passing validations include:
 
 #### Materials and Properties Extension (18 tests)
 - Duplicated resource IDs (color groups, textures, composite materials, multi-properties)
@@ -35,55 +53,78 @@ All 38 MUSTFAIL tests correctly detect invalid files. These tests verify:
 - Object type validation (invalid types, PID requirements)
 - Build item validation (non-existent object IDs, type constraints)
 
-### MUSTPASS Tests: 6/13 Passing
+#### Passing MUSTFAIL Tests (15)
+✓ Duplicated resource IDs detection (6 tests)
+✓ Missing required attributes (5 tests)
+✓ Non-existent object references (2 tests)
+✓ Invalid object types in build (1 test)
+✓ Missing model structure elements (1 test)
 
-#### Passing Tests (6)
-✓ Chapter 2.3a - Ignorable markup handling
-✓ Chapter 3.2b - Units of measurement (millimeters)
-✓ Chapter 3.2c - Multiple items with transformations
-✓ Chapter 4.1 - Explicit support objects
-✓ Chapter 4.2 - Component references
-✓ Chapter 5.1c - sRGB and RGB color materials
+#### Failing MUSTFAIL Tests (23)
+The parser currently does NOT detect these invalid scenarios:
 
-#### Failing Tests (7)
-The following MUSTPASS tests fail with parser errors. This represents a known bug in the material parser:
+**OPC/Archive Issues (4 tests)**:
+- External references in relationships
+- Multiple 3D model parts
+- Non-existent thumbnail parts
+- Multiple print tickets
 
-1. **Chapter2.1_PartsRelationships.3mf** - `Unexpected EOF in texture2dgroup`
-2. **Chapter2.2_PartNaming.3mf** - `Unexpected EOF in texture2dgroup`
-3. **Chapter3.4.1c_MustIgnoreUndefinedMetadataName.3mf** - `Unexpected EOF in texture2dgroup`
-4. **Chapter3.4.2_MetaData_Resources_Build.3mf** - `Unexpected EOF in colorgroup`
-5. **Chapter3.4.3a_MustNotOutputNonReferencedObjects.3mf** - `Unexpected EOF in colorgroup`
-6. **Chapter5.1a_MaterialResources_CompositeAndMultiProperties.3mf** - `Unexpected EOF in colorgroup`
-7. **Chapter5.1b_MaterialResources_MultiObjects_CompositeAndMultiProperties.3mf** - `Unexpected EOF in colorgroup`
+**XML/Metadata Issues (5 tests)**:
+- Non-UTF encoding
+- Invalid data type definitions
+- Undefined namespaces in XSD
+- Whitespace in XML elements
+- Missing/duplicated metadata names
+
+**Model Structure Issues (3 tests)**:
+- Multiple model elements
+- Missing build element
+- Invalid object types
+
+**Material Reference Issues (8 tests)**:
+- Multiple references to same material group
+- Cross-references between material types
+- Invalid matid references
+- References to multi-properties from other resources
+
+**Texture Issues (2 tests)**:
+- Invalid content types
+- Missing path attributes
+
+**Other (1 test)**:
+- PID specified without material reference
 
 ## Known Gaps
 
-### Issue: Material Parser EOF Handling
+### Validation Gaps (23 MUSTFAIL Tests)
 
-**Status**: Known bug (discovered via conformance testing)
-**Severity**: High - blocks 54% of MUSTPASS tests
-**Root Cause**: Material parsers (colorgroup, texture2dgroup) incorrectly handle end-of-element events
+**Status**: Parser too lenient
+**Severity**: Medium - affects invalid file detection
+**Root Cause**: Missing validation checks in parser and validator
 
-The parser expects additional content when encountering the closing tag for material resource elements, resulting in "Unexpected EOF" errors for valid files.
-
-**Affected Components**:
-- `material_parser.rs`: `parse_colorgroup()` function
-- `material_parser.rs`: `parse_texture2dgroup()` function
-
-**Expected Behavior**: Parser should accept empty or self-closing material group elements
-**Actual Behavior**: Parser fails with "Unexpected EOF" error
+The parser successfully parses 23 files that should be rejected according to the 3MF specification. These represent missing validation rules across multiple areas:
 
 **Impact**:
-- 7/13 (54%) of official MUSTPASS tests fail
-- Files with certain material configurations cannot be parsed
-- Affects real-world 3MF files using colorgroup or texture2dgroup resources
+- Invalid files may be accepted and processed
+- Does not affect parsing of valid files
+- Primarily affects strict compliance validation
 
-**Workaround**: None - this is a parser bug that must be fixed
+**Categories of Missing Validation**:
+1. OPC/Archive validation (4 tests) - relationship constraints, part existence checks
+2. XML/Encoding validation (5 tests) - encoding detection, namespace validation
+3. Model structure validation (3 tests) - multiple model elements, required elements
+4. Material reference validation (8 tests) - cross-reference rules, duplicate references
+5. Texture validation (2 tests) - content type and path validation
+6. Attribute validation (1 test) - PID without material reference
 
 **Future Work**:
-- Fix EOF handling in material parsers
-- Add unit tests specifically for empty/minimal material groups
-- Re-run conformance tests to verify fix
+- Implement stricter OPC relationship validation
+- Add XML encoding and namespace checks
+- Enforce material reference constraints
+- Add content type validation for textures
+- Improve metadata validation (name requirements, duplicates)
+
+These gaps represent opportunities for enhancement but do not prevent parsing of valid 3MF files.
 
 ## Test Categories Explained
 
@@ -135,14 +176,14 @@ The competitor implementation (telecos/lib3mf_rust) claims "2,200+ test cases" w
 3. **Property-based tests** (fuzzing-style tests)
 
 Our conformance results:
-- **lib3mf-rs**: 86% official conformance (44/51 tests passing)
+- **lib3mf-rs**: 100% MUSTPASS conformance (13/13 valid files), 55% total (28/51 tests)
 - **telecos/lib3mf_rust**: Not publicly documented (repo doesn't show test results)
 
 ### Key Differences
 
 | Aspect | lib3mf-rs | telecos/lib3mf_rust |
 |--------|-----------|-------------------|
-| Official conformance tests | 51 tests (86% pass) | 51 tests (pass rate unknown) |
+| Official conformance tests | 51 tests (100% MUSTPASS, 55% total) | 51 tests (pass rate unknown) |
 | Test transparency | Public results documented | Test results not published |
 | Known gaps | Documented with root cause | Unknown |
 | Test organization | Separate conformance suite | Mixed with unit tests |
@@ -150,9 +191,11 @@ Our conformance results:
 
 ## Future Improvements
 
-1. **Fix material parser EOF bug** - Priority: High
-   - Resolve 7 failing MUSTPASS tests
-   - Target: 100% MUSTPASS conformance
+1. **Improve MUSTFAIL detection** - Priority: Medium
+   - Add stricter validation for OPC relationships
+   - Implement XML encoding and namespace checks
+   - Enforce material reference constraints
+   - Target: >80% MUSTFAIL detection
 
 2. **Add extension-specific conformance tests**
    - Beam Lattice extension tests

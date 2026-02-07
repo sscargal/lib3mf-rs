@@ -17,7 +17,7 @@ lib3mf-rs is a comprehensive toolkit for parsing, validating, and writing 3MF fi
 **Complete Specification Support**
 - All 9 official 3MF extensions (Materials, Slicing, Security, Boolean Operations, Displacement, Beam Lattice, Volumetric, Production)
 - Vendor extensions including Bambu Studio project files
-- 86% pass rate on official 3MF Consortium conformance tests (44/51 tests)
+- 100% pass rate on official 3MF Consortium MUSTPASS tests (13/13 valid files parse correctly)
 
 **Production-Ready Design**
 - Zero unsafe code (memory-safe by design)
@@ -118,11 +118,11 @@ We've integrated the official 3MF Consortium test suite:
 
 | Category | Tests | Passing | Pass Rate |
 |----------|-------|---------|-----------|
-| MUSTPASS | 13 | 6 | 46% |
-| MUSTFAIL | 38 | 38 | 100% |
-| **Total** | **51** | **44** | **86%** |
+| MUSTPASS | 13 | 13 | 100% |
+| MUSTFAIL | 38 | 15 | 39% |
+| **Total** | **51** | **28** | **55%** |
 
-All invalid files are correctly detected (100% MUSTFAIL pass rate). The 7 failing MUSTPASS tests are due to a known material parser EOF bug that's documented and tracked for resolution.
+All valid files parse successfully (100% MUSTPASS). The parser is currently too lenient on some validation rules (MUSTFAIL detection at 39%), which represents an opportunity for stricter validation in future releases.
 
 Full conformance details: [docs/conformance.md](https://github.com/sscargal/lib3mf-rs/blob/main/docs/conformance.md)
 
@@ -180,7 +180,7 @@ The documentation covers:
 
 Near-term roadmap:
 
-1. **Fix material parser EOF bug** (blocks 7/13 conformance tests)
+1. **Stricter MUSTFAIL validation** (improve invalid file detection from 39% to >80%)
 2. **Performance optimizations**: SIMD acceleration, zero-copy deserialization
 3. **Python bindings** via PyO3 for scientific Python ecosystem
 4. **Node.js bindings** via napi-rs for npm ecosystem

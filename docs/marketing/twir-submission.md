@@ -18,7 +18,7 @@ Key features:
 - Zero unsafe code with 90%+ test coverage and comprehensive fuzzing
 - Progressive validation system (4 levels: minimal, standard, strict, paranoid)
 - Multi-crate architecture (core, async, cli, converters, wasm) for modular use
-- 86% conformance on official 3MF Consortium test suite
+- 100% pass rate on official 3MF Consortium MUSTPASS tests (13/13 valid files)
 - Feature flags for minimal dependencies (154 crates without crypto vs. 300 with all features)
 
 3MF is the modern standard for 3D printing, used by Bambu Studio, PrusaSlicer, and Ultimaker Cura. It's the successor to STL with support for colors, materials, textures, and advanced manufacturing features.

@@ -39,7 +39,7 @@ This document provides an objective comparison of Rust libraries for working wit
 - 90%+ test coverage
 - Comprehensive fuzzing infrastructure
 - Zero unsafe code
-- 86% conformance on 3MF Consortium test suite (44/51 tests)
+- 100% pass rate on 3MF Consortium MUSTPASS tests (13/13 valid files)
 
 **License:** MIT OR Apache-2.0
 

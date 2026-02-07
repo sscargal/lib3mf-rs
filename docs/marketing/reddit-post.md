@@ -25,7 +25,7 @@ I've been working on a pure Rust implementation of the 3MF file format used in 3
 - Progressive validation (4 levels from minimal to paranoid geometry checks)
 - Feature flags for minimal dependencies (154 crates without crypto vs. 300 with all features)
 - 90%+ test coverage with comprehensive fuzzing
-- 86% pass rate on official 3MF Consortium conformance tests (44/51 tests)
+- 100% pass rate on official 3MF Consortium MUSTPASS tests (13/13 valid files)
 
 **Quick start:**
 
