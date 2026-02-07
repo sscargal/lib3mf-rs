@@ -6,7 +6,7 @@
 pub mod thumbnails;
 
 use clap::ValueEnum;
-use lib3mf_core::archive::{find_model_path, opc, ArchiveReader, ZipArchiver};
+use lib3mf_core::archive::{ArchiveReader, ZipArchiver, find_model_path, opc};
 use lib3mf_core::parser::parse_model;
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -327,11 +327,12 @@ pub fn list(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
         ModelSource::Archive(mut archiver, _) => archiver
             .list_entries()
             .map_err(|e| anyhow::anyhow!("Failed to list entries: {}", e))?,
-        ModelSource::Raw(_) => vec![path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("model")
-            .to_string()],
+        ModelSource::Raw(_) => vec![
+            path.file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("model")
+                .to_string(),
+        ],
     };
 
     match format {
