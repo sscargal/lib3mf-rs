@@ -82,3 +82,4 @@ fuzz/*.log
 
 # mdBook build output
 book/book/
+benchmark_results/
