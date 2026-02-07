@@ -14,8 +14,8 @@ The official test suite is integrated as a git submodule at `tests/conformance/3
 | Category | Tests | Passing | Pass Rate | Notes |
 |----------|-------|---------|-----------|-------|
 | MUSTPASS | 13 | 13 | 100% | All valid files parse successfully ✓ |
-| MUSTFAIL | 38 | 15 | 39% | Parser too lenient on some validation rules |
-| **Total** | **51** | **28** | **55%** | |
+| MUSTFAIL | 38 | 23 | 61% | Material validation rules implemented |
+| **Total** | **51** | **36** | **71%** | |
 
 ### MUSTPASS Tests: 13/13 Passing ✓
 
@@ -35,9 +35,9 @@ All 13 MUSTPASS tests successfully parse valid 3MF files and pass validation. Th
 ✓ Chapter 5.1b - Multi-object composite and multi-properties
 ✓ Chapter 5.1c - sRGB and RGB color materials
 
-### MUSTFAIL Tests: 15/38 Passing
+### MUSTFAIL Tests: 23/38 Passing
 
-The parser correctly detects 15 invalid files but is too lenient on 23 others. Passing validations include:
+The parser correctly detects 23 invalid files but is too lenient on 15 others. Passing validations include:
 
 #### Materials and Properties Extension (18 tests)
 - Duplicated resource IDs (color groups, textures, composite materials, multi-properties)
@@ -53,14 +53,15 @@ The parser correctly detects 15 invalid files but is too lenient on 23 others. P
 - Object type validation (invalid types, PID requirements)
 - Build item validation (non-existent object IDs, type constraints)
 
-#### Passing MUSTFAIL Tests (15)
+#### Passing MUSTFAIL Tests (23)
 ✓ Duplicated resource IDs detection (6 tests)
 ✓ Missing required attributes (5 tests)
+✓ Material reference constraints (8 tests) - **NEW**
 ✓ Non-existent object references (2 tests)
 ✓ Invalid object types in build (1 test)
 ✓ Missing model structure elements (1 test)
 
-#### Failing MUSTFAIL Tests (23)
+#### Failing MUSTFAIL Tests (15)
 The parser currently does NOT detect these invalid scenarios:
 
 **OPC/Archive Issues (4 tests)**:
@@ -69,40 +70,33 @@ The parser currently does NOT detect these invalid scenarios:
 - Non-existent thumbnail parts
 - Multiple print tickets
 
-**XML/Metadata Issues (5 tests)**:
-- Non-UTF encoding
+**XML/Metadata Issues (4 tests)**:
 - Invalid data type definitions
 - Undefined namespaces in XSD
 - Whitespace in XML elements
-- Missing/duplicated metadata names
 
 **Model Structure Issues (3 tests)**:
 - Multiple model elements
 - Missing build element
 - Invalid object types
 
-**Material Reference Issues (8 tests)**:
-- Multiple references to same material group
-- Cross-references between material types
-- Invalid matid references
-- References to multi-properties from other resources
+**Metadata Validation (2 tests)**:
+- Missing/undefined metadata names (requires parser-level validation of predefined names)
+- Duplicated metadata names (detected during parsing, not post-parse validation)
 
-**Texture Issues (2 tests)**:
-- Invalid content types
-- Missing path attributes
-
-**Other (1 test)**:
-- PID specified without material reference
+**Texture2D Issues (2 tests)**:
+- Invalid content types (requires parsing texture2d elements)
+- Missing path attributes (requires parsing texture2d elements)
 
 ## Known Gaps
 
-### Validation Gaps (23 MUSTFAIL Tests)
+### Validation Gaps (15 MUSTFAIL Tests)
 
-**Status**: Parser too lenient
-**Severity**: Medium - affects invalid file detection
-**Root Cause**: Missing validation checks in parser and validator
+**Status**: Parser too lenient on structural/encoding constraints
+**Severity**: Low-Medium - affects invalid file detection for edge cases
+**Root Cause**: Missing parser-level and OPC-level validation checks
 
-The parser successfully parses 23 files that should be rejected according to the 3MF specification. These represent missing validation rules across multiple areas:
+The parser successfully parses 15 files that should be rejected according to the 3MF specification. These represent missing validation rules that require parser or archive layer changes:
 
 **Impact**:
 - Invalid files may be accepted and processed
@@ -111,18 +105,20 @@ The parser successfully parses 23 files that should be rejected according to the
 
 **Categories of Missing Validation**:
 1. OPC/Archive validation (4 tests) - relationship constraints, part existence checks
-2. XML/Encoding validation (5 tests) - encoding detection, namespace validation
+2. XML/Encoding validation (4 tests) - encoding detection, namespace validation
 3. Model structure validation (3 tests) - multiple model elements, required elements
-4. Material reference validation (8 tests) - cross-reference rules, duplicate references
-5. Texture validation (2 tests) - content type and path validation
-6. Attribute validation (1 test) - PID without material reference
+4. Metadata validation (2 tests) - predefined name checking, duplicate detection during parse
+5. Texture2D resource parsing (2 tests) - texture2d elements not currently parsed
+
+**Recently Implemented** (Quick-004):
+- ✅ Material reference validation (8 tests) - PID/pindex rules, multiproperties constraints, composite matid validation
 
 **Future Work**:
-- Implement stricter OPC relationship validation
-- Add XML encoding and namespace checks
-- Enforce material reference constraints
-- Add content type validation for textures
-- Improve metadata validation (name requirements, duplicates)
+- Implement stricter OPC relationship validation (4 tests)
+- Add XML encoding and namespace checks (4 tests)
+- Add parser-level model structure validation (3 tests)
+- Implement texture2d element parsing with path/contenttype validation (2 tests)
+- Add metadata name validation during parsing (2 tests)
 
 These gaps represent opportunities for enhancement but do not prevent parsing of valid 3MF files.
 
@@ -176,14 +172,14 @@ The competitor implementation (telecos/lib3mf_rust) claims "2,200+ test cases" w
 3. **Property-based tests** (fuzzing-style tests)
 
 Our conformance results:
-- **lib3mf-rs**: 100% MUSTPASS conformance (13/13 valid files), 55% total (28/51 tests)
+- **lib3mf-rs**: 100% MUSTPASS conformance (13/13 valid files), 71% total (36/51 tests)
 - **telecos/lib3mf_rust**: Not publicly documented (repo doesn't show test results)
 
 ### Key Differences
 
 | Aspect | lib3mf-rs | telecos/lib3mf_rust |
 |--------|-----------|-------------------|
-| Official conformance tests | 51 tests (100% MUSTPASS, 55% total) | 51 tests (pass rate unknown) |
+| Official conformance tests | 51 tests (100% MUSTPASS, 71% total) | 51 tests (pass rate unknown) |
 | Test transparency | Public results documented | Test results not published |
 | Known gaps | Documented with root cause | Unknown |
 | Test organization | Separate conformance suite | Mixed with unit tests |
@@ -191,11 +187,13 @@ Our conformance results:
 
 ## Future Improvements
 
-1. **Improve MUSTFAIL detection** - Priority: Medium
-   - Add stricter validation for OPC relationships
-   - Implement XML encoding and namespace checks
-   - Enforce material reference constraints
-   - Target: >80% MUSTFAIL detection
+1. **Improve MUSTFAIL detection** - Priority: Low-Medium (61% → target 80%+)
+   - ✅ Material reference constraints implemented (Quick-004)
+   - Add stricter validation for OPC relationships (4 tests)
+   - Implement XML encoding and namespace checks (4 tests)
+   - Add parser-level structure validation (3 tests)
+   - Parse texture2d elements (2 tests)
+   - Current: 61% MUSTFAIL (23/38)
 
 2. **Add extension-specific conformance tests**
    - Beam Lattice extension tests
