@@ -117,6 +117,21 @@ pub struct Texture2DCoord {
     pub v: f32,
 }
 
+/// A 2D texture resource (image file reference).
+///
+/// Texture2D defines a reference to an image file within the 3MF package
+/// that can be applied to mesh surfaces. The actual image data is stored
+/// as an attachment and referenced by the path.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Texture2D {
+    /// Unique resource ID for this texture
+    pub id: ResourceId,
+    /// Path to the texture image within the 3MF package (e.g., "/3D/Textures/diffuse.png")
+    pub path: String,
+    /// MIME content type of the texture (e.g., "image/png", "image/jpeg")
+    pub contenttype: String,
+}
+
 /// A resource group for composite/mixed materials.
 ///
 /// Composite materials allow blending multiple materials together with

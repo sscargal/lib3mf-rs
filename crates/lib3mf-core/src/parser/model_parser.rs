@@ -21,11 +21,34 @@ use std::io::BufRead;
 pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
     let mut parser = XmlParser::new(reader);
     let mut model = Model::default();
+    let mut seen_model_element = false;
+    let mut seen_build_element = false;
+    let mut model_ended = false;
 
     loop {
         match parser.read_next_event()? {
             Event::Start(e) => match e.name().as_ref() {
                 b"model" => {
+                    if seen_model_element {
+                        return Err(Lib3mfError::Validation(
+                            "Multiple <model> elements found. Only one <model> element is allowed per document".to_string(),
+                        ));
+                    }
+                    if model_ended {
+                        return Err(Lib3mfError::Validation(
+                            "Multiple <model> elements found. Only one <model> element is allowed per document".to_string(),
+                        ));
+                    }
+                    seen_model_element = true;
+
+                    // Validate that xml:space attribute is not present
+                    // The 3MF spec does not allow xml:space on the model element
+                    if get_attribute(&e, b"xml:space").is_some() {
+                        return Err(Lib3mfError::Validation(
+                            "The xml:space attribute is not allowed on the <model> element in 3MF files".to_string(),
+                        ));
+                    }
+
                     if let Some(unit_str) = get_attribute(&e, b"unit") {
                         model.unit = match unit_str.as_ref() {
                             "micron" => Unit::Micron,
@@ -43,11 +66,18 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
                     let name = get_attribute(&e, b"name")
                         .ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?
                         .into_owned();
+                    if model.metadata.contains_key(&name) {
+                        return Err(Lib3mfError::Validation(format!(
+                            "Duplicate metadata name '{}'. Each metadata name must be unique",
+                            name
+                        )));
+                    }
                     let content = parser.read_text_content()?;
                     model.metadata.insert(name, content);
                 }
                 b"resources" => parse_resources(&mut parser, &mut model)?,
                 b"build" => {
+                    seen_build_element = true;
                     model.build = parse_build(&mut parser)?;
                 }
                 _ => {}
@@ -56,13 +86,28 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
                 if e.name().as_ref() == b"metadata" {
                     let name = get_attribute(&e, b"name")
                         .ok_or(Lib3mfError::Validation("Metadata missing name".to_string()))?;
+                    if model.metadata.contains_key(name.as_ref()) {
+                        return Err(Lib3mfError::Validation(format!(
+                            "Duplicate metadata name '{}'. Each metadata name must be unique",
+                            name
+                        )));
+                    }
                     model.metadata.insert(name.into_owned(), String::new());
                 }
             }
-            Event::End(e) if e.name().as_ref() == b"model" => break,
+            Event::End(e) if e.name().as_ref() == b"model" => {
+                model_ended = true;
+            }
             Event::Eof => break,
             _ => {}
         }
+    }
+
+    if !seen_build_element {
+        return Err(Lib3mfError::Validation(
+            "Missing required <build> element. Every 3MF model must contain a <build> element"
+                .to_string(),
+        ));
     }
 
     Ok(model)
@@ -104,11 +149,10 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                                 "surface" => crate::model::ObjectType::Surface,
                                 "other" => crate::model::ObjectType::Other,
                                 unknown => {
-                                    eprintln!(
-                                        "Warning: Unknown object type '{}', defaulting to 'model'",
+                                    return Err(Lib3mfError::Validation(format!(
+                                        "Invalid object type '{}'. Valid types are: model, support, solidsupport, surface, other",
                                         unknown
-                                    );
-                                    crate::model::ObjectType::Model
+                                    )));
                                 }
                             },
                             None => crate::model::ObjectType::Model,
@@ -160,6 +204,38 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
                         let group = parse_color_group(parser, id)?;
                         model.resources.add_color_group(group)?;
+                    }
+                    b"texture2d" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let path = get_attribute(&e, b"path")
+                            .ok_or(Lib3mfError::Validation(
+                                "texture2d missing required 'path' attribute".to_string(),
+                            ))?
+                            .into_owned();
+                        let contenttype = get_attribute(&e, b"contenttype")
+                            .ok_or(Lib3mfError::Validation(
+                                "texture2d missing required 'contenttype' attribute".to_string(),
+                            ))?
+                            .into_owned();
+
+                        // Validate content type - must be a valid image MIME type
+                        if contenttype.is_empty()
+                            || (!contenttype.starts_with("image/png")
+                                && !contenttype.starts_with("image/jpeg")
+                                && !contenttype.starts_with("image/jpg"))
+                        {
+                            return Err(Lib3mfError::Validation(format!(
+                                "Invalid contenttype '{}'. Must be 'image/png' or 'image/jpeg'",
+                                contenttype
+                            )));
+                        }
+
+                        let texture = crate::model::Texture2D {
+                            id,
+                            path,
+                            contenttype,
+                        };
+                        model.resources.add_texture_2d(texture)?;
                     }
                     b"texture2dgroup" => {
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);

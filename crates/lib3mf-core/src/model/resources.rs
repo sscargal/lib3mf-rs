@@ -1,7 +1,7 @@
 use crate::error::{Lib3mfError, Result};
 use crate::model::{
     BaseMaterialsGroup, ColorGroup, CompositeMaterials, Displacement2D, KeyStore, MultiProperties,
-    Object, SliceStack, Texture2DGroup, VolumetricStack,
+    Object, SliceStack, Texture2D, Texture2DGroup, VolumetricStack,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -63,6 +63,7 @@ pub struct ResourceCollection {
     color_groups: HashMap<ResourceId, ColorGroup>,
     slice_stacks: HashMap<ResourceId, SliceStack>,
     volumetric_stacks: HashMap<ResourceId, VolumetricStack>,
+    texture_2d: HashMap<ResourceId, Texture2D>,
     texture_2d_groups: HashMap<ResourceId, Texture2DGroup>,
     composite_materials: HashMap<ResourceId, CompositeMaterials>,
     multi_properties: HashMap<ResourceId, MultiProperties>,
@@ -85,6 +86,7 @@ impl ResourceCollection {
             || self.color_groups.contains_key(&id)
             || self.slice_stacks.contains_key(&id)
             || self.volumetric_stacks.contains_key(&id)
+            || self.texture_2d.contains_key(&id)
             || self.texture_2d_groups.contains_key(&id)
             || self.composite_materials.contains_key(&id)
             || self.multi_properties.contains_key(&id)
@@ -192,6 +194,17 @@ impl ResourceCollection {
 
     pub fn get_volumetric_stack(&self, id: ResourceId) -> Option<&VolumetricStack> {
         self.volumetric_stacks.get(&id)
+    }
+
+    pub fn add_texture_2d(&mut self, texture: Texture2D) -> Result<()> {
+        if self.exists(texture.id) {
+            return Err(Lib3mfError::Validation(format!(
+                "Duplicate resource ID: {}",
+                texture.id.0
+            )));
+        }
+        self.texture_2d.insert(texture.id, texture);
+        Ok(())
     }
 
     pub fn add_texture_2d_group(&mut self, group: Texture2DGroup) -> Result<()> {
