@@ -422,7 +422,7 @@ fn validate_material_constraints(model: &Model, report: &mut ValidationReport) {
 fn validate_metadata(model: &Model, report: &mut ValidationReport) {
     let mut seen_names = HashSet::new();
 
-    for (name, _value) in &model.metadata {
+    for name in model.metadata.keys() {
         // Check for empty names
         if name.is_empty() {
             report.add_error(
