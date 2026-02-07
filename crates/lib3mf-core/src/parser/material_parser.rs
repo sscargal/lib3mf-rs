@@ -18,7 +18,7 @@ pub fn parse_texture_2d_group<R: BufRead>(
 
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) | Event::Empty(e) if e.name().as_ref() == b"tex2coord" => {
+            Event::Start(e) | Event::Empty(e) if e.local_name().as_ref() == b"tex2coord" => {
                 let u = get_attribute(&e, b"u")
                     .ok_or_else(|| Lib3mfError::Validation("tex2coord missing u".to_string()))?
                     .parse::<f32>()
@@ -29,7 +29,7 @@ pub fn parse_texture_2d_group<R: BufRead>(
                     .map_err(|_| Lib3mfError::Validation("Invalid v value".to_string()))?;
                 coords.push(Texture2DCoord { u, v });
             }
-            Event::End(e) if e.name().as_ref() == b"texture2dgroup" => break,
+            Event::End(e) if e.local_name().as_ref() == b"texture2dgroup" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in texture2dgroup".to_string(),
@@ -56,7 +56,7 @@ pub fn parse_composite_materials<R: BufRead>(
 
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) | Event::Empty(e) if e.name().as_ref() == b"composite" => {
+            Event::Start(e) | Event::Empty(e) if e.local_name().as_ref() == b"composite" => {
                 let values_str = get_attribute(&e, b"values").ok_or_else(|| {
                     Lib3mfError::Validation("composite missing values".to_string())
                 })?;
@@ -70,7 +70,7 @@ pub fn parse_composite_materials<R: BufRead>(
                     .collect::<Result<Vec<f32>>>()?;
                 composites.push(Composite { values });
             }
-            Event::End(e) if e.name().as_ref() == b"compositematerials" => break,
+            Event::End(e) if e.local_name().as_ref() == b"compositematerials" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in compositematerials".to_string(),
@@ -98,7 +98,7 @@ pub fn parse_multi_properties<R: BufRead>(
 
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) | Event::Empty(e) if e.name().as_ref() == b"multi" => {
+            Event::Start(e) | Event::Empty(e) if e.local_name().as_ref() == b"multi" => {
                 let pindices_str = get_attribute(&e, b"pindices")
                     .ok_or_else(|| Lib3mfError::Validation("multi missing pindices".to_string()))?;
                 let pindices = pindices_str
@@ -111,7 +111,7 @@ pub fn parse_multi_properties<R: BufRead>(
                     .collect::<Result<Vec<u32>>>()?;
                 multis.push(Multi { pindices });
             }
-            Event::End(e) if e.name().as_ref() == b"multiproperties" => break,
+            Event::End(e) if e.local_name().as_ref() == b"multiproperties" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in multiproperties".to_string(),
@@ -137,7 +137,7 @@ pub fn parse_base_materials<R: BufRead>(
 
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) | Event::Empty(e) if e.name().as_ref() == b"base" => {
+            Event::Start(e) | Event::Empty(e) if e.local_name().as_ref() == b"base" => {
                 let name = get_attribute(&e, b"name").ok_or_else(|| {
                     Lib3mfError::Validation("base element missing 'name' attribute".to_string())
                 })?;
@@ -155,7 +155,7 @@ pub fn parse_base_materials<R: BufRead>(
                     display_color,
                 });
             }
-            Event::End(e) if e.name().as_ref() == b"basematerials" => break,
+            Event::End(e) if e.local_name().as_ref() == b"basematerials" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in basematerials".to_string(),
@@ -176,7 +176,7 @@ pub fn parse_color_group<R: BufRead>(
 
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) | Event::Empty(e) if e.name().as_ref() == b"color" => {
+            Event::Start(e) | Event::Empty(e) if e.local_name().as_ref() == b"color" => {
                 let color_hex = get_attribute(&e, b"color").ok_or_else(|| {
                     Lib3mfError::Validation("color element missing 'color' attribute".to_string())
                 })?;
@@ -185,7 +185,7 @@ pub fn parse_color_group<R: BufRead>(
                 })?;
                 colors.push(color);
             }
-            Event::End(e) if e.name().as_ref() == b"colorgroup" => break,
+            Event::End(e) if e.local_name().as_ref() == b"colorgroup" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in colorgroup".to_string(),

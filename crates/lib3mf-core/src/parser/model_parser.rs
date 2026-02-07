@@ -1,5 +1,8 @@
 use crate::error::{Lib3mfError, Result};
-use crate::model::{Geometry, Model, Object, Unit};
+use crate::model::{
+    BaseMaterialsGroup, ColorGroup, CompositeMaterials, Geometry, Model, MultiProperties, Object,
+    Texture2DGroup, Unit,
+};
 use crate::parser::boolean_parser::parse_boolean_shape;
 use crate::parser::build_parser::parse_build;
 use crate::parser::component_parser::parse_components;
@@ -199,23 +202,22 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                             })
                             .collect::<Result<Vec<crate::model::ResourceId>>>()?;
 
-                        let blendmethods_str =
-                            get_attribute(&e, b"blendmethods").ok_or_else(|| {
-                                Lib3mfError::Validation(
-                                    "multiproperties missing blendmethods".to_string(),
-                                )
-                            })?;
-                        let blend_methods = blendmethods_str
-                            .split_whitespace()
-                            .map(|s| match s {
-                                "mix" => Ok(crate::model::BlendMethod::Mix),
-                                "multiply" => Ok(crate::model::BlendMethod::Multiply),
-                                _ => Err(Lib3mfError::Validation(format!(
-                                    "Invalid blend method: {}",
-                                    s
-                                ))),
-                            })
-                            .collect::<Result<Vec<crate::model::BlendMethod>>>()?;
+                        let blend_methods = if let Some(blendmethods_str) = get_attribute(&e, b"blendmethods") {
+                            blendmethods_str
+                                .split_whitespace()
+                                .map(|s| match s {
+                                    "mix" => Ok(crate::model::BlendMethod::Mix),
+                                    "multiply" => Ok(crate::model::BlendMethod::Multiply),
+                                    _ => Err(Lib3mfError::Validation(format!(
+                                        "Invalid blend method: {}",
+                                        s
+                                    ))),
+                                })
+                                .collect::<Result<Vec<crate::model::BlendMethod>>>()?
+                        } else {
+                            // Default to Multiply for all pids when blendmethods not specified
+                            vec![crate::model::BlendMethod::Multiply; pids.len()]
+                        };
 
                         let group = parse_multi_properties(parser, id, pids, blend_methods)?;
                         model.resources.add_multi_properties(group)?;
@@ -312,6 +314,104 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                             parser, id, path, channel, tile_style, filter, height, offset,
                         )?;
                         model.resources.add_displacement_2d(displacement)?;
+                    }
+                    _ => {}
+                }
+            }
+            Event::Empty(e) => {
+                // Handle self-closing elements like <colorgroup id="5"/>
+                let local_name = e.local_name();
+                match local_name.as_ref() {
+                    b"colorgroup" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let group = ColorGroup {
+                            id,
+                            colors: Vec::new(),
+                        };
+                        model.resources.add_color_group(group)?;
+                    }
+                    b"texture2dgroup" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let texture_id = crate::model::ResourceId(get_attribute_u32(&e, b"texid")?);
+                        let group = Texture2DGroup {
+                            id,
+                            texture_id,
+                            coords: Vec::new(),
+                        };
+                        model.resources.add_texture_2d_group(group)?;
+                    }
+                    b"basematerials" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let group = BaseMaterialsGroup {
+                            id,
+                            materials: Vec::new(),
+                        };
+                        model.resources.add_base_materials(group)?;
+                    }
+                    b"compositematerials" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let base_material_id = crate::model::ResourceId(get_attribute_u32(&e, b"matid")?);
+                        let matindices_str = get_attribute(&e, b"matindices").ok_or_else(|| {
+                            Lib3mfError::Validation(
+                                "compositematerials missing matindices".to_string(),
+                            )
+                        })?;
+                        let indices = matindices_str
+                            .split_whitespace()
+                            .map(|s| {
+                                s.parse::<u32>().map_err(|_| {
+                                    Lib3mfError::Validation("Invalid matindices value".to_string())
+                                })
+                            })
+                            .collect::<Result<Vec<u32>>>()?;
+                        let group = CompositeMaterials {
+                            id,
+                            base_material_id,
+                            indices,
+                            composites: Vec::new(),
+                        };
+                        model.resources.add_composite_materials(group)?;
+                    }
+                    b"multiproperties" => {
+                        let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
+                        let pids_str = get_attribute(&e, b"pids").ok_or_else(|| {
+                            Lib3mfError::Validation("multiproperties missing pids".to_string())
+                        })?;
+                        let pids = pids_str
+                            .split_whitespace()
+                            .map(|s| {
+                                s.parse::<u32>()
+                                    .map_err(|_| {
+                                        Lib3mfError::Validation("Invalid pid value".to_string())
+                                    })
+                                    .map(crate::model::ResourceId)
+                            })
+                            .collect::<Result<Vec<crate::model::ResourceId>>>()?;
+
+                        let blend_methods = if let Some(blendmethods_str) = get_attribute(&e, b"blendmethods") {
+                            blendmethods_str
+                                .split_whitespace()
+                                .map(|s| match s {
+                                    "mix" => Ok(crate::model::BlendMethod::Mix),
+                                    "multiply" => Ok(crate::model::BlendMethod::Multiply),
+                                    _ => Err(Lib3mfError::Validation(format!(
+                                        "Invalid blend method: {}",
+                                        s
+                                    ))),
+                                })
+                                .collect::<Result<Vec<crate::model::BlendMethod>>>()?
+                        } else {
+                            // Default to Multiply for all pids when blendmethods not specified
+                            vec![crate::model::BlendMethod::Multiply; pids.len()]
+                        };
+
+                        let group = MultiProperties {
+                            id,
+                            pids,
+                            blend_methods,
+                            multis: Vec::new(),
+                        };
+                        model.resources.add_multi_properties(group)?;
                     }
                     _ => {}
                 }
