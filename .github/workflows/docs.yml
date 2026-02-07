@@ -32,7 +32,7 @@ jobs:
 
       # Test doc examples first
       - name: Test documentation examples
-        run: cargo test --doc --all-features
+        run: cargo test --doc --workspace --exclude lib3mf-workspace --all-features
 
       # Build rustdoc
       - name: Build API documentation
