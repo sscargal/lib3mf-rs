@@ -97,12 +97,12 @@ lib3mf-rs is one of several Rust libraries for 3MF. See [docs/alternatives.md](d
 
 | Crate | Version | Last Updated | Core capabilities | Modern features | Quality metrics | License & maintenance |
 |-------|---------|--------------|-------------------|-----------------|-----------------|----------------------|
-| lib3mf-rs | 0.1.0 | 2026-02-04 | Parse, Write, Validation (4 levels), 9 extensions | Async, WASM, CLI, Converters | 90%+ coverage, Fuzzing, Zero unsafe | MIT OR Apache-2.0, Active |
+| lib3mf-rs | 0.1.0 | 2026-02-04 | Parse, Write, Validation (4 levels), 9 extensions | Async, WASM, CLI, Converters | 90%+ coverage, Fuzzing, Zero unsafe | BSD 2-Clause, Active |
 | [lib3mf](https://crates.io/crates/lib3mf) | 0.1.0 | 2026-02-04 | Parse, Write, Validation, 4 extensions | Geometry (parry3d) | 2200+ tests | MIT, Active |
 | [threemf2](https://crates.io/crates/threemf2) | 0.1.2 | 2025-11-30 | Parse, Write (basic) | None | Basic | MIT, Limited |
 | [thdmaker](https://crates.io/crates/thdmaker) | 0.0.4 | 2026-01-11 | STL/AMF focus | None | Basic | MIT, Active |
 | [mesh_rs](https://crates.io/crates/mesh_rs) | 1.0.4 | 2025-12-17 | Multi-format (STL, OBJ, PLY) | None | Basic | MIT, Active |
-| [stlto3mf](https://crates.io/crates/stlto3mf) | 0.1.0 | 2024-07-16 | STL to 3MF conversion | None | Basic | MIT OR Apache-2.0, Stable |
+| [stlto3mf](https://crates.io/crates/stlto3mf) | 0.1.0 | 2024-07-16 | STL to 3MF conversion | None | Basic | MIT, Stable |
 
 **Quick Guide:**
 - **Production apps with async/WASM:** Use lib3mf-rs
