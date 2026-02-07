@@ -34,6 +34,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Publish lib3mf-core
@@ -65,6 +67,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Install wasm-pack
@@ -78,7 +82,7 @@ jobs:
         run: npm install -g npm@latest
       - name: Build WASM
         run: cd crates/lib3mf-wasm && wasm-pack build --scope lib3mf-rs
-      - name: Publish to NPM with Trusted Publishing
-        run: cd crates/lib3mf-wasm/pkg && npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to NPM with Trusted Publishing (OIDC)
+        run: cd crates/lib3mf-wasm/pkg && npm publish --access public
+        # No NODE_AUTH_TOKEN needed - npm CLI auto-detects OIDC from id-token permission
+        # Provenance attestations are published automatically with Trusted Publishing
