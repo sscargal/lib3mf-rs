@@ -9,6 +9,12 @@ pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
     // Validate boolean operation cycles
     validate_boolean_cycles(model, report);
 
+    // Validate material references and constraints
+    validate_material_constraints(model, report);
+
+    // Validate metadata
+    validate_metadata(model, report);
+
     // Check Resources
     for object in model.resources.iter_objects() {
         // Check PID validity
@@ -272,4 +278,162 @@ fn is_transform_valid(mat: &glam::Mat4) -> bool {
         && mat.y_axis.is_finite()
         && mat.z_axis.is_finite()
         && mat.w_axis.is_finite()
+}
+
+/// Validates material reference constraints and property rules.
+fn validate_material_constraints(model: &Model, report: &mut ValidationReport) {
+    // Validate pindex requires pid rule
+    for object in model.resources.iter_objects() {
+        if object.pindex.is_some() && object.pid.is_none() {
+            report.add_error(
+                2010,
+                format!(
+                    "Object {} has pindex but no pid (pindex requires pid to be specified)",
+                    object.id.0
+                ),
+            );
+        }
+    }
+
+    // Validate composite materials matid references basematerials
+    for composite in model.resources.iter_composite_materials() {
+        // Check that matid references a basematerials group
+        if let Some(resource) = model.resources.get_base_materials(composite.base_material_id) {
+            // Valid - references basematerials
+            let _ = resource; // Use to avoid unused warning
+        } else {
+            // Check if it references something else (invalid)
+            if model.resources.exists(composite.base_material_id) {
+                report.add_error(
+                    2030,
+                    format!(
+                        "CompositeMaterials {} matid {} must reference basematerials, not another resource type",
+                        composite.id.0, composite.base_material_id.0
+                    ),
+                );
+            } else {
+                // Already caught by existing PID validation (2001), but add specific error
+                report.add_error(
+                    2030,
+                    format!(
+                        "CompositeMaterials {} matid {} references non-existent basematerials",
+                        composite.id.0, composite.base_material_id.0
+                    ),
+                );
+            }
+        }
+    }
+
+    // Validate multiproperties reference rules
+    for multi_prop in model.resources.iter_multi_properties() {
+        // Track counts of each resource type referenced
+        let mut basematerials_count = 0;
+        let mut colorgroup_count = 0;
+        let mut texture2dgroup_count = 0;
+        let mut composite_count = 0;
+        let mut multiproperties_refs = Vec::new();
+
+        for &pid in &multi_prop.pids {
+            // Determine what type of resource this pid references
+            if model.resources.get_base_materials(pid).is_some() {
+                basematerials_count += 1;
+            } else if model.resources.get_color_group(pid).is_some() {
+                colorgroup_count += 1;
+            } else if model.resources.get_texture_2d_group(pid).is_some() {
+                texture2dgroup_count += 1;
+            } else if model.resources.get_composite_materials(pid).is_some() {
+                composite_count += 1;
+            } else if model.resources.get_multi_properties(pid).is_some() {
+                multiproperties_refs.push(pid);
+            }
+            // Note: pid might reference other types or be non-existent (caught by other validation)
+        }
+
+        // Validate at most one reference to each material type
+        if basematerials_count > 1 {
+            report.add_error(
+                2020,
+                format!(
+                    "MultiProperties {} references basematerials {} times (maximum 1 allowed)",
+                    multi_prop.id.0, basematerials_count
+                ),
+            );
+        }
+
+        if colorgroup_count > 1 {
+            report.add_error(
+                2021,
+                format!(
+                    "MultiProperties {} references colorgroup {} times (maximum 1 allowed)",
+                    multi_prop.id.0, colorgroup_count
+                ),
+            );
+        }
+
+        if texture2dgroup_count > 1 {
+            report.add_error(
+                2022,
+                format!(
+                    "MultiProperties {} references texture2dgroup {} times (maximum 1 allowed)",
+                    multi_prop.id.0, texture2dgroup_count
+                ),
+            );
+        }
+
+        if composite_count > 1 {
+            report.add_error(
+                2023,
+                format!(
+                    "MultiProperties {} references compositematerials {} times (maximum 1 allowed)",
+                    multi_prop.id.0, composite_count
+                ),
+            );
+        }
+
+        // Validate cannot have both basematerials and compositematerials
+        // (compositematerials is a material type, not compatible with basematerials)
+        if basematerials_count > 0 && composite_count > 0 {
+            report.add_error(
+                2025,
+                format!(
+                    "MultiProperties {} references both basematerials and compositematerials (only one material type allowed)",
+                    multi_prop.id.0
+                ),
+            );
+        }
+
+        // Validate no references to other multiproperties
+        for &ref_id in &multiproperties_refs {
+            report.add_error(
+                2024,
+                format!(
+                    "MultiProperties {} references another multiproperties {} (not allowed)",
+                    multi_prop.id.0, ref_id.0
+                ),
+            );
+        }
+    }
+}
+
+/// Validates metadata constraints.
+fn validate_metadata(model: &Model, report: &mut ValidationReport) {
+    let mut seen_names = HashSet::new();
+
+    for (name, _value) in &model.metadata {
+        // Check for empty names
+        if name.is_empty() {
+            report.add_error(
+                2040,
+                "Metadata entry has empty name (name attribute is required)".to_string(),
+            );
+        }
+
+        // Check for duplicate names
+        if !seen_names.insert(name.clone()) {
+            report.add_error(
+                2041,
+                format!("Metadata name '{}' is duplicated (names must be unique)", name),
+            );
+        }
+    }
 }
