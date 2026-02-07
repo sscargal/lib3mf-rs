@@ -298,7 +298,10 @@ fn validate_material_constraints(model: &Model, report: &mut ValidationReport) {
     // Validate composite materials matid references basematerials
     for composite in model.resources.iter_composite_materials() {
         // Check that matid references a basematerials group
-        if let Some(resource) = model.resources.get_base_materials(composite.base_material_id) {
+        if let Some(resource) = model
+            .resources
+            .get_base_materials(composite.base_material_id)
+        {
             // Valid - references basematerials
             let _ = resource; // Use to avoid unused warning
         } else {
@@ -432,7 +435,10 @@ fn validate_metadata(model: &Model, report: &mut ValidationReport) {
         if !seen_names.insert(name.clone()) {
             report.add_error(
                 2041,
-                format!("Metadata name '{}' is duplicated (names must be unique)", name),
+                format!(
+                    "Metadata name '{}' is duplicated (names must be unique)",
+                    name
+                ),
             );
         }
     }

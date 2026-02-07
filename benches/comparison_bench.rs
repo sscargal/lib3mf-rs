@@ -1,8 +1,8 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use lib3mf_core::archive::{find_model_path, ArchiveReader, ZipArchiver};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
+use lib3mf_core::Model;
+use lib3mf_core::archive::{ArchiveReader, ZipArchiver, find_model_path};
 use lib3mf_core::parser::parse_model;
 use lib3mf_core::validation::ValidationLevel;
-use lib3mf_core::Model;
 use std::io::Cursor;
 
 /// Get test data for different file size categories
@@ -20,8 +20,7 @@ fn get_test_file(size_category: &str) -> Vec<u8> {
         }
         "large" => {
             // Large file: Benchy.3mf (~3.1 MB)
-            std::fs::read("models/Benchy.3mf")
-                .expect("Failed to read large test file (Benchy.3mf)")
+            std::fs::read("models/Benchy.3mf").expect("Failed to read large test file (Benchy.3mf)")
         }
         _ => panic!("Unknown size category: {}", size_category),
     }
@@ -31,7 +30,9 @@ fn get_test_file(size_category: &str) -> Vec<u8> {
 fn parse_complete(data: &[u8]) -> Model {
     let mut archiver = ZipArchiver::new(Cursor::new(data)).expect("Failed to open archive");
     let model_path = find_model_path(&mut archiver).expect("Failed to find model path");
-    let model_data = archiver.read_entry(&model_path).expect("Failed to read model entry");
+    let model_data = archiver
+        .read_entry(&model_path)
+        .expect("Failed to read model entry");
     parse_model(Cursor::new(model_data)).expect("Failed to parse model")
 }
 
@@ -92,8 +93,8 @@ fn bench_statistics(c: &mut Criterion) {
 
         group.bench_with_input(BenchmarkId::new("compute_stats", size), &data, |b, data| {
             b.iter(|| {
-                let mut archiver = ZipArchiver::new(Cursor::new(black_box(data)))
-                    .expect("Failed to open archive");
+                let mut archiver =
+                    ZipArchiver::new(Cursor::new(black_box(data))).expect("Failed to open archive");
                 let stats = black_box(&model)
                     .compute_stats(&mut archiver)
                     .expect("Failed to compute stats");
@@ -114,14 +115,18 @@ fn bench_archive_operations(c: &mut Criterion) {
         let bytes = data.len() as u64;
 
         group.throughput(Throughput::Bytes(bytes));
-        group.bench_with_input(BenchmarkId::new("unzip_and_find", size), &data, |b, data| {
-            b.iter(|| {
-                let mut archiver = ZipArchiver::new(Cursor::new(black_box(data)))
-                    .expect("Failed to open archive");
-                let model_path = find_model_path(&mut archiver).expect("Failed to find model");
-                black_box(model_path);
-            })
-        });
+        group.bench_with_input(
+            BenchmarkId::new("unzip_and_find", size),
+            &data,
+            |b, data| {
+                b.iter(|| {
+                    let mut archiver = ZipArchiver::new(Cursor::new(black_box(data)))
+                        .expect("Failed to open archive");
+                    let model_path = find_model_path(&mut archiver).expect("Failed to find model");
+                    black_box(model_path);
+                })
+            },
+        );
     }
 
     group.finish();
@@ -137,7 +142,9 @@ fn bench_xml_parsing(c: &mut Criterion) {
         // Pre-extract the XML from the ZIP
         let mut archiver = ZipArchiver::new(Cursor::new(&data)).expect("Failed to open archive");
         let model_path = find_model_path(&mut archiver).expect("Failed to find model path");
-        let model_xml = archiver.read_entry(&model_path).expect("Failed to read model");
+        let model_xml = archiver
+            .read_entry(&model_path)
+            .expect("Failed to read model");
 
         let xml_bytes = model_xml.len() as u64;
         group.throughput(Throughput::Bytes(xml_bytes));
@@ -147,8 +154,8 @@ fn bench_xml_parsing(c: &mut Criterion) {
             &model_xml,
             |b, xml| {
                 b.iter(|| {
-                    let model = parse_model(Cursor::new(black_box(xml)))
-                        .expect("Failed to parse XML");
+                    let model =
+                        parse_model(Cursor::new(black_box(xml))).expect("Failed to parse XML");
                     black_box(model);
                 })
             },

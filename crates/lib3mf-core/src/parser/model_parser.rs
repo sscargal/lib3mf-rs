@@ -202,22 +202,23 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                             })
                             .collect::<Result<Vec<crate::model::ResourceId>>>()?;
 
-                        let blend_methods = if let Some(blendmethods_str) = get_attribute(&e, b"blendmethods") {
-                            blendmethods_str
-                                .split_whitespace()
-                                .map(|s| match s {
-                                    "mix" => Ok(crate::model::BlendMethod::Mix),
-                                    "multiply" => Ok(crate::model::BlendMethod::Multiply),
-                                    _ => Err(Lib3mfError::Validation(format!(
-                                        "Invalid blend method: {}",
-                                        s
-                                    ))),
-                                })
-                                .collect::<Result<Vec<crate::model::BlendMethod>>>()?
-                        } else {
-                            // Default to Multiply for all pids when blendmethods not specified
-                            vec![crate::model::BlendMethod::Multiply; pids.len()]
-                        };
+                        let blend_methods =
+                            if let Some(blendmethods_str) = get_attribute(&e, b"blendmethods") {
+                                blendmethods_str
+                                    .split_whitespace()
+                                    .map(|s| match s {
+                                        "mix" => Ok(crate::model::BlendMethod::Mix),
+                                        "multiply" => Ok(crate::model::BlendMethod::Multiply),
+                                        _ => Err(Lib3mfError::Validation(format!(
+                                            "Invalid blend method: {}",
+                                            s
+                                        ))),
+                                    })
+                                    .collect::<Result<Vec<crate::model::BlendMethod>>>()?
+                            } else {
+                                // Default to Multiply for all pids when blendmethods not specified
+                                vec![crate::model::BlendMethod::Multiply; pids.len()]
+                            };
 
                         let group = parse_multi_properties(parser, id, pids, blend_methods)?;
                         model.resources.add_multi_properties(group)?;
@@ -350,7 +351,8 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                     }
                     b"compositematerials" => {
                         let id = crate::model::ResourceId(get_attribute_u32(&e, b"id")?);
-                        let base_material_id = crate::model::ResourceId(get_attribute_u32(&e, b"matid")?);
+                        let base_material_id =
+                            crate::model::ResourceId(get_attribute_u32(&e, b"matid")?);
                         let matindices_str = get_attribute(&e, b"matindices").ok_or_else(|| {
                             Lib3mfError::Validation(
                                 "compositematerials missing matindices".to_string(),
@@ -388,22 +390,23 @@ fn parse_resources<R: BufRead>(parser: &mut XmlParser<R>, model: &mut Model) -> 
                             })
                             .collect::<Result<Vec<crate::model::ResourceId>>>()?;
 
-                        let blend_methods = if let Some(blendmethods_str) = get_attribute(&e, b"blendmethods") {
-                            blendmethods_str
-                                .split_whitespace()
-                                .map(|s| match s {
-                                    "mix" => Ok(crate::model::BlendMethod::Mix),
-                                    "multiply" => Ok(crate::model::BlendMethod::Multiply),
-                                    _ => Err(Lib3mfError::Validation(format!(
-                                        "Invalid blend method: {}",
-                                        s
-                                    ))),
-                                })
-                                .collect::<Result<Vec<crate::model::BlendMethod>>>()?
-                        } else {
-                            // Default to Multiply for all pids when blendmethods not specified
-                            vec![crate::model::BlendMethod::Multiply; pids.len()]
-                        };
+                        let blend_methods =
+                            if let Some(blendmethods_str) = get_attribute(&e, b"blendmethods") {
+                                blendmethods_str
+                                    .split_whitespace()
+                                    .map(|s| match s {
+                                        "mix" => Ok(crate::model::BlendMethod::Mix),
+                                        "multiply" => Ok(crate::model::BlendMethod::Multiply),
+                                        _ => Err(Lib3mfError::Validation(format!(
+                                            "Invalid blend method: {}",
+                                            s
+                                        ))),
+                                    })
+                                    .collect::<Result<Vec<crate::model::BlendMethod>>>()?
+                            } else {
+                                // Default to Multiply for all pids when blendmethods not specified
+                                vec![crate::model::BlendMethod::Multiply; pids.len()]
+                            };
 
                         let group = MultiProperties {
                             id,
