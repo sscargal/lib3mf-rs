@@ -219,6 +219,7 @@ fn parse_build_streaming<R: BufRead, V: ModelVisitor>(
                         part_number: None,
                         uuid: None,
                         path: None,
+                        printable: None,
                     };
                     visitor.on_build_item(&item)?;
                 }

@@ -209,6 +209,7 @@ impl StlImporter {
             part_number: None,
             uuid: None, // Generate one?
             path: None,
+            printable: None,
         });
 
         Ok(model)

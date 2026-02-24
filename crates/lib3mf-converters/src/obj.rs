@@ -229,6 +229,7 @@ impl ObjImporter {
             part_number: None,
             uuid: None,
             path: None,
+            printable: None,
         });
 
         Ok(model)

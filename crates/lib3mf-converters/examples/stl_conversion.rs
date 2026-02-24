@@ -38,6 +38,7 @@ fn main() -> anyhow::Result<()> {
         path: None,
         part_number: None,
         transform: glam::Mat4::IDENTITY,
+        printable: None,
     });
 
     // 2. Export to STL

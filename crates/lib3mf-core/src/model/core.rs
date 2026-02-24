@@ -42,6 +42,11 @@ pub struct Model {
     /// Value: Parsed relationships
     #[serde(skip)]
     pub existing_relationships: HashMap<String, Vec<crate::archive::opc::Relationship>>,
+
+    /// Extra XML namespace declarations from the model element (e.g., vendor namespaces).
+    /// Key: prefix (e.g., "BambuStudio"), Value: URI (e.g., "http://schemas.bambulab.com/...")
+    #[serde(default)]
+    pub extra_namespaces: HashMap<String, String>,
 }
 
 impl Model {
@@ -134,6 +139,7 @@ impl Default for Model {
             build: Build::default(),
             attachments: HashMap::new(),
             existing_relationships: HashMap::new(),
+            extra_namespaces: HashMap::new(),
         }
     }
 }

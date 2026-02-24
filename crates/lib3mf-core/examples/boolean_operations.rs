@@ -167,6 +167,7 @@ fn create_boolean_model() -> Model {
             uuid: None,
             part_number: None,
             path: None,
+            printable: None,
         }],
     };
 

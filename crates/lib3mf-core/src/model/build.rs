@@ -23,6 +23,7 @@ use uuid::Uuid;
 ///     path: None,
 ///     part_number: None,
 ///     transform: glam::Mat4::IDENTITY,
+///     printable: None,
 /// });
 /// assert_eq!(build.items.len(), 1);
 /// ```
@@ -62,6 +63,11 @@ pub struct BuildItem {
     /// The transformation is applied using the glam Mat4 type.
     #[serde(default = "default_transform", skip_serializing_if = "is_identity")]
     pub transform: Mat4,
+
+    /// Whether this item should be printed (Bambu/OrcaSlicer extension).
+    /// `Some(true)` means printable, `Some(false)` means display-only, `None` means unspecified.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub printable: Option<bool>,
 }
 
 fn default_transform() -> Mat4 {

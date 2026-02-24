@@ -441,6 +441,7 @@ fn test_extension_roundtrip() -> anyhow::Result<()> {
         path: None,
         part_number: None,
         transform: glam::Mat4::IDENTITY,
+        printable: None,
     });
 
     // Verify programmatically created model structure

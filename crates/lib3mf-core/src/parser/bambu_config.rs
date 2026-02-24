@@ -51,7 +51,11 @@ pub fn parse_model_settings(content: &[u8]) -> Result<Vec<PlateInfo>> {
                     }
 
                     if id != 0 {
-                        plates.push(PlateInfo { id, name });
+                        plates.push(PlateInfo {
+                            id,
+                            name,
+                            ..Default::default()
+                        });
                     }
                 }
             }

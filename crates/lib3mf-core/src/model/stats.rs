@@ -137,17 +137,143 @@ pub struct VendorData {
     pub filaments: Vec<FilamentInfo>,
     pub plates: Vec<PlateInfo>,
     pub print_time_estimate: Option<String>,
+    pub slicer_version: Option<String>,
+    pub nozzle_diameter: Option<f32>,
+    pub slicer_warnings: Vec<SlicerWarning>,
+    pub object_metadata: Vec<BambuObjectMetadata>,
+    pub project_settings: Option<BambuProjectSettings>,
+    pub profile_configs: Vec<BambuProfileConfig>,
+    pub assembly_info: Vec<AssemblyItem>,
+    /// Path to Bambu cover thumbnail (from OPC relationship), e.g., "Metadata/plate_1.png"
+    pub bambu_cover_thumbnail: Option<String>,
+    /// Path to Bambu embedded gcode (from OPC relationship), e.g., "Metadata/plate_1.gcode"
+    pub bambu_gcode: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FilamentInfo {
+    pub id: u32,
+    pub tray_info_idx: Option<String>,
     pub type_: String,
     pub color: Option<String>,
+    pub used_m: Option<f32>,
+    pub used_g: Option<f32>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PlateInfo {
     pub id: u32,
     pub name: Option<String>,
-    // pub items: Vec<ResourceId>,
+    pub locked: bool,
+    pub gcode_file: Option<String>,
+    pub thumbnail_file: Option<String>,
+    pub items: Vec<PlateModelInstance>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PlateModelInstance {
+    pub object_id: u32,
+    pub instance_id: u32,
+    pub identify_id: Option<u32>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SlicerWarning {
+    pub msg: String,
+    pub level: Option<String>,
+    pub error_code: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct BambuObjectMetadata {
+    pub id: u32,
+    pub name: Option<String>,
+    pub extruder: Option<u32>,
+    pub face_count: Option<u64>,
+    pub parts: Vec<BambuPartMetadata>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct BambuPartMetadata {
+    pub id: u32,
+    pub subtype: PartSubtype,
+    pub name: Option<String>,
+    pub matrix: Option<String>,
+    pub source: Option<BambuPartSource>,
+    pub mesh_stat: Option<BambuMeshStat>,
+    pub print_overrides: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub enum PartSubtype {
+    #[default]
+    NormalPart,
+    ModifierPart,
+    SupportBlocker,
+    SupportEnforcer,
+    Other(String),
+}
+
+impl PartSubtype {
+    /// Parse a Bambu part subtype string into a `PartSubtype` variant.
+    pub fn parse(s: &str) -> Self {
+        match s {
+            "normal_part" => Self::NormalPart,
+            "modifier_part" => Self::ModifierPart,
+            "support_blocker" => Self::SupportBlocker,
+            "support_enforcer" => Self::SupportEnforcer,
+            other => Self::Other(other.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct BambuPartSource {
+    pub volume_id: Option<u32>,
+    pub offset_x: Option<f64>,
+    pub offset_y: Option<f64>,
+    pub offset_z: Option<f64>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct BambuMeshStat {
+    pub edges_fixed: Option<u32>,
+    pub degenerate_facets: Option<u32>,
+    pub facets_removed: Option<u32>,
+    pub facets_reversed: Option<u32>,
+    pub backwards_edges: Option<u32>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct BambuProjectSettings {
+    pub printer_model: Option<String>,
+    pub printer_inherits: Option<String>,
+    pub bed_type: Option<String>,
+    pub layer_height: Option<f32>,
+    pub first_layer_height: Option<f32>,
+    pub filament_type: Vec<String>,
+    pub filament_colour: Vec<String>,
+    pub nozzle_diameter: Vec<f32>,
+    pub print_sequence: Option<String>,
+    pub wall_loops: Option<u32>,
+    pub infill_density: Option<String>,
+    pub support_type: Option<String>,
+    pub extras: HashMap<String, serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct BambuProfileConfig {
+    pub config_type: String, // "filament", "machine", "process"
+    pub index: u32,          // the N in filament_settings_N.config
+    pub inherits: Option<String>,
+    pub name: Option<String>,
+    pub extras: HashMap<String, serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AssemblyItem {
+    pub object_id: u32,
+    pub instance_count: u32,
+    pub transform: Option<String>,
+    pub offset: Option<String>,
 }

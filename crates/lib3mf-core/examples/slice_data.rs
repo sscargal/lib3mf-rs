@@ -119,6 +119,7 @@ fn main() -> anyhow::Result<()> {
         part_number: None,
         uuid: None,
         path: None,
+        printable: None,
     };
     model.build.items.push(item);
 
