@@ -29,12 +29,19 @@ pub fn parse_build<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Build> {
                     .or_else(|| get_attribute(&e, b"p:path"))
                     .map(|s: Cow<str>| s.into_owned());
 
+                let printable = get_attribute(&e, b"printable").and_then(|s| match s.as_ref() {
+                    "1" => Some(true),
+                    "0" => Some(false),
+                    _ => None,
+                });
+
                 build.items.push(BuildItem {
                     object_id,
                     part_number,
                     uuid,
                     path,
                     transform,
+                    printable,
                 });
             }
             Event::End(e) if e.name().as_ref() == b"build" => break,

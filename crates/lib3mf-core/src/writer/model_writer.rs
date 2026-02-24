@@ -35,7 +35,7 @@ impl Model {
         let mut xml = XmlWriter::new(writer);
         xml.write_declaration()?;
 
-        let root = xml
+        let mut root = xml
             .start_element("model")
             .attr("unit", self.unit_str())
             .attr("xml:lang", self.language.as_deref().unwrap_or("en-US"))
@@ -59,6 +59,18 @@ impl Model {
                 "xmlns:d",
                 "http://schemas.microsoft.com/3dmanufacturing/displacement/2024/01",
             );
+
+        // Emit extra namespaces (e.g., BambuStudio vendor namespace)
+        // We need to collect into a sorted vec for deterministic output
+        let mut extra_ns: Vec<(&String, &String)> = self.extra_namespaces.iter().collect();
+        extra_ns.sort_by_key(|(k, _)| k.as_str());
+        let extra_ns_owned: Vec<(String, String)> = extra_ns
+            .into_iter()
+            .map(|(k, v)| (format!("xmlns:{}", k), v.clone()))
+            .collect();
+        for (attr_name, uri) in &extra_ns_owned {
+            root = root.attr(attr_name, uri.as_str());
+        }
 
         // Add typical namespaces if needed (e.g. production, slice) - strictly core for now
         root.write_start()?;
@@ -314,7 +326,12 @@ impl Model {
                 build_item =
                     build_item.attr("transform", &format_transform_matrix(&item.transform));
             }
-            // partnumber support if needed
+            if let Some(ref pn) = item.part_number {
+                build_item = build_item.attr("partnumber", pn);
+            }
+            if let Some(printable) = item.printable {
+                build_item = build_item.attr("printable", if printable { "1" } else { "0" });
+            }
             build_item.write_empty()?;
         }
         xml.end_element("build")?;

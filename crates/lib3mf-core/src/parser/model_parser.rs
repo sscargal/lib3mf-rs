@@ -61,6 +61,19 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
                         };
                     }
                     model.language = get_attribute(&e, b"xml:lang").map(|s| s.into_owned());
+
+                    // Extract extra namespace declarations (e.g., xmlns:BambuStudio)
+                    for attr in e.attributes().flatten() {
+                        let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+                        if let Some(prefix) = key.strip_prefix("xmlns:") {
+                            // Skip known namespaces that we already emit
+                            let known = ["m", "p", "b", "d", "s", "v", "sec"];
+                            if !known.contains(&prefix) {
+                                let uri = String::from_utf8_lossy(&attr.value).to_string();
+                                model.extra_namespaces.insert(prefix.to_string(), uri);
+                            }
+                        }
+                    }
                 }
                 b"metadata" => {
                     let name = get_attribute(&e, b"name")
