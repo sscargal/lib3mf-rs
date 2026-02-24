@@ -103,7 +103,7 @@ pub mod visitor;
 pub mod volumetric_parser;
 pub mod xml_parser;
 
-pub use bambu_config::parse_model_settings;
+pub use bambu_config::{parse_model_settings, parse_slice_info};
 pub use crypto_parser::parse_signature;
 /// Primary entry point for parsing 3MF model XML.
 ///

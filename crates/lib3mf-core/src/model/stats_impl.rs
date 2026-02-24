@@ -40,9 +40,11 @@ impl Model {
             && let Ok(content) = resolver
                 .archive_mut()
                 .read_entry("Metadata/model_settings.config")
-            && let Ok(plates) = parse_model_settings(&content)
+            && let Ok(data) = parse_model_settings(&content)
         {
-            vendor_data.plates = plates;
+            vendor_data.plates = data.plates;
+            vendor_data.object_metadata = data.objects;
+            vendor_data.assembly_info = data.assembly;
         }
 
         // 4. Material Stats
