@@ -259,11 +259,116 @@ pub fn stats(path: PathBuf, format: OutputFormat) -> anyhow::Result<()> {
                 stats.materials.multi_properties_count
             );
 
-            if !stats.vendor.plates.is_empty() {
-                println!("Vendor Data (Bambu):");
-                println!("  Plates: {}", stats.vendor.plates.len());
-                for plate in stats.vendor.plates {
-                    println!("    - ID {}: {}", plate.id, plate.name.unwrap_or_default());
+            // Show Bambu vendor data when present
+            let has_bambu = stats.vendor.printer_model.is_some()
+                || !stats.vendor.plates.is_empty()
+                || !stats.vendor.filaments.is_empty()
+                || stats.vendor.slicer_version.is_some();
+
+            if has_bambu {
+                println!("\nVendor Data (Bambu Studio):");
+
+                if let Some(ref version) = stats.vendor.slicer_version {
+                    println!("  Slicer:          {}", version);
+                }
+
+                // Printer model with nozzle diameter
+                if let Some(ref model) = stats.vendor.printer_model {
+                    let nozzle_str = stats
+                        .vendor
+                        .nozzle_diameter
+                        .map(|d| format!(" -- {}mm nozzle", d))
+                        .unwrap_or_default();
+                    println!("  Printer:         {}{}", model, nozzle_str);
+                }
+
+                // Bed type and layer height from project settings
+                if let Some(ref ps) = stats.vendor.project_settings {
+                    if let Some(ref bed) = ps.bed_type {
+                        println!("  Bed Type:        {}", bed);
+                    }
+                    if let Some(lh) = ps.layer_height {
+                        println!("  Layer Height:    {}mm", lh);
+                    }
+                }
+
+                // Print time
+                if let Some(ref time) = stats.vendor.print_time_estimate {
+                    println!("  Print Time:      {}", time);
+                }
+
+                // Total weight from filaments
+                let total_g: f32 = stats.vendor.filaments.iter().filter_map(|f| f.used_g).sum();
+                if total_g > 0.0 {
+                    println!("  Total Weight:    {:.2}g", total_g);
+                }
+
+                // Filament table (matches Materials section style)
+                if !stats.vendor.filaments.is_empty() {
+                    println!("\n  Filaments:");
+                    println!(
+                        "    {:>3}  {:<6} {:<9} {:>6} {:>6}",
+                        "ID", "Type", "Color", "Meters", "Grams"
+                    );
+                    for f in &stats.vendor.filaments {
+                        println!(
+                            "    {:>3}  {:<6} {:<9} {:>6} {:>6}",
+                            f.id,
+                            &f.type_,
+                            f.color.as_deref().unwrap_or("-"),
+                            f.used_m
+                                .map(|v| format!("{:.2}", v))
+                                .unwrap_or_else(|| "-".to_string()),
+                            f.used_g
+                                .map(|v| format!("{:.2}", v))
+                                .unwrap_or_else(|| "-".to_string()),
+                        );
+                    }
+                }
+
+                // Plates with object assignments
+                if !stats.vendor.plates.is_empty() {
+                    println!("\n  Plates:");
+                    for plate in &stats.vendor.plates {
+                        let name = plate.name.as_deref().unwrap_or("[unnamed]");
+                        let locked_str = if plate.locked { " [locked]" } else { "" };
+                        println!("    Plate {}: {}{}", plate.id, name, locked_str);
+
+                        // Show assigned objects
+                        if !plate.items.is_empty() {
+                            let obj_ids: Vec<String> = plate
+                                .items
+                                .iter()
+                                .map(|item| {
+                                    // Try to find object name from metadata
+                                    let name = stats
+                                        .vendor
+                                        .object_metadata
+                                        .iter()
+                                        .find(|o| o.id == item.object_id)
+                                        .and_then(|o| o.name.as_deref());
+                                    match name {
+                                        Some(n) => format!("{} (ID {})", n, item.object_id),
+                                        None => format!("ID {}", item.object_id),
+                                    }
+                                })
+                                .collect();
+                            println!("      Objects: {}", obj_ids.join(", "));
+                        }
+                    }
+                }
+
+                // Slicer warnings
+                if !stats.vendor.slicer_warnings.is_empty() {
+                    println!("\n  Slicer Warnings:");
+                    for (i, w) in stats.vendor.slicer_warnings.iter().enumerate() {
+                        let code = w.error_code.as_deref().unwrap_or("");
+                        if code.is_empty() {
+                            println!("    [{}] {}", i + 1, w.msg);
+                        } else {
+                            println!("    [{}] {} ({})", i + 1, w.msg, code);
+                        }
+                    }
                 }
             }
 
