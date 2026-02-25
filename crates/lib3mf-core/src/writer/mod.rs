@@ -52,7 +52,7 @@
 //!
 //! - [`beamlattice_writer`]: Writes Beam Lattice Extension data
 //! - [`displacement_writer`]: Writes Displacement Extension data
-//! - **Slice**: Partial support (slicestackid attribute only)
+//! - [`slice_writer`]: Writes Slice Extension data
 //! - **Boolean Operations**: Fully supported in `model_writer`
 //! - **Volumetric**: Fully supported in `model_writer`
 //!
@@ -60,10 +60,9 @@
 //!
 //! The writer has some gaps compared to the parser:
 //!
-//! - **Slice writer**: Only writes `slicestackid` attribute, doesn't serialize full slice geometry.
 //! - **Namespace optimization**: Always emits all namespace declarations rather than only needed ones.
 //!
-//! These limitations don't affect core 3MF functionality but prevent full roundtrip testing for these extensions.
+//! These limitations don't affect core 3MF functionality.
 //!
 //! ## Roundtrip Testing
 //!
@@ -103,4 +102,5 @@ pub mod model_write_zip;
 pub mod model_writer;
 pub mod opc_writer;
 pub mod package_writer;
+pub mod slice_writer;
 pub mod xml_writer;

@@ -333,4 +333,9 @@ impl ResourceCollection {
     pub fn iter_displacement_2d(&self) -> impl Iterator<Item = &Displacement2D> {
         self.displacement_2d.values()
     }
+
+    /// Returns an iterator over all slice stacks in the collection.
+    pub fn iter_slice_stacks(&self) -> impl Iterator<Item = &SliceStack> {
+        self.slice_stacks.values()
+    }
 }
