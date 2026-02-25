@@ -49,10 +49,30 @@ fn create_model_with_square_slice(stack_id: u32, z_bottom: f32, z_top: f32) -> M
             polygons: vec![Polygon {
                 start_segment: 0,
                 segments: vec![
-                    Segment { v2: 1, p1: None, p2: None, pid: None },
-                    Segment { v2: 2, p1: None, p2: None, pid: None },
-                    Segment { v2: 3, p1: None, p2: None, pid: None },
-                    Segment { v2: 0, p1: None, p2: None, pid: None },
+                    Segment {
+                        v2: 1,
+                        p1: None,
+                        p2: None,
+                        pid: None,
+                    },
+                    Segment {
+                        v2: 2,
+                        p1: None,
+                        p2: None,
+                        pid: None,
+                    },
+                    Segment {
+                        v2: 3,
+                        p1: None,
+                        p2: None,
+                        pid: None,
+                    },
+                    Segment {
+                        v2: 0,
+                        p1: None,
+                        p2: None,
+                        pid: None,
+                    },
                 ],
             }],
         }],
@@ -94,9 +114,7 @@ fn test_slice_namespace_present() {
     let xml_str = String::from_utf8(buffer).unwrap();
 
     assert!(
-        xml_str.contains(
-            r#"xmlns:s="http://schemas.microsoft.com/3dmanufacturing/slice/2015/07""#
-        ),
+        xml_str.contains(r#"xmlns:s="http://schemas.microsoft.com/3dmanufacturing/slice/2015/07""#),
         "Expected slice namespace declaration in output XML.\nGot XML:\n{}",
         &xml_str[..xml_str.len().min(500)]
     );
@@ -181,11 +199,26 @@ fn test_slice_segment_properties_roundtrip() {
                 start_segment: 0,
                 segments: vec![
                     // Segment with pid only
-                    Segment { v2: 1, pid: Some(ResourceId(5)), p1: None, p2: None },
+                    Segment {
+                        v2: 1,
+                        pid: Some(ResourceId(5)),
+                        p1: None,
+                        p2: None,
+                    },
                     // Segment with p1 and p2, no pid
-                    Segment { v2: 2, pid: None, p1: Some(10), p2: Some(15) },
+                    Segment {
+                        v2: 2,
+                        pid: None,
+                        p1: Some(10),
+                        p2: Some(15),
+                    },
                     // Segment with no properties
-                    Segment { v2: 0, pid: None, p1: None, p2: None },
+                    Segment {
+                        v2: 0,
+                        pid: None,
+                        p1: None,
+                        p2: None,
+                    },
                 ],
             }],
         }],
@@ -333,10 +366,30 @@ fn test_slice_multiple_slices_roundtrip() {
                 polygons: vec![Polygon {
                     start_segment: 0,
                     segments: vec![
-                        Segment { v2: 1, p1: None, p2: None, pid: None },
-                        Segment { v2: 2, p1: None, p2: None, pid: None },
-                        Segment { v2: 3, p1: None, p2: None, pid: None },
-                        Segment { v2: 0, p1: None, p2: None, pid: None },
+                        Segment {
+                            v2: 1,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 2,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 3,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 0,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
                     ],
                 }],
             },
@@ -351,10 +404,30 @@ fn test_slice_multiple_slices_roundtrip() {
                 polygons: vec![Polygon {
                     start_segment: 0,
                     segments: vec![
-                        Segment { v2: 1, p1: None, p2: None, pid: None },
-                        Segment { v2: 2, p1: None, p2: None, pid: None },
-                        Segment { v2: 3, p1: None, p2: None, pid: None },
-                        Segment { v2: 0, p1: None, p2: None, pid: None },
+                        Segment {
+                            v2: 1,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 2,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 3,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 0,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
                     ],
                 }],
             },
@@ -369,10 +442,30 @@ fn test_slice_multiple_slices_roundtrip() {
                 polygons: vec![Polygon {
                     start_segment: 0,
                     segments: vec![
-                        Segment { v2: 1, p1: None, p2: None, pid: None },
-                        Segment { v2: 2, p1: None, p2: None, pid: None },
-                        Segment { v2: 3, p1: None, p2: None, pid: None },
-                        Segment { v2: 0, p1: None, p2: None, pid: None },
+                        Segment {
+                            v2: 1,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 2,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 3,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 0,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
                     ],
                 }],
             },
@@ -434,15 +527,22 @@ fn test_slice_multiple_objects_roundtrip() {
         z_bottom: 0.0,
         slices: vec![Slice {
             z_top: 0.5,
-            vertices: vec![
-                Vertex2D { x: 0.0, y: 0.0 },
-                Vertex2D { x: 1.0, y: 0.0 },
-            ],
+            vertices: vec![Vertex2D { x: 0.0, y: 0.0 }, Vertex2D { x: 1.0, y: 0.0 }],
             polygons: vec![Polygon {
                 start_segment: 0,
                 segments: vec![
-                    Segment { v2: 1, p1: None, p2: None, pid: None },
-                    Segment { v2: 0, p1: None, p2: None, pid: None },
+                    Segment {
+                        v2: 1,
+                        p1: None,
+                        p2: None,
+                        pid: None,
+                    },
+                    Segment {
+                        v2: 0,
+                        p1: None,
+                        p2: None,
+                        pid: None,
+                    },
                 ],
             }],
         }],
@@ -456,15 +556,22 @@ fn test_slice_multiple_objects_roundtrip() {
         z_bottom: 1.0,
         slices: vec![Slice {
             z_top: 1.5,
-            vertices: vec![
-                Vertex2D { x: 2.0, y: 2.0 },
-                Vertex2D { x: 3.0, y: 2.0 },
-            ],
+            vertices: vec![Vertex2D { x: 2.0, y: 2.0 }, Vertex2D { x: 3.0, y: 2.0 }],
             polygons: vec![Polygon {
                 start_segment: 0,
                 segments: vec![
-                    Segment { v2: 1, p1: None, p2: None, pid: None },
-                    Segment { v2: 0, p1: None, p2: None, pid: None },
+                    Segment {
+                        v2: 1,
+                        p1: None,
+                        p2: None,
+                        pid: None,
+                    },
+                    Segment {
+                        v2: 0,
+                        p1: None,
+                        p2: None,
+                        pid: None,
+                    },
                 ],
             }],
         }],
@@ -567,29 +674,43 @@ fn test_slice_mixed_slices_and_refs_roundtrip() {
         slices: vec![
             Slice {
                 z_top: 0.2,
-                vertices: vec![
-                    Vertex2D { x: 0.0, y: 0.0 },
-                    Vertex2D { x: 5.0, y: 0.0 },
-                ],
+                vertices: vec![Vertex2D { x: 0.0, y: 0.0 }, Vertex2D { x: 5.0, y: 0.0 }],
                 polygons: vec![Polygon {
                     start_segment: 0,
                     segments: vec![
-                        Segment { v2: 1, p1: None, p2: None, pid: None },
-                        Segment { v2: 0, p1: None, p2: None, pid: None },
+                        Segment {
+                            v2: 1,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 0,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
                     ],
                 }],
             },
             Slice {
                 z_top: 0.6,
-                vertices: vec![
-                    Vertex2D { x: 1.0, y: 1.0 },
-                    Vertex2D { x: 4.0, y: 1.0 },
-                ],
+                vertices: vec![Vertex2D { x: 1.0, y: 1.0 }, Vertex2D { x: 4.0, y: 1.0 }],
                 polygons: vec![Polygon {
                     start_segment: 0,
                     segments: vec![
-                        Segment { v2: 1, p1: None, p2: None, pid: None },
-                        Segment { v2: 0, p1: None, p2: None, pid: None },
+                        Segment {
+                            v2: 1,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 0,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
                     ],
                 }],
             },
@@ -710,19 +831,59 @@ fn test_slice_multiple_polygons_roundtrip() {
                 Polygon {
                     start_segment: 0,
                     segments: vec![
-                        Segment { v2: 1, p1: None, p2: None, pid: None },
-                        Segment { v2: 2, p1: None, p2: None, pid: None },
-                        Segment { v2: 3, p1: None, p2: None, pid: None },
-                        Segment { v2: 0, p1: None, p2: None, pid: None },
+                        Segment {
+                            v2: 1,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 2,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 3,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 0,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
                     ],
                 },
                 Polygon {
                     start_segment: 4,
                     segments: vec![
-                        Segment { v2: 5, p1: None, p2: None, pid: None },
-                        Segment { v2: 6, p1: None, p2: None, pid: None },
-                        Segment { v2: 7, p1: None, p2: None, pid: None },
-                        Segment { v2: 4, p1: None, p2: None, pid: None },
+                        Segment {
+                            v2: 5,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 6,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 7,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
+                        Segment {
+                            v2: 4,
+                            p1: None,
+                            p2: None,
+                            pid: None,
+                        },
                     ],
                 },
             ],

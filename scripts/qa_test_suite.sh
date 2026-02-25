@@ -122,8 +122,8 @@ echo "=== Project Validation ==="
 run_cmd "cargo build" "Building Debug"
 run_cmd "cargo build --release" "Building Release"
 
-CLI_BIN_DEBUG="./target/debug/lib3mf-cli"
-CLI_BIN_RELEASE="./target/release/lib3mf-cli"
+CLI_BIN_DEBUG="./target/debug/3mf"
+CLI_BIN_RELEASE="./target/release/3mf"
 
 # Ensure at least debug binary exists for rest of tests
 if [ ! -f "$CLI_BIN_DEBUG" ]; then

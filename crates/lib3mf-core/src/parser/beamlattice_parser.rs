@@ -51,10 +51,7 @@ pub fn parse_beam_lattice_content<R: BufRead>(
     })
 }
 
-fn parse_beams<R: BufRead>(
-    parser: &mut XmlParser<R>,
-    default_radius: f32,
-) -> Result<Vec<Beam>> {
+fn parse_beams<R: BufRead>(parser: &mut XmlParser<R>, default_radius: f32) -> Result<Vec<Beam>> {
     let mut beams = Vec::new();
     loop {
         match parser.read_next_event()? {

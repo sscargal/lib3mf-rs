@@ -148,12 +148,19 @@ fn test_beam_lattice_basic_roundtrip() {
     let obj = parsed.resources.get_object(ResourceId(1)).unwrap();
 
     if let Geometry::Mesh(mesh) = &obj.geometry {
-        let lat = mesh.beam_lattice.as_ref().expect("BeamLattice should be present after roundtrip");
+        let lat = mesh
+            .beam_lattice
+            .as_ref()
+            .expect("BeamLattice should be present after roundtrip");
 
         // BLW-02: lattice-level attributes preserved
         assert!((lat.min_length - 0.1).abs() < 1e-6, "min_length mismatch");
         assert!((lat.precision - 0.01).abs() < 1e-6, "precision mismatch");
-        assert_eq!(lat.clipping_mode, ClippingMode::Inside, "clipping_mode mismatch");
+        assert_eq!(
+            lat.clipping_mode,
+            ClippingMode::Inside,
+            "clipping_mode mismatch"
+        );
 
         // BLW-03: beams preserved
         assert_eq!(lat.beams.len(), 3, "beam count mismatch");
@@ -243,9 +250,21 @@ fn test_beam_lattice_cap_modes_roundtrip() {
     if let Geometry::Mesh(mesh) = &obj.geometry {
         let lat = mesh.beam_lattice.as_ref().unwrap();
         assert_eq!(lat.beams.len(), 3);
-        assert_eq!(lat.beams[0].cap_mode, CapMode::Sphere, "Sphere cap mode not preserved");
-        assert_eq!(lat.beams[1].cap_mode, CapMode::Hemisphere, "Hemisphere cap mode not preserved");
-        assert_eq!(lat.beams[2].cap_mode, CapMode::Butt, "Butt cap mode not preserved");
+        assert_eq!(
+            lat.beams[0].cap_mode,
+            CapMode::Sphere,
+            "Sphere cap mode not preserved"
+        );
+        assert_eq!(
+            lat.beams[1].cap_mode,
+            CapMode::Hemisphere,
+            "Hemisphere cap mode not preserved"
+        );
+        assert_eq!(
+            lat.beams[2].cap_mode,
+            CapMode::Butt,
+            "Butt cap mode not preserved"
+        );
     } else {
         panic!("Expected Geometry::Mesh");
     }
@@ -312,9 +331,33 @@ fn test_beam_lattice_beam_sets_roundtrip() {
         precision: 0.0,
         clipping_mode: ClippingMode::None,
         beams: vec![
-            Beam { v1: 0, v2: 1, r1: 1.0, r2: 1.0, p1: None, p2: None, cap_mode: CapMode::Sphere },
-            Beam { v1: 1, v2: 2, r1: 1.0, r2: 1.0, p1: None, p2: None, cap_mode: CapMode::Sphere },
-            Beam { v1: 0, v2: 3, r1: 1.0, r2: 1.0, p1: None, p2: None, cap_mode: CapMode::Sphere },
+            Beam {
+                v1: 0,
+                v2: 1,
+                r1: 1.0,
+                r2: 1.0,
+                p1: None,
+                p2: None,
+                cap_mode: CapMode::Sphere,
+            },
+            Beam {
+                v1: 1,
+                v2: 2,
+                r1: 1.0,
+                r2: 1.0,
+                p1: None,
+                p2: None,
+                cap_mode: CapMode::Sphere,
+            },
+            Beam {
+                v1: 0,
+                v2: 3,
+                r1: 1.0,
+                r2: 1.0,
+                p1: None,
+                p2: None,
+                cap_mode: CapMode::Sphere,
+            },
         ],
         beam_sets: vec![
             // Full: name + identifier + refs
@@ -351,7 +394,11 @@ fn test_beam_lattice_beam_sets_roundtrip() {
         // BeamSet 0: name + identifier + refs
         let bs0 = &lat.beam_sets[0];
         assert_eq!(bs0.name, Some("Set1".to_string()), "bs0 name mismatch");
-        assert_eq!(bs0.identifier, Some("BS1".to_string()), "bs0 identifier mismatch");
+        assert_eq!(
+            bs0.identifier,
+            Some("BS1".to_string()),
+            "bs0 identifier mismatch"
+        );
         assert_eq!(bs0.refs, vec![0, 1], "bs0 refs mismatch");
 
         // BeamSet 1: name only
@@ -383,9 +430,15 @@ fn test_beam_lattice_no_beam_sets() {
         min_length: 0.5,
         precision: 0.001,
         clipping_mode: ClippingMode::None,
-        beams: vec![
-            Beam { v1: 0, v2: 1, r1: 2.0, r2: 2.0, p1: None, p2: None, cap_mode: CapMode::Sphere },
-        ],
+        beams: vec![Beam {
+            v1: 0,
+            v2: 1,
+            r1: 2.0,
+            r2: 2.0,
+            p1: None,
+            p2: None,
+            cap_mode: CapMode::Sphere,
+        }],
         beam_sets: vec![],
     };
 
@@ -405,7 +458,10 @@ fn test_beam_lattice_no_beam_sets() {
     let obj = parsed.resources.get_object(ResourceId(1)).unwrap();
     if let Geometry::Mesh(mesh) = &obj.geometry {
         let lat = mesh.beam_lattice.as_ref().unwrap();
-        assert!(lat.beam_sets.is_empty(), "beam_sets should be empty after roundtrip");
+        assert!(
+            lat.beam_sets.is_empty(),
+            "beam_sets should be empty after roundtrip"
+        );
         assert_eq!(lat.beams.len(), 1, "beam count mismatch");
         assert!((lat.min_length - 0.5).abs() < 1e-6, "min_length mismatch");
         assert!((lat.precision - 0.001).abs() < 1e-6, "precision mismatch");

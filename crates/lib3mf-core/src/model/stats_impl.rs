@@ -45,8 +45,7 @@ impl Model {
                 && let Ok(slice_info) = crate::parser::bambu_config::parse_slice_info(&content)
             {
                 vendor_data.slicer_version = slice_info.client_version.as_ref().map(|v| {
-                    let client =
-                        slice_info.client_type.as_deref().unwrap_or("BambuStudio");
+                    let client = slice_info.client_type.as_deref().unwrap_or("BambuStudio");
                     format!("{}-{}", client.replace(' ', ""), v)
                 });
 
@@ -63,8 +62,7 @@ impl Model {
                 }
 
                 if total_time_secs > 0 {
-                    vendor_data.print_time_estimate =
-                        Some(format_duration(total_time_secs));
+                    vendor_data.print_time_estimate = Some(format_duration(total_time_secs));
                 }
 
                 // Filaments from first plate (they are per-plate but typically same)
@@ -95,8 +93,7 @@ impl Model {
             // 3c. Parse project_settings.config (printer model, bed type, layer height, etc.)
             if archive.entry_exists("Metadata/project_settings.config")
                 && let Ok(content) = archive.read_entry("Metadata/project_settings.config")
-                && let Ok(settings) =
-                    crate::parser::bambu_config::parse_project_settings(&content)
+                && let Ok(settings) = crate::parser::bambu_config::parse_project_settings(&content)
             {
                 // Use project settings for printer model if not already set from slice_info
                 if vendor_data.printer_model.is_none() {
@@ -117,8 +114,11 @@ impl Model {
                     let path = format!("Metadata/{}_settings_{}.config", config_type, n);
                     if archive.entry_exists(&path)
                         && let Ok(content) = archive.read_entry(&path)
-                        && let Ok(config) =
-                            crate::parser::bambu_config::parse_profile_config(&content, config_type, n)
+                        && let Ok(config) = crate::parser::bambu_config::parse_profile_config(
+                            &content,
+                            config_type,
+                            n,
+                        )
                     {
                         vendor_data.profile_configs.push(config);
                     }
@@ -149,8 +149,7 @@ impl Model {
                         bambu_rel_types::COVER_THUMBNAIL_MIDDLE
                         | bambu_rel_types::COVER_THUMBNAIL_SMALL => {
                             if vendor_data.bambu_cover_thumbnail.is_none() {
-                                vendor_data.bambu_cover_thumbnail =
-                                    Some(rel.target.clone());
+                                vendor_data.bambu_cover_thumbnail = Some(rel.target.clone());
                             }
                         }
                         bambu_rel_types::GCODE => {

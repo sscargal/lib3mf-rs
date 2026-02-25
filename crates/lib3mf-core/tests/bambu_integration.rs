@@ -4,7 +4,7 @@
 //! Each test skips gracefully if the test file is not available,
 //! since these files live in tmp/models/ and may not be present in CI.
 
-use lib3mf_core::archive::{find_model_path, ArchiveReader, ZipArchiver};
+use lib3mf_core::archive::{ArchiveReader, ZipArchiver, find_model_path};
 use lib3mf_core::parser::parse_model;
 use std::fs::File;
 use std::path::Path;
@@ -40,13 +40,17 @@ fn parse_bambu_file(
     let file = File::open(&path).expect("Failed to open test file");
     let mut archiver = ZipArchiver::new(file).expect("Failed to open ZIP");
     let model_path_str = find_model_path(&mut archiver).expect("Failed to find model path");
-    let model_data = archiver.read_entry(&model_path_str).expect("Failed to read model");
+    let model_data = archiver
+        .read_entry(&model_path_str)
+        .expect("Failed to read model");
     let model = parse_model(std::io::Cursor::new(model_data)).expect("Failed to parse model");
 
     // Re-open for stats (archiver consumed by read)
     let file2 = File::open(&path).expect("Failed to reopen");
     let mut archiver2 = ZipArchiver::new(file2).expect("Failed to reopen ZIP");
-    let stats = model.compute_stats(&mut archiver2).expect("Failed to compute stats");
+    let stats = model
+        .compute_stats(&mut archiver2)
+        .expect("Failed to compute stats");
 
     (model, stats)
 }

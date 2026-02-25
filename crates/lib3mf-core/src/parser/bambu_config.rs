@@ -11,9 +11,8 @@
 
 use crate::error::Result;
 use crate::model::stats::{
-    AssemblyItem, BambuMeshStat, BambuObjectMetadata, BambuPartMetadata,
-    BambuProfileConfig, BambuProjectSettings, PlateInfo, PlateModelInstance,
-    PartSubtype, SlicerWarning,
+    AssemblyItem, BambuMeshStat, BambuObjectMetadata, BambuPartMetadata, BambuProfileConfig,
+    BambuProjectSettings, PartSubtype, PlateInfo, PlateModelInstance, SlicerWarning,
 };
 use crate::parser::xml_parser::{XmlParser, get_attribute};
 use quick_xml::events::Event;
@@ -37,8 +36,8 @@ pub struct SliceInfoData {
 #[derive(Debug, Clone, Default)]
 pub struct SlicePlateInfo {
     pub id: u32,
-    pub prediction: Option<u32>,  // seconds
-    pub weight: Option<f32>,      // grams
+    pub prediction: Option<u32>, // seconds
+    pub weight: Option<f32>,     // grams
     pub filaments: Vec<SliceFilamentUsage>,
     pub warnings: Vec<SlicerWarning>,
     pub objects: Vec<SliceObjectInfo>,
@@ -130,71 +129,66 @@ fn parse_slice_plate(parser: &mut XmlParser<Cursor<&[u8]>>) -> Result<SlicePlate
 
     loop {
         match parser.read_next_event()? {
-            Event::Empty(e) | Event::Start(e) => {
-                match e.name().as_ref() {
-                    b"metadata" => {
-                        let key = get_attribute(&e, b"key");
-                        let value = get_attribute(&e, b"value");
-                        if let (Some(k), Some(v)) = (key, value) {
-                            match k.as_ref() {
-                                "index" => {
-                                    if let Ok(id) = v.parse::<u32>() {
-                                        plate.id = id;
-                                    }
+            Event::Empty(e) | Event::Start(e) => match e.name().as_ref() {
+                b"metadata" => {
+                    let key = get_attribute(&e, b"key");
+                    let value = get_attribute(&e, b"value");
+                    if let (Some(k), Some(v)) = (key, value) {
+                        match k.as_ref() {
+                            "index" => {
+                                if let Ok(id) = v.parse::<u32>() {
+                                    plate.id = id;
                                 }
-                                "prediction" => {
-                                    plate.prediction = v.parse::<u32>().ok();
-                                }
-                                "weight" => {
-                                    plate.weight = v.parse::<f32>().ok();
-                                }
-                                _ => {}
                             }
+                            "prediction" => {
+                                plate.prediction = v.parse::<u32>().ok();
+                            }
+                            "weight" => {
+                                plate.weight = v.parse::<f32>().ok();
+                            }
+                            _ => {}
                         }
                     }
-                    b"filament" => {
-                        let id = get_attribute(&e, b"id")
-                            .and_then(|v| v.parse::<u32>().ok())
-                            .unwrap_or(0);
-                        let tray_info_idx = get_attribute(&e, b"tray_info_idx")
-                            .map(|v| v.into_owned());
-                        let type_ = get_attribute(&e, b"type").map(|v| v.into_owned());
-                        let color = get_attribute(&e, b"color").map(|v| v.into_owned());
-                        let used_m = get_attribute(&e, b"used_m")
-                            .and_then(|v| v.parse::<f32>().ok());
-                        let used_g = get_attribute(&e, b"used_g")
-                            .and_then(|v| v.parse::<f32>().ok());
-                        plate.filaments.push(SliceFilamentUsage {
-                            id,
-                            tray_info_idx,
-                            type_,
-                            color,
-                            used_m,
-                            used_g,
-                        });
-                    }
-                    b"warning" => {
-                        let msg = get_attribute(&e, b"msg")
-                            .map(|v| v.into_owned())
-                            .unwrap_or_default();
-                        let level = get_attribute(&e, b"level").map(|v| v.into_owned());
-                        let error_code = get_attribute(&e, b"error_code").map(|v| v.into_owned());
-                        plate.warnings.push(SlicerWarning {
-                            msg,
-                            level,
-                            error_code,
-                        });
-                    }
-                    b"object" => {
-                        let id = get_attribute(&e, b"identify_id")
-                            .and_then(|v| v.parse::<u32>().ok())
-                            .unwrap_or(0);
-                        let name = get_attribute(&e, b"name").map(|v| v.into_owned());
-                        plate.objects.push(SliceObjectInfo { id, name });
-                    }
-                    _ => {}
                 }
-            }
+                b"filament" => {
+                    let id = get_attribute(&e, b"id")
+                        .and_then(|v| v.parse::<u32>().ok())
+                        .unwrap_or(0);
+                    let tray_info_idx = get_attribute(&e, b"tray_info_idx").map(|v| v.into_owned());
+                    let type_ = get_attribute(&e, b"type").map(|v| v.into_owned());
+                    let color = get_attribute(&e, b"color").map(|v| v.into_owned());
+                    let used_m = get_attribute(&e, b"used_m").and_then(|v| v.parse::<f32>().ok());
+                    let used_g = get_attribute(&e, b"used_g").and_then(|v| v.parse::<f32>().ok());
+                    plate.filaments.push(SliceFilamentUsage {
+                        id,
+                        tray_info_idx,
+                        type_,
+                        color,
+                        used_m,
+                        used_g,
+                    });
+                }
+                b"warning" => {
+                    let msg = get_attribute(&e, b"msg")
+                        .map(|v| v.into_owned())
+                        .unwrap_or_default();
+                    let level = get_attribute(&e, b"level").map(|v| v.into_owned());
+                    let error_code = get_attribute(&e, b"error_code").map(|v| v.into_owned());
+                    plate.warnings.push(SlicerWarning {
+                        msg,
+                        level,
+                        error_code,
+                    });
+                }
+                b"object" => {
+                    let id = get_attribute(&e, b"identify_id")
+                        .and_then(|v| v.parse::<u32>().ok())
+                        .unwrap_or(0);
+                    let name = get_attribute(&e, b"name").map(|v| v.into_owned());
+                    plate.objects.push(SliceObjectInfo { id, name });
+                }
+                _ => {}
+            },
             Event::End(end) if end.name().as_ref() == b"plate" => break,
             Event::Eof => break,
             _ => {}
@@ -220,26 +214,24 @@ pub fn parse_model_settings(content: &[u8]) -> Result<ModelSettingsData> {
 
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) => {
-                match e.name().as_ref() {
-                    b"object" => {
-                        let id = get_attribute(&e, b"id")
-                            .and_then(|v| v.parse::<u32>().ok())
-                            .unwrap_or(0);
-                        let obj = parse_model_object(&mut parser, id)?;
-                        data.objects.push(obj);
-                    }
-                    b"plate" => {
-                        let plate = parse_model_plate(&mut parser)?;
-                        data.plates.push(plate);
-                    }
-                    b"assemble" => {
-                        let items = parse_assemble(&mut parser)?;
-                        data.assembly.extend(items);
-                    }
-                    _ => {}
+            Event::Start(e) => match e.name().as_ref() {
+                b"object" => {
+                    let id = get_attribute(&e, b"id")
+                        .and_then(|v| v.parse::<u32>().ok())
+                        .unwrap_or(0);
+                    let obj = parse_model_object(&mut parser, id)?;
+                    data.objects.push(obj);
                 }
-            }
+                b"plate" => {
+                    let plate = parse_model_plate(&mut parser)?;
+                    data.plates.push(plate);
+                }
+                b"assemble" => {
+                    let items = parse_assemble(&mut parser)?;
+                    data.assembly.extend(items);
+                }
+                _ => {}
+            },
             Event::Eof => break,
             _ => {}
         }
@@ -332,63 +324,61 @@ fn parse_part(
 
     loop {
         match parser.read_next_event()? {
-            Event::Empty(e) | Event::Start(e) => {
-                match e.name().as_ref() {
-                    b"metadata" => {
-                        let key = get_attribute(&e, b"key");
-                        let value = get_attribute(&e, b"value");
-                        if let (Some(k), Some(v)) = (key, value) {
-                            let k_str = k.as_ref();
-                            match k_str {
-                                "name" => part.name = Some(v.into_owned()),
-                                "matrix" => part.matrix = Some(v.into_owned()),
-                                "source_volume_id" => {
-                                    let src = part.source.get_or_insert_with(Default::default);
-                                    src.volume_id = v.parse::<u32>().ok();
-                                }
-                                "source_offset_x" => {
-                                    let src = part.source.get_or_insert_with(Default::default);
-                                    src.offset_x = v.parse::<f64>().ok();
-                                }
-                                "source_offset_y" => {
-                                    let src = part.source.get_or_insert_with(Default::default);
-                                    src.offset_y = v.parse::<f64>().ok();
-                                }
-                                "source_offset_z" => {
-                                    let src = part.source.get_or_insert_with(Default::default);
-                                    src.offset_z = v.parse::<f64>().ok();
-                                }
-                                other => {
-                                    if !KNOWN_KEYS.contains(&other) {
-                                        part.print_overrides
-                                            .insert(other.to_string(), v.into_owned());
-                                    }
+            Event::Empty(e) | Event::Start(e) => match e.name().as_ref() {
+                b"metadata" => {
+                    let key = get_attribute(&e, b"key");
+                    let value = get_attribute(&e, b"value");
+                    if let (Some(k), Some(v)) = (key, value) {
+                        let k_str = k.as_ref();
+                        match k_str {
+                            "name" => part.name = Some(v.into_owned()),
+                            "matrix" => part.matrix = Some(v.into_owned()),
+                            "source_volume_id" => {
+                                let src = part.source.get_or_insert_with(Default::default);
+                                src.volume_id = v.parse::<u32>().ok();
+                            }
+                            "source_offset_x" => {
+                                let src = part.source.get_or_insert_with(Default::default);
+                                src.offset_x = v.parse::<f64>().ok();
+                            }
+                            "source_offset_y" => {
+                                let src = part.source.get_or_insert_with(Default::default);
+                                src.offset_y = v.parse::<f64>().ok();
+                            }
+                            "source_offset_z" => {
+                                let src = part.source.get_or_insert_with(Default::default);
+                                src.offset_z = v.parse::<f64>().ok();
+                            }
+                            other => {
+                                if !KNOWN_KEYS.contains(&other) {
+                                    part.print_overrides
+                                        .insert(other.to_string(), v.into_owned());
                                 }
                             }
                         }
                     }
-                    b"mesh_stat" => {
-                        let edges_fixed = get_attribute(&e, b"edges_fixed")
-                            .and_then(|v| v.parse::<u32>().ok());
-                        let degenerate_facets = get_attribute(&e, b"degenerate_facets")
-                            .and_then(|v| v.parse::<u32>().ok());
-                        let facets_removed = get_attribute(&e, b"facets_removed")
-                            .and_then(|v| v.parse::<u32>().ok());
-                        let facets_reversed = get_attribute(&e, b"facets_reversed")
-                            .and_then(|v| v.parse::<u32>().ok());
-                        let backwards_edges = get_attribute(&e, b"backwards_edges")
-                            .and_then(|v| v.parse::<u32>().ok());
-                        part.mesh_stat = Some(BambuMeshStat {
-                            edges_fixed,
-                            degenerate_facets,
-                            facets_removed,
-                            facets_reversed,
-                            backwards_edges,
-                        });
-                    }
-                    _ => {}
                 }
-            }
+                b"mesh_stat" => {
+                    let edges_fixed =
+                        get_attribute(&e, b"edges_fixed").and_then(|v| v.parse::<u32>().ok());
+                    let degenerate_facets =
+                        get_attribute(&e, b"degenerate_facets").and_then(|v| v.parse::<u32>().ok());
+                    let facets_removed =
+                        get_attribute(&e, b"facets_removed").and_then(|v| v.parse::<u32>().ok());
+                    let facets_reversed =
+                        get_attribute(&e, b"facets_reversed").and_then(|v| v.parse::<u32>().ok());
+                    let backwards_edges =
+                        get_attribute(&e, b"backwards_edges").and_then(|v| v.parse::<u32>().ok());
+                    part.mesh_stat = Some(BambuMeshStat {
+                        edges_fixed,
+                        degenerate_facets,
+                        facets_removed,
+                        facets_reversed,
+                        backwards_edges,
+                    });
+                }
+                _ => {}
+            },
             Event::End(end) if end.name().as_ref() == b"part" => break,
             Event::Eof => break,
             _ => {}
@@ -403,43 +393,41 @@ fn parse_model_plate(parser: &mut XmlParser<Cursor<&[u8]>>) -> Result<PlateInfo>
 
     loop {
         match parser.read_next_event()? {
-            Event::Empty(e) | Event::Start(e) => {
-                match e.name().as_ref() {
-                    b"metadata" => {
-                        let key = get_attribute(&e, b"key");
-                        let value = get_attribute(&e, b"value");
-                        if let (Some(k), Some(v)) = (key, value) {
-                            match k.as_ref() {
-                                "plater_id" => {
-                                    if let Ok(id) = v.parse::<u32>() {
-                                        plate.id = id;
-                                    }
+            Event::Empty(e) | Event::Start(e) => match e.name().as_ref() {
+                b"metadata" => {
+                    let key = get_attribute(&e, b"key");
+                    let value = get_attribute(&e, b"value");
+                    if let (Some(k), Some(v)) = (key, value) {
+                        match k.as_ref() {
+                            "plater_id" => {
+                                if let Ok(id) = v.parse::<u32>() {
+                                    plate.id = id;
                                 }
-                                "plater_name" => {
-                                    if !v.is_empty() {
-                                        plate.name = Some(v.into_owned());
-                                    }
-                                }
-                                "locked" => {
-                                    plate.locked = v == "true";
-                                }
-                                "gcode_file" => {
-                                    plate.gcode_file = Some(v.into_owned());
-                                }
-                                "thumbnail_file" => {
-                                    plate.thumbnail_file = Some(v.into_owned());
-                                }
-                                _ => {}
                             }
+                            "plater_name" => {
+                                if !v.is_empty() {
+                                    plate.name = Some(v.into_owned());
+                                }
+                            }
+                            "locked" => {
+                                plate.locked = v == "true";
+                            }
+                            "gcode_file" => {
+                                plate.gcode_file = Some(v.into_owned());
+                            }
+                            "thumbnail_file" => {
+                                plate.thumbnail_file = Some(v.into_owned());
+                            }
+                            _ => {}
                         }
                     }
-                    b"model_instance" => {
-                        let instance = parse_model_instance(parser)?;
-                        plate.items.push(instance);
-                    }
-                    _ => {}
                 }
-            }
+                b"model_instance" => {
+                    let instance = parse_model_instance(parser)?;
+                    plate.items.push(instance);
+                }
+                _ => {}
+            },
             Event::End(end) if end.name().as_ref() == b"plate" => break,
             Event::Eof => break,
             _ => {}
@@ -885,7 +873,10 @@ mod tests {
         assert_eq!(plate.id, 1);
         assert!(!plate.locked);
         assert_eq!(plate.gcode_file.as_deref(), Some("Metadata/plate_1.gcode"));
-        assert_eq!(plate.thumbnail_file.as_deref(), Some("Metadata/plate_1.png"));
+        assert_eq!(
+            plate.thumbnail_file.as_deref(),
+            Some("Metadata/plate_1.png")
+        );
         assert_eq!(plate.items.len(), 1);
         assert_eq!(plate.items[0].object_id, 8);
         assert_eq!(plate.items[0].identify_id, Some(145));
@@ -982,10 +973,7 @@ mod tests {
 
         assert_eq!(result.config_type, "filament");
         assert_eq!(result.index, 1);
-        assert_eq!(
-            result.inherits.as_deref(),
-            Some("Bambu PLA Basic @BBL P1P")
-        );
+        assert_eq!(result.inherits.as_deref(), Some("Bambu PLA Basic @BBL P1P"));
         assert_eq!(
             result.name.as_deref(),
             Some("Bambu PLA Basic @BBL P1P(project.3mf)")
