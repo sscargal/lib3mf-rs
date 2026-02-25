@@ -1,5 +1,6 @@
 use crate::error::Result;
 use crate::model::mesh::Mesh;
+use crate::writer::beamlattice_writer::write_beam_lattice;
 use crate::writer::xml_writer::XmlWriter;
 use std::io::Write;
 
@@ -43,6 +44,11 @@ pub fn write_mesh<W: Write>(writer: &mut XmlWriter<W>, mesh: &Mesh) -> Result<()
         builder.write_empty()?;
     }
     writer.end_element("triangles")?;
+
+    // Write beam lattice if present
+    if let Some(lattice) = &mesh.beam_lattice {
+        write_beam_lattice(writer, lattice)?;
+    }
 
     writer.end_element("mesh")?;
     Ok(())

@@ -34,139 +34,129 @@ impl Model {
 
         let is_bambu = generator
             .as_ref()
-            .map_or(false, |app| app.contains("Bambu") || app.contains("Orca"));
+            .is_some_and(|app| app.contains("Bambu") || app.contains("Orca"));
 
         if is_bambu {
             let archive = resolver.archive_mut();
 
             // 3a. Parse slice_info.config (slicer version, printer model, filaments, print time, warnings)
-            if archive.entry_exists("Metadata/slice_info.config") {
-                if let Ok(content) = archive.read_entry("Metadata/slice_info.config") {
-                    if let Ok(slice_info) =
-                        crate::parser::bambu_config::parse_slice_info(&content)
-                    {
-                        vendor_data.slicer_version = slice_info.client_version.as_ref().map(|v| {
-                            let client =
-                                slice_info.client_type.as_deref().unwrap_or("BambuStudio");
-                            format!("{}-{}", client.replace(' ', ""), v)
+            if archive.entry_exists("Metadata/slice_info.config")
+                && let Ok(content) = archive.read_entry("Metadata/slice_info.config")
+                && let Ok(slice_info) = crate::parser::bambu_config::parse_slice_info(&content)
+            {
+                vendor_data.slicer_version = slice_info.client_version.as_ref().map(|v| {
+                    let client =
+                        slice_info.client_type.as_deref().unwrap_or("BambuStudio");
+                    format!("{}-{}", client.replace(' ', ""), v)
+                });
+
+                // Aggregate print time and filaments across all plates
+                let mut total_time_secs: u32 = 0;
+                for plate in &slice_info.plates {
+                    if let Some(pred) = plate.prediction {
+                        total_time_secs += pred;
+                    }
+                    // Collect slicer warnings
+                    for w in &plate.warnings {
+                        vendor_data.slicer_warnings.push(w.clone());
+                    }
+                }
+
+                if total_time_secs > 0 {
+                    vendor_data.print_time_estimate =
+                        Some(format_duration(total_time_secs));
+                }
+
+                // Filaments from first plate (they are per-plate but typically same)
+                if let Some(first_plate) = slice_info.plates.first() {
+                    for f in &first_plate.filaments {
+                        vendor_data.filaments.push(FilamentInfo {
+                            id: f.id,
+                            tray_info_idx: f.tray_info_idx.clone(),
+                            type_: f.type_.clone().unwrap_or_default(),
+                            color: f.color.clone(),
+                            used_m: f.used_m,
+                            used_g: f.used_g,
                         });
-
-                        // Aggregate print time and filaments across all plates
-                        let mut total_time_secs: u32 = 0;
-                        for plate in &slice_info.plates {
-                            if let Some(pred) = plate.prediction {
-                                total_time_secs += pred;
-                            }
-                            // Collect slicer warnings
-                            for w in &plate.warnings {
-                                vendor_data.slicer_warnings.push(w.clone());
-                            }
-                        }
-
-                        if total_time_secs > 0 {
-                            vendor_data.print_time_estimate =
-                                Some(format_duration(total_time_secs));
-                        }
-
-                        // Filaments from first plate (they are per-plate but typically same)
-                        if let Some(first_plate) = slice_info.plates.first() {
-                            for f in &first_plate.filaments {
-                                vendor_data.filaments.push(FilamentInfo {
-                                    id: f.id,
-                                    tray_info_idx: f.tray_info_idx.clone(),
-                                    type_: f.type_.clone().unwrap_or_default(),
-                                    color: f.color.clone(),
-                                    used_m: f.used_m,
-                                    used_g: f.used_g,
-                                });
-                            }
-                        }
                     }
                 }
             }
 
             // 3b. Parse model_settings.config (plates, objects, assembly)
-            if archive.entry_exists("Metadata/model_settings.config") {
-                if let Ok(content) = archive.read_entry("Metadata/model_settings.config") {
-                    if let Ok(data) = crate::parser::bambu_config::parse_model_settings(&content) {
-                        vendor_data.plates = data.plates;
-                        vendor_data.object_metadata = data.objects;
-                        vendor_data.assembly_info = data.assembly;
-                    }
-                }
+            if archive.entry_exists("Metadata/model_settings.config")
+                && let Ok(content) = archive.read_entry("Metadata/model_settings.config")
+                && let Ok(data) = crate::parser::bambu_config::parse_model_settings(&content)
+            {
+                vendor_data.plates = data.plates;
+                vendor_data.object_metadata = data.objects;
+                vendor_data.assembly_info = data.assembly;
             }
 
             // 3c. Parse project_settings.config (printer model, bed type, layer height, etc.)
-            if archive.entry_exists("Metadata/project_settings.config") {
-                if let Ok(content) = archive.read_entry("Metadata/project_settings.config") {
-                    if let Ok(settings) =
-                        crate::parser::bambu_config::parse_project_settings(&content)
-                    {
-                        // Use project settings for printer model if not already set from slice_info
-                        if vendor_data.printer_model.is_none() {
-                            vendor_data.printer_model = settings
-                                .printer_inherits
-                                .clone()
-                                .or_else(|| settings.printer_model.clone());
-                        }
-                        if vendor_data.nozzle_diameter.is_none() {
-                            vendor_data.nozzle_diameter = settings.nozzle_diameter.first().copied();
-                        }
-                        vendor_data.project_settings = Some(settings);
-                    }
+            if archive.entry_exists("Metadata/project_settings.config")
+                && let Ok(content) = archive.read_entry("Metadata/project_settings.config")
+                && let Ok(settings) =
+                    crate::parser::bambu_config::parse_project_settings(&content)
+            {
+                // Use project settings for printer model if not already set from slice_info
+                if vendor_data.printer_model.is_none() {
+                    vendor_data.printer_model = settings
+                        .printer_inherits
+                        .clone()
+                        .or_else(|| settings.printer_model.clone());
                 }
+                if vendor_data.nozzle_diameter.is_none() {
+                    vendor_data.nozzle_diameter = settings.nozzle_diameter.first().copied();
+                }
+                vendor_data.project_settings = Some(settings);
             }
 
             // 3d. Parse per-profile configs (filament_settings_N.config, machine_settings_N.config, process_settings_N.config)
             for config_type in &["filament", "machine", "process"] {
                 for n in 0u32..16 {
                     let path = format!("Metadata/{}_settings_{}.config", config_type, n);
-                    if archive.entry_exists(&path) {
-                        if let Ok(content) = archive.read_entry(&path) {
-                            if let Ok(config) =
-                                crate::parser::bambu_config::parse_profile_config(&content, config_type, n)
-                            {
-                                vendor_data.profile_configs.push(config);
-                            }
-                        }
+                    if archive.entry_exists(&path)
+                        && let Ok(content) = archive.read_entry(&path)
+                        && let Ok(config) =
+                            crate::parser::bambu_config::parse_profile_config(&content, config_type, n)
+                    {
+                        vendor_data.profile_configs.push(config);
                     }
                 }
             }
 
             // Try to get printer model from machine profile if still not set
-            if vendor_data.printer_model.is_none() {
-                if let Some(machine_config) = vendor_data
+            if vendor_data.printer_model.is_none()
+                && let Some(machine_config) = vendor_data
                     .profile_configs
                     .iter()
                     .find(|c| c.config_type == "machine")
-                {
-                    vendor_data.printer_model = machine_config
-                        .inherits
-                        .clone()
-                        .or_else(|| machine_config.name.clone());
-                }
+            {
+                vendor_data.printer_model = machine_config
+                    .inherits
+                    .clone()
+                    .or_else(|| machine_config.name.clone());
             }
 
             // 3e. Read OPC relationships and identify Bambu-specific entries
-            if archive.entry_exists("_rels/.rels") {
-                if let Ok(rels_data) = archive.read_entry("_rels/.rels") {
-                    if let Ok(rels) = crate::archive::opc::parse_relationships(&rels_data) {
-                        use crate::archive::opc::bambu_rel_types;
-                        for rel in &rels {
-                            match rel.rel_type.as_str() {
-                                bambu_rel_types::COVER_THUMBNAIL_MIDDLE
-                                | bambu_rel_types::COVER_THUMBNAIL_SMALL => {
-                                    if vendor_data.bambu_cover_thumbnail.is_none() {
-                                        vendor_data.bambu_cover_thumbnail =
-                                            Some(rel.target.clone());
-                                    }
-                                }
-                                bambu_rel_types::GCODE => {
-                                    vendor_data.bambu_gcode = Some(rel.target.clone());
-                                }
-                                _ => {}
+            if archive.entry_exists("_rels/.rels")
+                && let Ok(rels_data) = archive.read_entry("_rels/.rels")
+                && let Ok(rels) = crate::archive::opc::parse_relationships(&rels_data)
+            {
+                use crate::archive::opc::bambu_rel_types;
+                for rel in &rels {
+                    match rel.rel_type.as_str() {
+                        bambu_rel_types::COVER_THUMBNAIL_MIDDLE
+                        | bambu_rel_types::COVER_THUMBNAIL_SMALL => {
+                            if vendor_data.bambu_cover_thumbnail.is_none() {
+                                vendor_data.bambu_cover_thumbnail =
+                                    Some(rel.target.clone());
                             }
                         }
+                        bambu_rel_types::GCODE => {
+                            vendor_data.bambu_gcode = Some(rel.target.clone());
+                        }
+                        _ => {}
                     }
                 }
             }

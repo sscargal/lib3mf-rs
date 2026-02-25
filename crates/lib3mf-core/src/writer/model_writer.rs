@@ -58,6 +58,10 @@ impl Model {
             .attr(
                 "xmlns:d",
                 "http://schemas.microsoft.com/3dmanufacturing/displacement/2024/01",
+            )
+            .attr(
+                "xmlns:bl",
+                "http://schemas.microsoft.com/3dmanufacturing/beamlattice/2017/02",
             );
 
         // Emit extra namespaces (e.g., BambuStudio vendor namespace)

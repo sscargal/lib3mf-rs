@@ -50,8 +50,8 @@
 //!
 //! ### Extension Writers
 //!
+//! - [`beamlattice_writer`]: Writes Beam Lattice Extension data
 //! - [`displacement_writer`]: Writes Displacement Extension data
-//! - **Beam Lattice**: Not yet implemented (partial support)
 //! - **Slice**: Partial support (slicestackid attribute only)
 //! - **Boolean Operations**: Fully supported in `model_writer`
 //! - **Volumetric**: Fully supported in `model_writer`
@@ -60,7 +60,6 @@
 //!
 //! The writer has some gaps compared to the parser:
 //!
-//! - **Beam lattice writer**: Not implemented. Models with beam lattices can be read but not written back.
 //! - **Slice writer**: Only writes `slicestackid` attribute, doesn't serialize full slice geometry.
 //! - **Namespace optimization**: Always emits all namespace declarations rather than only needed ones.
 //!
@@ -97,6 +96,7 @@
 //!
 //! The writer never panics on invalid input, though it may produce a 3MF file that fails validation.
 
+pub mod beamlattice_writer;
 pub mod displacement_writer;
 pub mod mesh_writer;
 pub mod model_write_zip;
