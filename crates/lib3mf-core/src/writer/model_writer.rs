@@ -2,6 +2,7 @@ use crate::error::Result;
 use crate::model::{BooleanOperationType, Geometry, Model, Unit};
 use crate::writer::displacement_writer::{write_displacement_2d, write_displacement_mesh};
 use crate::writer::mesh_writer::write_mesh;
+use crate::writer::slice_writer;
 use crate::writer::xml_writer::XmlWriter;
 use std::io::Write;
 
@@ -62,6 +63,10 @@ impl Model {
             .attr(
                 "xmlns:bl",
                 "http://schemas.microsoft.com/3dmanufacturing/beamlattice/2017/02",
+            )
+            .attr(
+                "xmlns:s",
+                "http://schemas.microsoft.com/3dmanufacturing/slice/2015/07",
             );
 
         // Emit extra namespaces (e.g., BambuStudio vendor namespace)
@@ -186,6 +191,12 @@ impl Model {
             write_displacement_2d(&mut xml, displacement_2d)?;
         }
 
+        // Write slice stack resources
+        let slice_opts = slice_writer::SliceWriteOptions::default();
+        for stack in self.resources.iter_slice_stacks() {
+            slice_writer::write_slice_stack(&mut xml, stack, &slice_opts)?;
+        }
+
         // Write objects
         for obj in self.resources.iter_objects() {
             match &obj.geometry {
@@ -239,6 +250,15 @@ impl Model {
                         .attr("id", &obj.id.0.to_string())
                         .attr("type", &obj.object_type.to_string());
 
+                    // Peek geometry to add extension-specific attributes BEFORE write_start()
+                    if let Geometry::SliceStack(ssid) = &obj.geometry {
+                        obj_elem = obj_elem.attr("slicestackid", &ssid.0.to_string());
+                    }
+                    // Forward-compatible for Phase 14 volumetric writer
+                    if let Geometry::VolumetricStack(vsid) = &obj.geometry {
+                        obj_elem = obj_elem.attr("volumetricstackid", &vsid.0.to_string());
+                    }
+
                     if let Some(pid) = obj.part_number.as_ref() {
                         obj_elem = obj_elem.attr("partnumber", pid);
                     }
@@ -251,7 +271,6 @@ impl Model {
                     if let Some(thumb_path) = obj.thumbnail.as_ref()
                         && let Some(rels) = thumbnail_relationships
                     {
-                        // Try to match exact path or normalized path
                         let lookup_key = if thumb_path.starts_with('/') {
                             thumb_path.clone()
                         } else {
@@ -289,23 +308,13 @@ impl Model {
                             }
                             xml.end_element("components")?;
                         }
-                        Geometry::SliceStack(_id) => {
-                            // Logic for SliceStack writing requires setting attribute on object element
-                            // But object element is already started.
-                            // This writer structure makes it hard to add attributes conditionally based on geometry type
-                            // unless we peek geometry before starting object element.
-                            // For now, I will assume writing slice models via this writer is not fully supported
-                            // or requires refactoring.
-                            // I will leave it empty as SliceStack objects have no body content (mesh/components).
-                            // BUT they need `slicestackid` on the object tag.
-                            // Refactoring needed to support Slice extension writing.
-                            // Phase 11 goal is parsing/validation. I will skip writing implementation logic but fix valid Rust match.
+                        Geometry::SliceStack(_) => {
+                            // No body content - slicestackid attribute already set above
                         }
-                        Geometry::VolumetricStack(_id) => {
-                            // Similar to SliceStack, requires attribute on object tag.
+                        Geometry::VolumetricStack(_) => {
+                            // No body content - volumetricstackid attribute already set above
                         }
                         Geometry::BooleanShape(_) => {
-                            // This case is handled in the outer match, will never reach here
                             unreachable!("BooleanShape handled in outer match")
                         }
                         Geometry::DisplacementMesh(mesh) => {
