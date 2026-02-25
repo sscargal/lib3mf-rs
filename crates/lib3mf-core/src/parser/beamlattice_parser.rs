@@ -11,25 +11,27 @@ use std::io::BufRead;
 
 pub fn parse_beam_lattice_content<R: BufRead>(
     parser: &mut XmlParser<R>,
+    radius: Option<f32>,
     min_length: f32,
     precision: f32,
     clipping_mode: ClippingMode,
 ) -> Result<BeamLattice> {
     let mut beams = Vec::new();
     let mut beam_sets = Vec::new();
+    let default_radius = radius.unwrap_or(0.0);
 
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) => match e.name().as_ref() {
+            Event::Start(e) => match e.local_name().as_ref() {
                 b"beams" => {
-                    beams = parse_beams(parser)?;
+                    beams = parse_beams(parser, default_radius)?;
                 }
                 b"beamsets" => {
                     beam_sets = parse_beam_sets(parser)?;
                 }
                 _ => {}
             },
-            Event::End(e) if e.name().as_ref() == b"beamlattice" => break,
+            Event::End(e) if e.local_name().as_ref() == b"beamlattice" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in beamlattice".to_string(),
@@ -40,6 +42,7 @@ pub fn parse_beam_lattice_content<R: BufRead>(
     }
 
     Ok(BeamLattice {
+        radius,
         min_length,
         precision,
         clipping_mode,
@@ -48,14 +51,17 @@ pub fn parse_beam_lattice_content<R: BufRead>(
     })
 }
 
-fn parse_beams<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<Beam>> {
+fn parse_beams<R: BufRead>(
+    parser: &mut XmlParser<R>,
+    default_radius: f32,
+) -> Result<Vec<Beam>> {
     let mut beams = Vec::new();
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) | Event::Empty(e) if e.name().as_ref() == b"beam" => {
+            Event::Start(e) | Event::Empty(e) if e.local_name().as_ref() == b"beam" => {
                 let v1 = get_attribute_u32(&e, b"v1")?;
                 let v2 = get_attribute_u32(&e, b"v2")?;
-                let r1 = get_attribute_f32(&e, b"r1")?;
+                let r1 = get_attribute_f32(&e, b"r1").unwrap_or(default_radius);
                 let r2 = get_attribute_f32(&e, b"r2").unwrap_or(r1);
                 let p1 = get_attribute_u32(&e, b"p1").ok();
                 let p2 = get_attribute_u32(&e, b"p2").ok();
@@ -81,7 +87,7 @@ fn parse_beams<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<Beam>> {
                     cap_mode,
                 });
             }
-            Event::End(e) if e.name().as_ref() == b"beams" => break,
+            Event::End(e) if e.local_name().as_ref() == b"beams" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in beams".to_string(),
@@ -98,7 +104,7 @@ fn parse_beam_sets<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<BeamSet>
     loop {
         let event = parser.read_next_event()?;
         match event {
-            Event::Start(e) if e.name().as_ref() == b"beamset" => {
+            Event::Start(e) if e.local_name().as_ref() == b"beamset" => {
                 let name = get_attribute(&e, b"name").map(|s| s.into_owned());
                 let identifier = get_attribute(&e, b"identifier").map(|s| s.into_owned());
                 let refs = parse_refs(parser)?;
@@ -108,7 +114,7 @@ fn parse_beam_sets<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<BeamSet>
                     refs,
                 });
             }
-            Event::Empty(e) if e.name().as_ref() == b"beamset" => {
+            Event::Empty(e) if e.local_name().as_ref() == b"beamset" => {
                 let name = get_attribute(&e, b"name").map(|s| s.into_owned());
                 let identifier = get_attribute(&e, b"identifier").map(|s| s.into_owned());
                 sets.push(BeamSet {
@@ -117,7 +123,7 @@ fn parse_beam_sets<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<BeamSet>
                     refs: Vec::new(),
                 });
             }
-            Event::End(e) if e.name().as_ref() == b"beamsets" => break,
+            Event::End(e) if e.local_name().as_ref() == b"beamsets" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in beamsets".to_string(),
@@ -133,11 +139,11 @@ fn parse_refs<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<u32>> {
     let mut refs = Vec::new();
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) | Event::Empty(e) if e.name().as_ref() == b"ref" => {
+            Event::Start(e) | Event::Empty(e) if e.local_name().as_ref() == b"ref" => {
                 let idx = get_attribute_u32(&e, b"index")?;
                 refs.push(idx);
             }
-            Event::End(e) if e.name().as_ref() == b"beamset" => break,
+            Event::End(e) if e.local_name().as_ref() == b"beamset" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in beamset".to_string(),

@@ -296,6 +296,9 @@ pub struct Mesh {
 /// radii at each end (creating tapered beams).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct BeamLattice {
+    /// Default radius for beams that don't specify r1 (from beamlattice@radius).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub radius: Option<f32>,
     /// Minimum beam length threshold (beams shorter than this may be ignored).
     #[serde(default)]
     pub min_length: f32,

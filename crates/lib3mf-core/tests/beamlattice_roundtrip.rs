@@ -53,6 +53,7 @@ fn create_base_model_with_lattice(lattice: BeamLattice) -> Model {
 #[test]
 fn test_beam_lattice_namespace_present() {
     let lattice = BeamLattice {
+        radius: None,
         min_length: 0.1,
         precision: 0.01,
         clipping_mode: ClippingMode::None,
@@ -97,6 +98,7 @@ fn test_beam_lattice_namespace_present() {
 #[test]
 fn test_beam_lattice_basic_roundtrip() {
     let lattice = BeamLattice {
+        radius: None,
         min_length: 0.1,
         precision: 0.01,
         clipping_mode: ClippingMode::Inside,
@@ -196,6 +198,7 @@ fn test_beam_lattice_basic_roundtrip() {
 #[test]
 fn test_beam_lattice_cap_modes_roundtrip() {
     let lattice = BeamLattice {
+        radius: None,
         min_length: 0.1,
         precision: 0.0,
         clipping_mode: ClippingMode::None,
@@ -261,6 +264,7 @@ fn test_beam_lattice_clipping_modes_roundtrip() {
         (ClippingMode::Outside, "Outside"),
     ] {
         let lattice = BeamLattice {
+            radius: None,
             min_length: 0.1,
             precision: 0.0,
             clipping_mode: mode,
@@ -303,6 +307,7 @@ fn test_beam_lattice_clipping_modes_roundtrip() {
 #[test]
 fn test_beam_lattice_beam_sets_roundtrip() {
     let lattice = BeamLattice {
+        radius: None,
         min_length: 0.1,
         precision: 0.0,
         clipping_mode: ClippingMode::None,
@@ -374,6 +379,7 @@ fn test_beam_lattice_beam_sets_roundtrip() {
 #[test]
 fn test_beam_lattice_no_beam_sets() {
     let lattice = BeamLattice {
+        radius: None,
         min_length: 0.5,
         precision: 0.001,
         clipping_mode: ClippingMode::None,

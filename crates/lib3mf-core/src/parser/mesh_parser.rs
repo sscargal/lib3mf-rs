@@ -10,13 +10,17 @@ pub fn parse_mesh<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Mesh> {
 
     loop {
         match parser.read_next_event()? {
-            Event::Start(e) => match e.name().as_ref() {
+            Event::Start(e) => match e.local_name().as_ref() {
                 b"vertices" => parse_vertices(parser, &mut mesh)?,
                 b"triangles" => parse_triangles(parser, &mut mesh)?,
                 b"beamlattice" => {
+                    let radius = get_attribute_f32(&e, b"radius").ok();
                     let min_length = get_attribute_f32(&e, b"minlength").unwrap_or(0.0);
                     let precision = get_attribute_f32(&e, b"precision").unwrap_or(0.0);
-                    let clipping_mode = if let Some(s) = get_attribute(&e, b"clippingmode") {
+                    // Handle both "clippingmode" (spec) and "clipping" (some implementations)
+                    let clipping_str = get_attribute(&e, b"clippingmode")
+                        .or_else(|| get_attribute(&e, b"clipping"));
+                    let clipping_mode = if let Some(s) = clipping_str {
                         match s.as_ref() {
                             "inside" => ClippingMode::Inside,
                             "outside" => ClippingMode::Outside,
@@ -26,13 +30,18 @@ pub fn parse_mesh<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Mesh> {
                         ClippingMode::None
                     };
 
-                    let lattice =
-                        parse_beam_lattice_content(parser, min_length, precision, clipping_mode)?;
+                    let lattice = parse_beam_lattice_content(
+                        parser,
+                        radius,
+                        min_length,
+                        precision,
+                        clipping_mode,
+                    )?;
                     mesh.beam_lattice = Some(lattice);
                 }
                 _ => {} // Ignore headers/metadata inside mesh for now
             },
-            Event::End(e) if e.name().as_ref() == b"mesh" => break,
+            Event::End(e) if e.local_name().as_ref() == b"mesh" => break,
             Event::Eof => {
                 return Err(Lib3mfError::Validation(
                     "Unexpected EOF in mesh".to_string(),

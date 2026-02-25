@@ -67,7 +67,7 @@ pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
                         let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
                         if let Some(prefix) = key.strip_prefix("xmlns:") {
                             // Skip known namespaces that we already emit
-                            let known = ["m", "p", "b", "d", "s", "v", "sec"];
+                            let known = ["m", "p", "b", "d", "s", "v", "sec", "bl"];
                             if !known.contains(&prefix) {
                                 let uri = String::from_utf8_lossy(&attr.value).to_string();
                                 model.extra_namespaces.insert(prefix.to_string(), uri);

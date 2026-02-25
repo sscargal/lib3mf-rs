@@ -60,6 +60,7 @@ fn main() -> anyhow::Result<()> {
     ];
 
     let beam_lattice = BeamLattice {
+        radius: None,
         min_length: 0.1,
         precision: 0.0,
         clipping_mode: ClippingMode::None,

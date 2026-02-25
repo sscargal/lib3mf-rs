@@ -15,8 +15,14 @@ pub fn write_beam_lattice<W: Write>(
     writer: &mut XmlWriter<W>,
     lattice: &BeamLattice,
 ) -> Result<()> {
-    let mut bl_elem = writer
-        .start_element("beamlattice")
+    let mut bl_elem = writer.start_element("beamlattice");
+
+    // Write radius attribute when present (default radius for beams)
+    if let Some(radius) = lattice.radius {
+        bl_elem = bl_elem.attr("radius", &radius.to_string());
+    }
+
+    bl_elem = bl_elem
         .attr("minlength", &lattice.min_length.to_string())
         .attr("precision", &lattice.precision.to_string());
 
