@@ -53,8 +53,8 @@
 //! - [`beamlattice_writer`]: Writes Beam Lattice Extension data
 //! - [`displacement_writer`]: Writes Displacement Extension data
 //! - [`slice_writer`]: Writes Slice Extension data
+//! - [`volumetric_writer`]: Writes Volumetric Extension data
 //! - **Boolean Operations**: Fully supported in `model_writer`
-//! - **Volumetric**: Fully supported in `model_writer`
 //!
 //! ## Known Limitations
 //!
@@ -103,4 +103,5 @@ pub mod model_writer;
 pub mod opc_writer;
 pub mod package_writer;
 pub mod slice_writer;
+pub mod volumetric_writer;
 pub mod xml_writer;

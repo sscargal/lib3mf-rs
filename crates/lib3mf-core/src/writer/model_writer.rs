@@ -3,6 +3,7 @@ use crate::model::{BooleanOperationType, Geometry, Model, Unit};
 use crate::writer::displacement_writer::{write_displacement_2d, write_displacement_mesh};
 use crate::writer::mesh_writer::write_mesh;
 use crate::writer::slice_writer;
+use crate::writer::volumetric_writer;
 use crate::writer::xml_writer::XmlWriter;
 use std::io::Write;
 
@@ -67,6 +68,10 @@ impl Model {
             .attr(
                 "xmlns:s",
                 "http://schemas.microsoft.com/3dmanufacturing/slice/2015/07",
+            )
+            .attr(
+                "xmlns:v",
+                "http://schemas.microsoft.com/3dmanufacturing/volumetric/2018/11",
             );
 
         // Emit extra namespaces (e.g., BambuStudio vendor namespace)
@@ -195,6 +200,11 @@ impl Model {
         let slice_opts = slice_writer::SliceWriteOptions::default();
         for stack in self.resources.iter_slice_stacks() {
             slice_writer::write_slice_stack(&mut xml, stack, &slice_opts)?;
+        }
+
+        // Write volumetric stack resources
+        for stack in self.resources.iter_volumetric_stacks() {
+            volumetric_writer::write_volumetric_stack(&mut xml, stack)?;
         }
 
         // Write objects

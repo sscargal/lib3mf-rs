@@ -338,4 +338,9 @@ impl ResourceCollection {
     pub fn iter_slice_stacks(&self) -> impl Iterator<Item = &SliceStack> {
         self.slice_stacks.values()
     }
+
+    /// Returns an iterator over all volumetric stacks in the collection.
+    pub fn iter_volumetric_stacks(&self) -> impl Iterator<Item = &VolumetricStack> {
+        self.volumetric_stacks.values()
+    }
 }
