@@ -3,6 +3,39 @@ use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 use serde::{Deserialize, Serialize};
 
+/// Bambu Studio OPC relationship type constants.
+///
+/// These URIs appear in `_rels/*.rels` files within Bambu Studio 3MF archives
+/// to identify vendor-specific relationships to thumbnails and embedded G-code.
+///
+/// # Example
+///
+/// ```ignore
+/// use lib3mf_core::archive::opc::bambu_rel_types;
+///
+/// let is_bambu_thumbnail = rel.rel_type == bambu_rel_types::COVER_THUMBNAIL_MIDDLE;
+/// ```
+pub mod bambu_rel_types {
+    /// Relationship type for the medium-size cover thumbnail image.
+    ///
+    /// Targets a PNG or similar image file used as the model's display thumbnail
+    /// in Bambu Studio's file browser.
+    pub const COVER_THUMBNAIL_MIDDLE: &str =
+        "http://schemas.bambulab.com/package/2021/cover-thumbnail-middle";
+
+    /// Relationship type for the small cover thumbnail image.
+    ///
+    /// Targets a small PNG image suitable for grid/icon views in Bambu Studio.
+    pub const COVER_THUMBNAIL_SMALL: &str =
+        "http://schemas.bambulab.com/package/2021/cover-thumbnail-small";
+
+    /// Relationship type for embedded G-code.
+    ///
+    /// Targets a `.gcode` file embedded in the archive. When present, the file
+    /// contains pre-sliced G-code that can be sent directly to a Bambu printer.
+    pub const GCODE: &str = "http://schemas.bambulab.com/package/2021/gcode";
+}
+
 /// Represents an OPC Relationship.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Relationship {
