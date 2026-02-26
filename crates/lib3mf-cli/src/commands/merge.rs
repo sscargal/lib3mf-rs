@@ -10,23 +10,20 @@
 //! 6. Merge attachments with path deduplication
 //! 7. Update texture/displacement paths after attachment remap
 //! 8. Combine all resources into one merged Model
-//! 9. Write merged model to output
-//!
-//! Note: The `run()` function is a stub implemented in Plan 02. The helper
-//! functions in this module are the complete merge engine implementation.
-// Allow dead_code for helper functions until run() is wired up in Plan 02.
-#![allow(dead_code)]
+//! 9. Apply placement (plate-per-file or single-plate)
+//! 10. Write merged model to output
 
 use glob::glob;
 use lib3mf_core::archive::{ArchiveReader, ZipArchiver, find_model_path, opc};
 use lib3mf_core::model::{
     BaseMaterialsGroup, ColorGroup, CompositeMaterials, Displacement2D, Geometry, Model,
     MultiProperties, Object, ResourceId, SliceStack, Texture2D, Texture2DGroup, VolumetricStack,
+    stats::BoundingBox,
 };
 use lib3mf_core::parser::parse_model;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Cursor;
+use std::io::{BufWriter, Cursor};
 use std::path::{Path, PathBuf};
 
 /// Packing algorithm for single-plate mode.
@@ -45,8 +42,7 @@ pub enum Verbosity {
     Verbose,
 }
 
-/// Entry point for the merge command. Implemented fully in Plan 02.
-#[allow(unused_variables)]
+/// Entry point for the merge command.
 pub fn run(
     inputs: Vec<PathBuf>,
     output: PathBuf,
@@ -55,7 +51,464 @@ pub fn run(
     pack: PackAlgorithm,
     verbosity: Verbosity,
 ) -> anyhow::Result<()> {
-    todo!("Implemented in Plan 02")
+    // Step 1: Expand glob patterns
+    let expanded = expand_inputs(inputs)?;
+    let file_count = expanded.len();
+
+    if matches!(verbosity, Verbosity::Verbose) {
+        eprintln!("Merging {} files:", file_count);
+        for p in &expanded {
+            eprintln!("  {}", p.display());
+        }
+    }
+
+    // Step 2: Resolve output path (auto-increment if exists and force=false)
+    let out_path = resolve_output_path(&output, force)?;
+
+    // Step 3: Load all models up front — fail fast on any error (no partial output)
+    let mut loaded: Vec<Model> = Vec::with_capacity(file_count);
+    for (i, path) in expanded.iter().enumerate() {
+        if matches!(verbosity, Verbosity::Verbose) {
+            eprintln!("  Loading [{}/{}] {}", i + 1, file_count, path.display());
+        }
+        let model = load_full(path)?;
+        check_secure_content(&model)?;
+        loaded.push(model);
+    }
+
+    // Step 4: Merge all models
+    // First model becomes the base; subsequent models are remapped and transferred into it.
+    let mut merged = loaded.remove(0);
+    let mut total_objects = count_objects(&merged);
+    let mut total_materials = count_materials(&merged);
+
+    for (file_index, mut source) in loaded.into_iter().enumerate() {
+        // file_index 0 = second input file (index 1 overall)
+        let actual_file_index = file_index + 1;
+
+        // Step 4a: Compute ID offset (max resource ID in merged so far + 1)
+        let offset = max_resource_id(&merged) + 1;
+
+        if matches!(verbosity, Verbosity::Verbose) {
+            eprintln!(
+                "  Merging file {} with ID offset {}",
+                actual_file_index + 1,
+                offset
+            );
+        }
+
+        // Step 4b: Remap all IDs in source model
+        remap_model(&mut source, offset);
+
+        // Step 4c: Merge attachments with path deduplication
+        // Take attachments out of source first so we can still borrow source mutably after.
+        let src_attachments = std::mem::take(&mut source.attachments);
+        let path_remap = merge_attachments(
+            &mut merged.attachments,
+            src_attachments,
+            actual_file_index,
+        );
+
+        // Step 4d: Update texture/displacement paths after attachment remap
+        update_texture_paths(&mut source, &path_remap);
+
+        // Count before transfer (resources will be moved)
+        let src_objects = count_objects_resources(&source.resources);
+        let src_materials = count_materials_resources(&source.resources);
+
+        // Step 4e: Transfer all resources from source into merged
+        transfer_resources(&mut merged, source.resources)?;
+
+        // Step 4f: Transfer build items
+        merged.build.items.extend(source.build.items);
+
+        // Step 4g: Merge metadata, relationships, namespaces
+        merge_metadata(&mut merged.metadata, &source.metadata);
+        merge_relationships(
+            &mut merged.existing_relationships,
+            source.existing_relationships,
+        );
+        merge_extra_namespaces(&mut merged.extra_namespaces, &source.extra_namespaces);
+
+        total_objects += src_objects;
+        total_materials += src_materials;
+    }
+
+    // Step 5: Apply placement
+    if single_plate {
+        apply_single_plate_placement(&mut merged, pack, verbosity)?;
+    } else {
+        check_build_item_overlaps(&merged, verbosity);
+    }
+
+    // Step 6: Write output atomically (write to .tmp, rename to final)
+    let tmp_path = out_path.with_extension(format!(
+        "{}.tmp",
+        out_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("3mf")
+    ));
+    {
+        let tmp_file = File::create(&tmp_path)
+            .map_err(|e| anyhow::anyhow!("Failed to create temp output {:?}: {}", tmp_path, e))?;
+        let buf_writer = BufWriter::new(tmp_file);
+        merged
+            .write(buf_writer)
+            .map_err(|e| anyhow::anyhow!("Failed to write merged 3MF: {}", e))?;
+    }
+    std::fs::rename(&tmp_path, &out_path).map_err(|e| {
+        // Attempt cleanup
+        let _ = std::fs::remove_file(&tmp_path);
+        anyhow::anyhow!(
+            "Failed to finalize output file {:?}: {}",
+            out_path,
+            e
+        )
+    })?;
+
+    // Step 7: Print summary
+    if !matches!(verbosity, Verbosity::Quiet) {
+        println!("Merged {} files -> {}", file_count, out_path.display());
+        println!(
+            "  Objects: {}  |  Materials: {}",
+            total_objects, total_materials
+        );
+    }
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Resolve output path — auto-increment if exists and force=false
+// ---------------------------------------------------------------------------
+
+fn resolve_output_path(output: &Path, force: bool) -> anyhow::Result<PathBuf> {
+    if force || !output.exists() {
+        return Ok(output.to_path_buf());
+    }
+
+    // Auto-increment: try output.3mf.1, output.3mf.2, ... up to .999
+    for n in 1u32..=999 {
+        let candidate = PathBuf::from(format!("{}.{}", output.display(), n));
+        if !candidate.exists() {
+            if !matches!(
+                std::env::var("RUST_TEST_QUIET").as_deref(),
+                Ok("1")
+            ) {
+                eprintln!(
+                    "Warning: output {:?} exists, writing to {:?}",
+                    output, candidate
+                );
+            }
+            return Ok(candidate);
+        }
+    }
+
+    anyhow::bail!(
+        "Output file {:?} exists and no free auto-increment slot found (tried .1 through .999). Use --force to overwrite.",
+        output
+    )
+}
+
+// ---------------------------------------------------------------------------
+// Transfer all resources from a source ResourceCollection into merged model
+// ---------------------------------------------------------------------------
+
+fn transfer_resources(
+    merged: &mut Model,
+    source: lib3mf_core::model::ResourceCollection,
+) -> anyhow::Result<()> {
+    for obj in source.iter_objects().cloned().collect::<Vec<_>>() {
+        merged
+            .resources
+            .add_object(obj)
+            .map_err(|e| anyhow::anyhow!("Failed to add object during merge: {}", e))?;
+    }
+    for mat in source.iter_base_materials().cloned().collect::<Vec<_>>() {
+        merged
+            .resources
+            .add_base_materials(mat)
+            .map_err(|e| anyhow::anyhow!("Failed to add base materials during merge: {}", e))?;
+    }
+    for col in source.iter_color_groups().cloned().collect::<Vec<_>>() {
+        merged
+            .resources
+            .add_color_group(col)
+            .map_err(|e| anyhow::anyhow!("Failed to add color group during merge: {}", e))?;
+    }
+    for tex in source.iter_texture_2d().cloned().collect::<Vec<_>>() {
+        merged
+            .resources
+            .add_texture_2d(tex)
+            .map_err(|e| anyhow::anyhow!("Failed to add texture 2D during merge: {}", e))?;
+    }
+    for grp in source.iter_textures().cloned().collect::<Vec<_>>() {
+        merged
+            .resources
+            .add_texture_2d_group(grp)
+            .map_err(|e| anyhow::anyhow!("Failed to add texture 2D group during merge: {}", e))?;
+    }
+    for comp in source.iter_composite_materials().cloned().collect::<Vec<_>>() {
+        merged
+            .resources
+            .add_composite_materials(comp)
+            .map_err(|e| anyhow::anyhow!("Failed to add composite materials during merge: {}", e))?;
+    }
+    for mp in source.iter_multi_properties().cloned().collect::<Vec<_>>() {
+        merged
+            .resources
+            .add_multi_properties(mp)
+            .map_err(|e| anyhow::anyhow!("Failed to add multi-properties during merge: {}", e))?;
+    }
+    for ss in source.iter_slice_stacks().cloned().collect::<Vec<_>>() {
+        merged
+            .resources
+            .add_slice_stack(ss)
+            .map_err(|e| anyhow::anyhow!("Failed to add slice stack during merge: {}", e))?;
+    }
+    for vs in source.iter_volumetric_stacks().cloned().collect::<Vec<_>>() {
+        merged
+            .resources
+            .add_volumetric_stack(vs)
+            .map_err(|e| anyhow::anyhow!("Failed to add volumetric stack during merge: {}", e))?;
+    }
+    for d in source.iter_displacement_2d().cloned().collect::<Vec<_>>() {
+        merged
+            .resources
+            .add_displacement_2d(d)
+            .map_err(|e| anyhow::anyhow!("Failed to add displacement 2D during merge: {}", e))?;
+    }
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Count helpers for summary output
+// ---------------------------------------------------------------------------
+
+fn count_objects(model: &Model) -> usize {
+    model.resources.iter_objects().count()
+}
+
+fn count_materials(model: &Model) -> usize {
+    model.resources.iter_base_materials().count()
+        + model.resources.iter_color_groups().count()
+        + model.resources.iter_texture_2d().count()
+}
+
+fn count_objects_resources(resources: &lib3mf_core::model::ResourceCollection) -> usize {
+    resources.iter_objects().count()
+}
+
+fn count_materials_resources(resources: &lib3mf_core::model::ResourceCollection) -> usize {
+    resources.iter_base_materials().count()
+        + resources.iter_color_groups().count()
+        + resources.iter_texture_2d().count()
+}
+
+// ---------------------------------------------------------------------------
+// Placement: plate-per-file mode (check bounding box overlaps)
+// ---------------------------------------------------------------------------
+
+/// In plate-per-file mode, preserve all transforms as-is and warn about overlaps.
+pub(crate) fn check_build_item_overlaps(model: &Model, verbosity: Verbosity) {
+    if matches!(verbosity, Verbosity::Quiet) {
+        return;
+    }
+
+    // Collect (build_item_index, world_space AABB) for each item with a mesh
+    let world_aabbs: Vec<(usize, BoundingBox)> = model
+        .build
+        .items
+        .iter()
+        .enumerate()
+        .filter_map(|(i, item)| {
+            let obj = model.resources.iter_objects().find(|o| o.id == item.object_id)?;
+            let aabb = mesh_aabb_for_object(obj, model)?;
+            let world_aabb = aabb.transform(item.transform);
+            Some((i, world_aabb))
+        })
+        .collect();
+
+    // O(n^2) pairwise overlap check — fine for typical merge counts
+    let n = world_aabbs.len();
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let (idx_i, ref aabb_i) = world_aabbs[i];
+            let (idx_j, ref aabb_j) = world_aabbs[j];
+            if aabbs_overlap(aabb_i, aabb_j) {
+                eprintln!(
+                    "Warning: build items {} and {} have overlapping bounding boxes",
+                    idx_i, idx_j
+                );
+            }
+        }
+    }
+}
+
+/// Get the mesh AABB for an object (recursively resolves component objects).
+/// Returns None for non-mesh geometry or empty meshes.
+fn mesh_aabb_for_object(obj: &Object, model: &Model) -> Option<BoundingBox> {
+    match &obj.geometry {
+        Geometry::Mesh(mesh) => mesh.compute_aabb(),
+        Geometry::DisplacementMesh(dm) => {
+            // DisplacementMesh uses the same vertex layout as Mesh — compute AABB from vertices
+            if dm.vertices.is_empty() {
+                return None;
+            }
+            let mut min = [f32::INFINITY; 3];
+            let mut max = [f32::NEG_INFINITY; 3];
+            for v in &dm.vertices {
+                min[0] = min[0].min(v.x);
+                min[1] = min[1].min(v.y);
+                min[2] = min[2].min(v.z);
+                max[0] = max[0].max(v.x);
+                max[1] = max[1].max(v.y);
+                max[2] = max[2].max(v.z);
+            }
+            Some(BoundingBox { min, max })
+        }
+        Geometry::Components(comps) => {
+            // For component objects, compute union of child AABBs
+            let mut combined: Option<BoundingBox> = None;
+            for comp in &comps.components {
+                if let Some(child_obj) = model.resources.iter_objects().find(|o| o.id == comp.object_id)
+                    && let Some(child_aabb) = mesh_aabb_for_object(child_obj, model)
+                {
+                    let transformed = child_aabb.transform(comp.transform);
+                    combined = Some(match combined {
+                        None => transformed,
+                        Some(existing) => union_aabb(existing, transformed),
+                    });
+                }
+            }
+            combined
+        }
+        _ => None,
+    }
+}
+
+fn union_aabb(a: BoundingBox, b: BoundingBox) -> BoundingBox {
+    BoundingBox {
+        min: [
+            a.min[0].min(b.min[0]),
+            a.min[1].min(b.min[1]),
+            a.min[2].min(b.min[2]),
+        ],
+        max: [
+            a.max[0].max(b.max[0]),
+            a.max[1].max(b.max[1]),
+            a.max[2].max(b.max[2]),
+        ],
+    }
+}
+
+fn aabbs_overlap(a: &BoundingBox, b: &BoundingBox) -> bool {
+    a.min[0] < b.max[0]
+        && a.max[0] > b.min[0]
+        && a.min[1] < b.max[1]
+        && a.max[1] > b.min[1]
+        && a.min[2] < b.max[2]
+        && a.max[2] > b.min[2]
+}
+
+// ---------------------------------------------------------------------------
+// Placement: single-plate mode (grid layout)
+// ---------------------------------------------------------------------------
+
+/// In single-plate mode, replace ALL build item transforms with grid-computed ones.
+pub(crate) fn apply_single_plate_placement(
+    model: &mut Model,
+    _pack: PackAlgorithm,
+    verbosity: Verbosity,
+) -> anyhow::Result<()> {
+    const SPACING_MM: f32 = 10.0;
+
+    // Collect (item_index, size_x, size_y) for grid layout
+    // Items without computable AABBs get placed at origin
+    struct ItemInfo {
+        size_x: f32,
+        size_y: f32,
+    }
+
+    let item_infos: Vec<ItemInfo> = model
+        .build
+        .items
+        .iter()
+        .map(|item| {
+            let aabb = model
+                .resources
+                .iter_objects()
+                .find(|o| o.id == item.object_id)
+                .and_then(|obj| mesh_aabb_for_object(obj, model));
+            match aabb {
+                Some(bb) => ItemInfo {
+                    size_x: (bb.max[0] - bb.min[0]).max(0.0),
+                    size_y: (bb.max[1] - bb.min[1]).max(0.0),
+                },
+                None => ItemInfo {
+                    size_x: 0.0,
+                    size_y: 0.0,
+                },
+            }
+        })
+        .collect();
+
+    let n = item_infos.len();
+    if n == 0 {
+        return Ok(());
+    }
+
+    // Grid: square layout — number of columns = ceil(sqrt(n))
+    let cols = (n as f64).sqrt().ceil() as usize;
+
+    // Track current x/y cursor and row heights
+    let mut row_heights: Vec<f32> = Vec::new();
+    let mut col_widths: Vec<f32> = Vec::new();
+
+    // Pre-compute per-cell widths and heights for the grid
+    for (idx, info) in item_infos.iter().enumerate() {
+        let col = idx % cols;
+        let row = idx / cols;
+        if col_widths.len() <= col {
+            col_widths.resize(col + 1, 0.0_f32);
+        }
+        if row_heights.len() <= row {
+            row_heights.resize(row + 1, 0.0_f32);
+        }
+        col_widths[col] = col_widths[col].max(info.size_x);
+        row_heights[row] = row_heights[row].max(info.size_y);
+    }
+
+    // Compute cumulative x/y positions
+    let mut x_offsets = vec![0.0_f32; cols + 1];
+    let mut y_offsets = vec![0.0_f32; row_heights.len() + 1];
+    for c in 0..cols {
+        x_offsets[c + 1] = x_offsets[c] + col_widths[c] + SPACING_MM;
+    }
+    for r in 0..row_heights.len() {
+        y_offsets[r + 1] = y_offsets[r] + row_heights[r] + SPACING_MM;
+    }
+
+    // Apply transforms: place each item at its grid cell's (x_offset, y_offset, 0)
+    for (idx, item) in model.build.items.iter_mut().enumerate() {
+        let col = idx % cols;
+        let row = idx / cols;
+        let tx = x_offsets[col];
+        let ty = y_offsets[row];
+        item.transform = glam::Mat4::from_translation(glam::Vec3::new(tx, ty, 0.0));
+    }
+
+    if matches!(verbosity, Verbosity::Verbose) {
+        eprintln!(
+            "Single-plate grid layout: {} items in {}x{} grid",
+            n,
+            cols,
+            row_heights.len()
+        );
+    }
+
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------

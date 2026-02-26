@@ -411,6 +411,58 @@ enum Commands {
         #[arg(long)]
         oid: Option<u32>,
     },
+    /// Merge multiple 3MF files into one
+    ///
+    /// Combines two or more 3MF files into a single output file.
+    /// Resource IDs are remapped to avoid collisions.
+    /// Secure (signed/encrypted) files cannot be merged.
+    ///
+    /// Examples:
+    ///
+    /// # Merge two files (default: plate-per-file, transforms preserved)
+    ///
+    /// $ lib3mf merge a.3mf b.3mf -o merged.3mf
+    ///
+    /// # Merge all files in a directory
+    ///
+    /// $ lib3mf merge "models/*.3mf" -o merged.3mf
+    ///
+    /// # Merge onto a single plate with grid layout
+    ///
+    /// $ lib3mf merge a.3mf b.3mf --single-plate -o merged.3mf
+    Merge {
+        /// Input 3MF files or glob patterns (e.g., "models/*.3mf")
+        #[arg(required = true, num_args = 1..)]
+        inputs: Vec<PathBuf>,
+
+        /// Output file path
+        #[arg(long, short = 'o', default_value = "merged.3mf")]
+        output: PathBuf,
+
+        /// Overwrite output file if it already exists
+        #[arg(long, short = 'f')]
+        force: bool,
+
+        /// Merge all objects onto a single plate with auto-arrangement
+        #[arg(long, conflicts_with = "plate_per_file")]
+        single_plate: bool,
+
+        /// Keep each file's objects on their own plate (default)
+        #[arg(long, conflicts_with = "single_plate")]
+        plate_per_file: bool,
+
+        /// Packing algorithm for --single-plate mode
+        #[arg(long, value_enum, default_value_t = commands::merge::PackAlgorithm::Grid)]
+        pack: commands::merge::PackAlgorithm,
+
+        /// Suppress all output
+        #[arg(long, conflicts_with = "verbose")]
+        quiet: bool,
+
+        /// Show per-file progress and renumbering details
+        #[arg(long, short = 'v', conflicts_with = "quiet")]
+        verbose: bool,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -505,6 +557,25 @@ fn main() -> anyhow::Result<()> {
             oid,
         } => {
             commands::thumbnails::run(file, list, extract, inject, oid)?;
+        }
+        Commands::Merge {
+            inputs,
+            output,
+            force,
+            single_plate,
+            plate_per_file: _,
+            pack,
+            quiet,
+            verbose,
+        } => {
+            let verbosity = if quiet {
+                commands::merge::Verbosity::Quiet
+            } else if verbose {
+                commands::merge::Verbosity::Verbose
+            } else {
+                commands::merge::Verbosity::Normal
+            };
+            commands::merge::run(inputs, output, force, single_plate, pack, verbosity)?;
         }
     }
 
