@@ -138,10 +138,10 @@ fn run_inject(file: &PathBuf, img_path: PathBuf, oid: Option<u32>) -> Result<()>
 
         // Load .rels files separately to preserve relationships
         if entry_path.ends_with(".rels") {
-            if let Ok(data) = archiver.read_entry(&entry_path) {
-                if let Ok(rels) = lib3mf_core::archive::opc::parse_relationships(&data) {
-                    model.existing_relationships.insert(entry_path, rels);
-                }
+            if let Ok(data) = archiver.read_entry(&entry_path)
+                && let Ok(rels) = lib3mf_core::archive::opc::parse_relationships(&data)
+            {
+                model.existing_relationships.insert(entry_path, rels);
             }
             continue;
         }
@@ -261,13 +261,13 @@ fn run_extract(file: &PathBuf, dir: PathBuf) -> Result<()> {
         pkg_thumb_path = Some("Metadata/thumbnail.png".to_string());
     }
 
-    if let Some(path) = pkg_thumb_path {
-        if let Ok(data) = archiver.read_entry(&path) {
-            let out = dir.join("package_thumbnail.png");
-            let mut f = File::create(&out)?;
-            f.write_all(&data)?;
-            println!("  Extracted Package Thumbnail: {:?}", out);
-        }
+    if let Some(path) = pkg_thumb_path
+        && let Ok(data) = archiver.read_entry(&path)
+    {
+        let out = dir.join("package_thumbnail.png");
+        let mut f = File::create(&out)?;
+        f.write_all(&data)?;
+        println!("  Extracted Package Thumbnail: {:?}", out);
     }
 
     // 2. Object Thumbnails

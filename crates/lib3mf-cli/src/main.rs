@@ -176,11 +176,11 @@ enum Commands {
     ///
     /// Supported Conversions:
     ///
-    /// * STL (binary) -> 3MF
+    /// * STL (binary/ASCII) -> 3MF
     ///
     /// * OBJ -> 3MF
     ///
-    /// * 3MF -> STL (binary)
+    /// * 3MF -> STL (binary, or ASCII with --ascii)
     ///
     /// * 3MF -> OBJ
     ///
@@ -190,6 +190,10 @@ enum Commands {
     ///
     /// $ lib3mf convert mesh.stl model.3mf
     ///
+    /// # Export 3MF to ASCII STL
+    ///
+    /// $ lib3mf convert model.3mf mesh.stl --ascii
+    ///
     /// # Export 3MF to OBJ
     ///
     /// $ lib3mf convert model.3mf mesh.obj
@@ -198,6 +202,9 @@ enum Commands {
         input: PathBuf,
         /// Output file
         output: PathBuf,
+        /// Write ASCII STL instead of binary (only applies when output is .stl)
+        #[arg(long, default_value_t = false)]
+        ascii: bool,
     },
     /// Validate a 3MF file
     ///
@@ -441,8 +448,8 @@ fn main() -> anyhow::Result<()> {
         Commands::Copy { input, output } => {
             commands::copy(input, output)?;
         }
-        Commands::Convert { input, output } => {
-            commands::convert(input, output)?;
+        Commands::Convert { input, output, ascii } => {
+            commands::convert(input, output, ascii)?;
         }
         Commands::Validate { file, level } => {
             commands::validate(file, level)?;

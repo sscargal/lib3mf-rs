@@ -672,10 +672,10 @@ pub fn copy(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
 
         // Load .rels files to preserve relationships
         if entry_path.ends_with(".rels") {
-            if let Ok(data) = archiver.read_entry(&entry_path) {
-                if let Ok(rels) = lib3mf_core::archive::opc::parse_relationships(&data) {
-                    model.existing_relationships.insert(entry_path, rels);
-                }
+            if let Ok(data) = archiver.read_entry(&entry_path)
+                && let Ok(rels) = lib3mf_core::archive::opc::parse_relationships(&data)
+            {
+                model.existing_relationships.insert(entry_path, rels);
             }
             continue;
         }
@@ -945,27 +945,27 @@ mod node {
         }
 
         pub fn insert(&mut self, path_parts: &[&str]) {
-            if let FileNode::Dir(children) = self {
-                if let Some((first, rest)) = path_parts.split_first() {
-                    let entry = children
-                        .entry(first.to_string())
-                        .or_insert_with(FileNode::new_dir);
+            if let FileNode::Dir(children) = self
+                && let Some((first, rest)) = path_parts.split_first()
+            {
+                let entry = children
+                    .entry(first.to_string())
+                    .or_insert_with(FileNode::new_dir);
 
-                    if rest.is_empty() {
-                        // It's a file
-                        if let FileNode::Dir(sub) = entry {
-                            if sub.is_empty() {
-                                *entry = FileNode::new_file();
-                            } else {
-                                // Conflict: Path is both a dir and a file?
-                                // Keep as dir for now or handle appropriately.
-                                // In 3MF/Zip, this shouldn't happen usually for exact paths.
-                            }
+                if rest.is_empty() {
+                    // It's a file
+                    if let FileNode::Dir(sub) = entry {
+                        if sub.is_empty() {
+                            *entry = FileNode::new_file();
+                        } else {
+                            // Conflict: Path is both a dir and a file?
+                            // Keep as dir for now or handle appropriately.
+                            // In 3MF/Zip, this shouldn't happen usually for exact paths.
                         }
-                    } else {
-                        // Recurse
-                        entry.insert(rest);
                     }
+                } else {
+                    // Recurse
+                    entry.insert(rest);
                 }
             }
         }
@@ -1005,15 +1005,16 @@ mod node {
 /// Auto-detects formats based on file extensions and performs the appropriate conversion.
 ///
 /// Supported conversions:
-/// - STL (binary) → 3MF
+/// - STL (binary or ASCII, auto-detected) → 3MF
 /// - OBJ → 3MF
-/// - 3MF → STL (binary)
+/// - 3MF → STL (binary by default, ASCII with `ascii = true`)
 /// - 3MF → OBJ
 ///
 /// # Arguments
 ///
 /// * `input` - Input file path
 /// * `output` - Output file path
+/// * `ascii` - When `true` and output is `.stl`, write ASCII STL instead of binary
 ///
 /// # Errors
 ///
@@ -1026,11 +1027,14 @@ mod node {
 /// use std::path::PathBuf;
 ///
 /// # fn main() -> anyhow::Result<()> {
-/// convert(PathBuf::from("mesh.stl"), PathBuf::from("model.3mf"))?;
+/// // Binary STL export (default)
+/// convert(PathBuf::from("mesh.stl"), PathBuf::from("model.3mf"), false)?;
+/// // ASCII STL export
+/// convert(PathBuf::from("model.3mf"), PathBuf::from("mesh.stl"), true)?;
 /// # Ok(())
 /// # }
 /// ```
-pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
+pub fn convert(input: PathBuf, output: PathBuf, ascii: bool) -> anyhow::Result<()> {
     let output_ext = output
         .extension()
         .and_then(|e| e.to_str())
@@ -1067,8 +1071,13 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
             // Access the root model via resolver for export
             let root_model = resolver.get_root_model().clone(); // Clone to pass to export, or export takes ref
 
-            lib3mf_converters::stl::BinaryStlExporter::write_with_resolver(&root_model, resolver, file)
-                .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
+            if ascii {
+                lib3mf_converters::stl::AsciiStlExporter::write_with_resolver(&root_model, resolver, file)
+                    .map_err(|e| anyhow::anyhow!("Failed to export ASCII STL: {}", e))?;
+            } else {
+                lib3mf_converters::stl::BinaryStlExporter::write_with_resolver(&root_model, resolver, file)
+                    .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
+            }
 
             println!("Converted {:?} to {:?}", input, output);
             return Ok(());
@@ -1090,8 +1099,13 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
                 .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
         }
         "stl" => {
-            lib3mf_converters::stl::BinaryStlExporter::write(&model, file)
-                .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
+            if ascii {
+                lib3mf_converters::stl::AsciiStlExporter::write(&model, file)
+                    .map_err(|e| anyhow::anyhow!("Failed to export ASCII STL: {}", e))?;
+            } else {
+                lib3mf_converters::stl::BinaryStlExporter::write(&model, file)
+                    .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
+            }
         }
         "obj" => {
             lib3mf_converters::obj::ObjExporter::write(&model, file)
