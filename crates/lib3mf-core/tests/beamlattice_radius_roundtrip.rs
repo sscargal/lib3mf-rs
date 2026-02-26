@@ -77,7 +77,9 @@ fn test_beam_lattice_radius_some_roundtrip() {
 
     // Serialize
     let mut buffer: Vec<u8> = Vec::new();
-    model.write_xml(&mut buffer, None).expect("write_xml failed");
+    model
+        .write_xml(&mut buffer, None)
+        .expect("write_xml failed");
     let xml_str = String::from_utf8(buffer.clone()).expect("non-UTF-8 output");
 
     // The radius attribute must be present in the serialized XML
@@ -142,7 +144,9 @@ fn test_beam_lattice_radius_none_roundtrip() {
 
     // Serialize
     let mut buffer: Vec<u8> = Vec::new();
-    model.write_xml(&mut buffer, None).expect("write_xml failed");
+    model
+        .write_xml(&mut buffer, None)
+        .expect("write_xml failed");
     let xml_str = String::from_utf8(buffer.clone()).expect("non-UTF-8 output");
 
     // The radius attribute must NOT appear in the XML when radius is None
