@@ -1967,6 +1967,169 @@ echo -e "${BLUE}[SKIP]${NC} Secure: Empty key file validation (not yet implement
 # run_negative_cmd "$CLI_BIN sign $ASSET_3MF $SIGN_BAD_CERT_OUT --key $KEY_FILE --cert $MALFORMED_CERT" "Secure: Reject malformed certificate"
 echo -e "${BLUE}[SKIP]${NC} Secure: Malformed certificate validation (not yet implemented)"
 
+# ===========================================================================
+# Real-File Integration Tests
+# ===========================================================================
+echo ""
+echo -e "${BLUE}--- Real-File Integration Tests ---${NC}"
+
+MODELS_DIR="tmp/models"
+
+if [ ! -d "$MODELS_DIR" ] || [ -z "$(ls -A "$MODELS_DIR" 2>/dev/null)" ]; then
+    echo -e "${YELLOW}[INFO]${NC} No real test files found."
+    echo "  Place .3mf, .stl, or .obj files in tmp/models/ and re-run."
+    echo "  Skipping real-file integration tests."
+else
+    # --- 3MF files ---
+    REAL_3MF_FILES=$(find "$MODELS_DIR" -maxdepth 1 -name "*.3mf" -type f 2>/dev/null | sort)
+    if [ -n "$REAL_3MF_FILES" ]; then
+        echo -e "${BLUE}--- Testing .3mf files ---${NC}"
+        while IFS= read -r f3mf; do
+            BASENAME=$(basename "$f3mf")
+            echo ""
+            echo "Testing: $BASENAME"
+
+            # stats
+            STATS_OUT=$($CLI_BIN stats "$f3mf" 2>&1)
+            STATS_EXIT=$?
+            if [ $STATS_EXIT -eq 0 ]; then
+                log_result "real-file stats: $BASENAME" 0
+                if echo "$STATS_OUT" | grep -qi "triangle"; then
+                    log_result "real-file stats content (Triangle keyword): $BASENAME" 0
+                else
+                    log_result "real-file stats content (Triangle keyword): $BASENAME" 1
+                fi
+            else
+                log_result "real-file stats: $BASENAME" 1
+            fi
+
+            # validate
+            run_cmd "$CLI_BIN validate \"$f3mf\"" "real-file validate: $BASENAME"
+
+            # list
+            LIST_OUT=$($CLI_BIN list "$f3mf" 2>&1)
+            LIST_EXIT=$?
+            if [ $LIST_EXIT -eq 0 ]; then
+                log_result "real-file list: $BASENAME" 0
+                if echo "$LIST_OUT" | grep -qi "3dmodel\|model\|\.rels\|Content_Types"; then
+                    log_result "real-file list content (archive entries): $BASENAME" 0
+                else
+                    log_result "real-file list content (archive entries): $BASENAME" 1
+                fi
+            else
+                log_result "real-file list: $BASENAME" 1
+            fi
+
+            # convert to binary STL
+            SAFE_NAME=$(echo "$BASENAME" | sed 's/[^a-zA-Z0-9._-]/_/g' | sed 's/\.3mf$//')
+            BIN_STL_OUT="$QA_TMP_DIR/real_${SAFE_NAME}.stl"
+            run_cmd "$CLI_BIN convert \"$f3mf\" \"$BIN_STL_OUT\"" "real-file convert to binary STL: $BASENAME"
+            if [ -f "$BIN_STL_OUT" ]; then
+                BIN_SIZE=$(stat -c%s "$BIN_STL_OUT" 2>/dev/null || stat -f%z "$BIN_STL_OUT" 2>/dev/null)
+                if [ "$BIN_SIZE" -ge 134 ]; then
+                    log_result "real-file binary STL size ($BIN_SIZE bytes): $BASENAME" 0
+                else
+                    log_result "real-file binary STL size ($BIN_SIZE bytes, expected >= 134): $BASENAME" 1
+                fi
+            fi
+
+            # convert to ASCII STL
+            ASCII_STL_OUT="$QA_TMP_DIR/real_${SAFE_NAME}_ascii.stl"
+            run_cmd "$CLI_BIN convert \"$f3mf\" \"$ASCII_STL_OUT\" --ascii" "real-file convert to ASCII STL: $BASENAME"
+            if [ -f "$ASCII_STL_OUT" ]; then
+                if grep -q "^solid" "$ASCII_STL_OUT"; then
+                    log_result "real-file ASCII STL format (solid keyword): $BASENAME" 0
+                else
+                    log_result "real-file ASCII STL format (solid keyword): $BASENAME" 1
+                fi
+            fi
+
+            # convert to OBJ
+            OBJ_OUT="$QA_TMP_DIR/real_${SAFE_NAME}.obj"
+            run_cmd "$CLI_BIN convert \"$f3mf\" \"$OBJ_OUT\"" "real-file convert to OBJ: $BASENAME"
+            if [ -f "$OBJ_OUT" ]; then
+                if grep -q "^v " "$OBJ_OUT" && grep -q "^f " "$OBJ_OUT"; then
+                    log_result "real-file OBJ format (v and f lines): $BASENAME" 0
+                else
+                    log_result "real-file OBJ format (v and f lines): $BASENAME" 1
+                fi
+            fi
+
+        done <<< "$REAL_3MF_FILES"
+    fi
+
+    # --- STL files ---
+    REAL_STL_FILES=$(find "$MODELS_DIR" -maxdepth 1 -name "*.stl" -type f 2>/dev/null | sort)
+    if [ -n "$REAL_STL_FILES" ]; then
+        echo -e "${BLUE}--- Testing .stl files ---${NC}"
+        while IFS= read -r fstl; do
+            BASENAME=$(basename "$fstl")
+            echo ""
+            echo "Testing: $BASENAME"
+
+            STATS_OUT=$($CLI_BIN stats "$fstl" 2>&1)
+            STATS_EXIT=$?
+            if [ $STATS_EXIT -eq 0 ]; then
+                log_result "real-file stats (STL): $BASENAME" 0
+                if echo "$STATS_OUT" | grep -qi "triangle"; then
+                    log_result "real-file stats content (Triangle keyword, STL): $BASENAME" 0
+                else
+                    log_result "real-file stats content (Triangle keyword, STL): $BASENAME" 1
+                fi
+            else
+                log_result "real-file stats (STL): $BASENAME" 1
+            fi
+
+            SAFE_NAME=$(echo "$BASENAME" | sed 's/[^a-zA-Z0-9._-]/_/g' | sed 's/\.stl$//')
+            CONVERTED_3MF="$QA_TMP_DIR/real_${SAFE_NAME}_from_stl.3mf"
+            run_cmd "$CLI_BIN convert \"$fstl\" \"$CONVERTED_3MF\"" "real-file convert STL to 3MF: $BASENAME"
+
+            if [ -f "$CONVERTED_3MF" ]; then
+                run_cmd "$CLI_BIN stats \"$CONVERTED_3MF\"" "real-file stats on converted 3MF (from STL): $BASENAME"
+                run_cmd "$CLI_BIN validate \"$CONVERTED_3MF\"" "real-file validate converted 3MF (from STL): $BASENAME"
+            fi
+
+        done <<< "$REAL_STL_FILES"
+    fi
+
+    # --- OBJ files ---
+    REAL_OBJ_FILES=$(find "$MODELS_DIR" -maxdepth 1 -name "*.obj" -type f 2>/dev/null | sort)
+    if [ -n "$REAL_OBJ_FILES" ]; then
+        echo -e "${BLUE}--- Testing .obj files ---${NC}"
+        while IFS= read -r fobj; do
+            BASENAME=$(basename "$fobj")
+            echo ""
+            echo "Testing: $BASENAME"
+
+            STATS_OUT=$($CLI_BIN stats "$fobj" 2>&1)
+            STATS_EXIT=$?
+            if [ $STATS_EXIT -eq 0 ]; then
+                log_result "real-file stats (OBJ): $BASENAME" 0
+                if echo "$STATS_OUT" | grep -qi "triangle"; then
+                    log_result "real-file stats content (Triangle keyword, OBJ): $BASENAME" 0
+                else
+                    log_result "real-file stats content (Triangle keyword, OBJ): $BASENAME" 1
+                fi
+            else
+                log_result "real-file stats (OBJ): $BASENAME" 1
+            fi
+
+            SAFE_NAME=$(echo "$BASENAME" | sed 's/[^a-zA-Z0-9._-]/_/g' | sed 's/\.obj$//')
+            CONVERTED_3MF="$QA_TMP_DIR/real_${SAFE_NAME}_from_obj.3mf"
+            run_cmd "$CLI_BIN convert \"$fobj\" \"$CONVERTED_3MF\"" "real-file convert OBJ to 3MF: $BASENAME"
+
+            if [ -f "$CONVERTED_3MF" ]; then
+                run_cmd "$CLI_BIN stats \"$CONVERTED_3MF\"" "real-file stats on converted 3MF (from OBJ): $BASENAME"
+                run_cmd "$CLI_BIN validate \"$CONVERTED_3MF\"" "real-file validate converted 3MF (from OBJ): $BASENAME"
+            fi
+
+        done <<< "$REAL_OBJ_FILES"
+    fi
+
+    echo ""
+    echo "Real-file integration tests complete."
+fi
+
 echo ""
 echo "================================================" >> "$REPORT_FILE"
 echo "================================================"
@@ -2002,6 +2165,7 @@ echo "  ✅ Beam Lattice Extension (beams, cap modes, beam sets)" | tee -a "$REP
 echo "  ✅ Slice Extension (slice stacks, polygons)" | tee -a "$REPORT_FILE"
 echo "  ✅ Volumetric Extension (volumetric data, sheets)" | tee -a "$REPORT_FILE"
 echo "  ✅ Command Discovery (all CLI commands tested)" | tee -a "$REPORT_FILE"
+echo "  ✅ Real-File Integration Tests (tmp/models/ files)" | tee -a "$REPORT_FILE"
 echo "" | tee -a "$REPORT_FILE"
 
 echo "Full Report: $REPORT_FILE"
