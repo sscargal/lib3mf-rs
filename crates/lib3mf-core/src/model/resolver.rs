@@ -342,8 +342,8 @@ fn resolve_recursive(
 mod tests {
     use super::*;
     use crate::model::{
-        Build, BuildItem, Component, Components, Geometry, Mesh, Model, Object, ObjectType,
-        ResourceCollection, ResourceId, Unit,
+        BuildItem, Component, Components, Geometry, Mesh, Model, Object, ObjectType, ResourceId,
+        Unit,
     };
     use std::collections::HashMap;
     use std::io::{Cursor, Read, Seek, SeekFrom};
