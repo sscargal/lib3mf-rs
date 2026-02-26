@@ -1741,6 +1741,12 @@ for CMD in $COMMANDS; do
              CMD_LINE="$CLI_BIN extract $ASSET_3MF 3D/3dmodel.model --output $QA_TMP_DIR/extracted.model"
              run_cmd "$CMD_LINE" "Running Custom: $CMD_LINE"
              continue ;;
+        "merge")
+             # merge requires at least 2 input files — test --help only in discovery loop
+             # (detailed merge tests run in the dedicated Merge Command Tests section above)
+             CMD_LINE="$CLI_BIN merge --help"
+             run_cmd "$CMD_LINE" "Running Custom: $CMD_LINE (merge --help)"
+             continue ;;
         "benchmark"|"stats"|"list"|"validate"|"convert"|"repair"|"copy"|"dump"|"mn"|"rels")
              # Use generic discovery logic below
              ;;
@@ -2130,6 +2136,23 @@ else
     echo "Real-file integration tests complete."
 fi
 
+# ===========================================================================
+# Merge Command Tests
+# ===========================================================================
+echo ""
+echo -e "${BLUE}=== Merge Command Tests ===${NC}"
+
+# Test: merge --help exits 0 and shows usage
+run_cmd "$CLI_BIN merge --help" "Merge: --help exits 0 and shows usage"
+
+# Test: merge with fewer than 2 inputs fails with a clear error
+MERGE_SINGLE="$QA_TMP_DIR/merge_single.3mf"
+if [ -f "$ASSET_3MF" ]; then
+    MERGE_SINGLE_OUT="$QA_TMP_DIR/merge_single_out.3mf"
+    run_negative_cmd "$CLI_BIN merge $ASSET_3MF --output $MERGE_SINGLE_OUT" \
+        "Merge: single input should fail (requires at least 2 files)"
+fi
+
 echo ""
 echo "================================================" >> "$REPORT_FILE"
 echo "================================================"
@@ -2164,6 +2187,7 @@ echo "  ✅ Secure Content (sign, verify, encrypt, decrypt, tamper detection)" |
 echo "  ✅ Beam Lattice Extension (beams, cap modes, beam sets)" | tee -a "$REPORT_FILE"
 echo "  ✅ Slice Extension (slice stacks, polygons)" | tee -a "$REPORT_FILE"
 echo "  ✅ Volumetric Extension (volumetric data, sheets)" | tee -a "$REPORT_FILE"
+echo "  ✅ Merge Command (--help, single-file error)" | tee -a "$REPORT_FILE"
 echo "  ✅ Command Discovery (all CLI commands tested)" | tee -a "$REPORT_FILE"
 echo "  ✅ Real-File Integration Tests (tmp/models/ files)" | tee -a "$REPORT_FILE"
 echo "" | tee -a "$REPORT_FILE"
