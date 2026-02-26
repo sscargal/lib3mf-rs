@@ -15,7 +15,7 @@ set -u
 # 4. Negative Testing: Verifies that the CLI correctly rejects zero-byte files, corrupted archives, and invalid inputs.
 # 5. Full Logging: Captures all STDOUT/STDERR to `commands.log` for deep debugging while keeping console output clean.
 
-# Usage: ./scripts/qa_test_suite.sh
+# Usage: ./scripts/qa_test_suite.sh [--no-cleanup]
 
 # Setup output handling
 WORKDIR=$(pwd)
@@ -26,9 +26,19 @@ SKIP_COUNT=0
 QA_TMP_DIR=$(mktemp -d "/tmp/lib3mf_qa_XXXXXX")
 CMD_LOG="$QA_TMP_DIR/commands.log"
 
+# Parse arguments
+NO_CLEANUP=false
+for arg in "$@"; do
+    case "$arg" in
+        --no-cleanup) NO_CLEANUP=true ;;
+    esac
+done
+
 # Cleanup trap
 cleanup() {
-    if [ "$FAIL_COUNT" -eq 0 ]; then
+    if [ "$NO_CLEANUP" = true ]; then
+        echo "Skipping cleanup (--no-cleanup flag set). Artifacts in: $QA_TMP_DIR"
+    elif [ "$FAIL_COUNT" -eq 0 ]; then
         echo "Cleaning up temporary directory: $QA_TMP_DIR"
         rm -rf "$QA_TMP_DIR"
     else
