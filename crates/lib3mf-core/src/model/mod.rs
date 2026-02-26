@@ -78,6 +78,7 @@ pub use materials::*;
 pub use mesh::*;
 pub use package::*;
 pub use repair::*;
+pub use resolver::{ResolveOptions, ResolvedMesh};
 pub use resources::*;
 pub use secure_content::*;
 pub use slice::*;
