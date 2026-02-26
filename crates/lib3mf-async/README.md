@@ -16,7 +16,7 @@ Use `lib3mf-async` when you need:
 
 ```toml
 [dependencies]
-lib3mf-async = "0.1"
+lib3mf-async = "0.4"
 tokio = { version = "1", features = ["full"] }
 ```
 

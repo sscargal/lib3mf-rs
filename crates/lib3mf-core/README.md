@@ -13,7 +13,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lib3mf-core = "0.1"
+lib3mf-core = "0.4"
 ```
 
 Parse a 3MF file:
@@ -95,13 +95,13 @@ println!("Stitched {} vertices", repaired.vertices_merged);
 
 ```toml
 # Minimal (default)
-lib3mf-core = "0.1"
+lib3mf-core = "0.4"
 
 # With parallel processing
-lib3mf-core = { version = "0.1", features = ["parallel"] }
+lib3mf-core = { version = "0.4", features = ["parallel"] }
 
 # All features
-lib3mf-core = { version = "0.1", features = ["full"] }
+lib3mf-core = { version = "0.4", features = ["full"] }
 ```
 
 ## Ecosystem

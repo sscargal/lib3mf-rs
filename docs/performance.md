@@ -122,7 +122,7 @@ Disable unused features to reduce binary size and compilation time:
 ```toml
 # Minimal build (no crypto, no parallel)
 [dependencies]
-lib3mf-core = { version = "0.1", default-features = false }
+lib3mf-core = { version = "0.4", default-features = false }
 ```
 
 **Dependency count**:
@@ -135,7 +135,7 @@ For models with large meshes, enable the `parallel` feature:
 
 ```toml
 [dependencies]
-lib3mf-core = { version = "0.1", features = ["parallel"] }
+lib3mf-core = { version = "0.4", features = ["parallel"] }
 ```
 
 This uses Rayon for multi-threaded mesh processing (AABB computation, area/volume calculation). Speedup is approximately 3-6× on 8-core systems for meshes with >10,000 triangles.

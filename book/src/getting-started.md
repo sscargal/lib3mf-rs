@@ -26,7 +26,7 @@ To use lib3mf-rs in your Rust project, add it to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lib3mf-core = "0.1"
+lib3mf-core = "0.4"
 ```
 
 By default, this gives you a minimal build with no optional dependencies. If you need cryptographic features (digital signatures and encryption) or parallel processing, see the [Feature Flags](feature-flags.md) chapter.
@@ -72,7 +72,7 @@ Edit `Cargo.toml` to add lib3mf-core:
 
 ```toml
 [dependencies]
-lib3mf-core = "0.1"
+lib3mf-core = "0.4"
 ```
 
 Edit `src/main.rs`:

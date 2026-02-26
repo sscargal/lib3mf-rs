@@ -21,7 +21,7 @@ You can selectively enable features based on your requirements:
 
 ```toml
 [dependencies]
-lib3mf-core = { version = "0.1", default-features = false }
+lib3mf-core = { version = "0.4", default-features = false }
 ```
 
 **Result:** ~154 crate dependencies
@@ -30,7 +30,7 @@ lib3mf-core = { version = "0.1", default-features = false }
 
 ```toml
 [dependencies]
-lib3mf-core = { version = "0.1", features = ["crypto"] }
+lib3mf-core = { version = "0.4", features = ["crypto"] }
 ```
 
 **Result:** ~300 crate dependencies (+146 from crypto)
@@ -39,7 +39,7 @@ lib3mf-core = { version = "0.1", features = ["crypto"] }
 
 ```toml
 [dependencies]
-lib3mf-core = { version = "0.1", features = ["full"] }
+lib3mf-core = { version = "0.4", features = ["full"] }
 ```
 
 **Result:** ~300 crate dependencies (crypto dominates)
@@ -52,7 +52,7 @@ Users who don't need cryptographic features save **48% of dependencies**.
 
 ```toml
 [dependencies]
-lib3mf-core = { version = "0.1", default-features = false }
+lib3mf-core = { version = "0.4", default-features = false }
 ```
 
 **Provides:**
@@ -79,7 +79,7 @@ lib3mf-core = { version = "0.1", default-features = false }
 
 ```toml
 [dependencies]
-lib3mf-core = { version = "0.1", features = ["crypto"] }
+lib3mf-core = { version = "0.4", features = ["crypto"] }
 ```
 
 **Adds:**
@@ -98,7 +98,7 @@ lib3mf-core = { version = "0.1", features = ["crypto"] }
 
 ```toml
 [dependencies]
-lib3mf-core = { version = "0.1", features = ["parallel"] }
+lib3mf-core = { version = "0.4", features = ["parallel"] }
 ```
 
 **Adds:**
@@ -117,7 +117,7 @@ lib3mf-core = { version = "0.1", features = ["parallel"] }
 
 ```toml
 [dependencies]
-lib3mf-core = { version = "0.1", features = ["full"] }
+lib3mf-core = { version = "0.4", features = ["full"] }
 ```
 
 **Enables:**
@@ -214,7 +214,7 @@ fn verify_model(_model: &Model) -> Result<bool> {
 
 ```toml
 [dependencies]
-lib3mf-core = { version = "0.1", default-features = false }
+lib3mf-core = { version = "0.4", default-features = false }
 
 [features]
 default = []

@@ -36,7 +36,7 @@ lib3mf-cli stats path/to/model.3mf --format json
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-lib3mf-core = "0.1"
+lib3mf-core = "0.4"
 ```
 
 Simple example:
@@ -97,7 +97,7 @@ lib3mf-rs is one of several Rust libraries for 3MF. See [docs/alternatives.md](d
 
 | Crate | Version | Last Updated | Core capabilities | Modern features | Quality metrics | License & maintenance |
 |-------|---------|--------------|-------------------|-----------------|-----------------|----------------------|
-| lib3mf-rs | 0.1.0 | 2026-02-04 | Parse, Write, Validation (4 levels), 9 extensions | Async, WASM, CLI, Converters | 90%+ coverage, Fuzzing, Zero unsafe | BSD 2-Clause, Active |
+| lib3mf-rs | 0.4.0 | 2026-02-26 | Parse, Write, Validation (4 levels), 9 extensions | Async, WASM, CLI, Converters | 90%+ coverage, Fuzzing, Zero unsafe | BSD 2-Clause, Active |
 | [lib3mf](https://crates.io/crates/lib3mf) | 0.1.0 | 2026-02-04 | Parse, Write, Validation, 4 extensions | Geometry (parry3d) | 2200+ tests | MIT, Active |
 | [threemf2](https://crates.io/crates/threemf2) | 0.1.2 | 2025-11-30 | Parse, Write (basic) | None | Basic | MIT, Limited |
 | [thdmaker](https://crates.io/crates/thdmaker) | 0.0.4 | 2026-01-11 | STL/AMF focus | None | Basic | MIT, Active |
@@ -158,7 +158,7 @@ Add `lib3mf-core` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lib3mf-core = "0.1"
+lib3mf-core = "0.4"
 ```
 
 Parse a 3MF file and get statistics:
@@ -219,19 +219,19 @@ Add one of the following to your project's `Cargo.toml` depending on your needs:
 
 ```toml
 # Minimal (smallest dependency footprint)
-lib3mf-core = "0.1"
+lib3mf-core = "0.4"
 
 # With parallel processing (recommended for large files)
-lib3mf-core = { version = "0.1", features = ["parallel"] }
+lib3mf-core = { version = "0.4", features = ["parallel"] }
 
 # With crypto support (for signed/encrypted 3MF files)
-lib3mf-core = { version = "0.1", features = ["crypto"] }
+lib3mf-core = { version = "0.4", features = ["crypto"] }
 
 # With PNG texture validation
-lib3mf-core = { version = "0.1", features = ["png-validation"] }
+lib3mf-core = { version = "0.4", features = ["png-validation"] }
 
 # Everything enabled
-lib3mf-core = { version = "0.1", features = ["full"] }
+lib3mf-core = { version = "0.4", features = ["full"] }
 ```
 
 **Note:** The `lib3mf-core` library uses minimal features by default (zero optional dependencies). The `lib3mf-cli` binary enables `crypto` and `parallel` features by default for optimal performance and security.

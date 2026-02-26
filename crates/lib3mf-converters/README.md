@@ -17,7 +17,7 @@ Use `lib3mf-converters` when you need:
 
 ```toml
 [dependencies]
-lib3mf-converters = "0.1"
+lib3mf-converters = "0.4"
 ```
 
 ### STL to 3MF (auto-detects binary or ASCII)
