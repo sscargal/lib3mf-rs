@@ -1627,6 +1627,57 @@ else
     echo "Warning: Failed to create volumetric test 3MF, skipping tests"
 fi
 
+# ===========================================================================
+# ASCII STL Convert Tests
+# ===========================================================================
+echo ""
+echo -e "${BLUE}--- ASCII STL Convert Tests ---${NC}"
+
+# Test: convert 3MF to ASCII STL with --ascii flag
+ASCII_OUT="$QA_TMP_DIR/ascii_output.stl"
+run_cmd "$CLI_BIN convert $ASSET_3MF $ASCII_OUT --ascii" "Convert 3MF to ASCII STL (--ascii flag)"
+if [ -f "$ASCII_OUT" ]; then
+    if grep -q "^solid" "$ASCII_OUT"; then
+        log_result "ASCII STL output starts with 'solid' keyword" 0
+    else
+        log_result "ASCII STL output starts with 'solid' keyword" 1
+    fi
+    if grep -q "facet normal" "$ASCII_OUT"; then
+        log_result "ASCII STL output contains 'facet normal' declarations" 0
+    else
+        log_result "ASCII STL output contains 'facet normal' declarations" 1
+    fi
+    if grep -q "endsolid" "$ASCII_OUT"; then
+        log_result "ASCII STL output contains 'endsolid' terminator" 0
+    else
+        log_result "ASCII STL output contains 'endsolid' terminator" 1
+    fi
+    # Verify it is NOT binary (binary STL starts with 80 zero bytes, not "solid")
+    FIRST_LINE=$(head -n 1 "$ASCII_OUT")
+    if [[ "$FIRST_LINE" == solid* ]]; then
+        log_result "ASCII STL first line confirms text format" 0
+    else
+        log_result "ASCII STL first line confirms text format" 1
+    fi
+else
+    log_result "ASCII STL output file was created" 1
+fi
+
+# Test: convert 3MF to binary STL (default, no --ascii flag) for comparison
+BINARY_OUT="$QA_TMP_DIR/binary_output.stl"
+run_cmd "$CLI_BIN convert $ASSET_3MF $BINARY_OUT" "Convert 3MF to binary STL (default)"
+if [ -f "$BINARY_OUT" ]; then
+    # Binary STL should NOT start with "solid" as text (it has 80 zero bytes header)
+    # Check file size is reasonable (80 header + 4 count + N*50)
+    BINARY_SIZE=$(stat -c%s "$BINARY_OUT" 2>/dev/null || stat -f%z "$BINARY_OUT" 2>/dev/null)
+    EXPECTED_MIN=134  # At least 1 triangle: 80+4+50
+    if [ "$BINARY_SIZE" -ge "$EXPECTED_MIN" ]; then
+        log_result "Binary STL output size ($BINARY_SIZE bytes) is valid" 0
+    else
+        log_result "Binary STL output size ($BINARY_SIZE bytes) is too small (expected >= $EXPECTED_MIN)" 1
+    fi
+fi
+
 # --- Discovery & Testing Phase ---
 echo -e "${BLUE}=== Discovering Commands ===${NC}"
 COMMANDS=$($CLI_BIN --help | grep -E '^\s{2}[a-z]+' | awk '{print $1}')
