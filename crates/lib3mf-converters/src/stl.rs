@@ -110,9 +110,7 @@ pub enum StlFormat {
 pub fn detect_stl_format<R: Read + Seek>(reader: &mut R) -> Result<StlFormat> {
     let mut buf = [0u8; 84];
     let n = reader.read(&mut buf).map_err(Lib3mfError::Io)?;
-    reader
-        .seek(SeekFrom::Start(0))
-        .map_err(Lib3mfError::Io)?;
+    reader.seek(SeekFrom::Start(0)).map_err(Lib3mfError::Io)?;
 
     if n < 5 {
         // Very small file — treat as ASCII
@@ -128,12 +126,8 @@ pub fn detect_stl_format<R: Read + Seek>(reader: &mut R) -> Result<StlFormat> {
     if n >= 84 {
         let tri_count = u32::from_le_bytes([buf[80], buf[81], buf[82], buf[83]]);
         let expected_binary_size = 84u64 + tri_count as u64 * 50;
-        let file_size = reader
-            .seek(SeekFrom::End(0))
-            .map_err(Lib3mfError::Io)?;
-        reader
-            .seek(SeekFrom::Start(0))
-            .map_err(Lib3mfError::Io)?;
+        let file_size = reader.seek(SeekFrom::End(0)).map_err(Lib3mfError::Io)?;
+        reader.seek(SeekFrom::Start(0)).map_err(Lib3mfError::Io)?;
         if file_size == expected_binary_size {
             return Ok(StlFormat::Binary);
         }
@@ -859,15 +853,12 @@ impl AsciiStlExporter {
                         let v2_local = mesh.vertices[tri.v2 as usize];
                         let v3_local = mesh.vertices[tri.v3 as usize];
 
-                        let v1 = transform.transform_point3(glam::Vec3::new(
-                            v1_local.x, v1_local.y, v1_local.z,
-                        ));
-                        let v2 = transform.transform_point3(glam::Vec3::new(
-                            v2_local.x, v2_local.y, v2_local.z,
-                        ));
-                        let v3 = transform.transform_point3(glam::Vec3::new(
-                            v3_local.x, v3_local.y, v3_local.z,
-                        ));
+                        let v1 = transform
+                            .transform_point3(glam::Vec3::new(v1_local.x, v1_local.y, v1_local.z));
+                        let v2 = transform
+                            .transform_point3(glam::Vec3::new(v2_local.x, v2_local.y, v2_local.z));
+                        let v3 = transform
+                            .transform_point3(glam::Vec3::new(v3_local.x, v3_local.y, v3_local.z));
 
                         let normal = compute_face_normal(v1, v2, v3);
 
@@ -1036,12 +1027,16 @@ mod tests {
     // ===== Helper functions =====
 
     /// Build a minimal binary STL with the given triangles.
-    fn make_binary_stl(header: &[u8; 80], triangles: &[(f32, f32, f32, f32, f32, f32, f32, f32, f32)]) -> Vec<u8> {
+    fn make_binary_stl(
+        header: &[u8; 80],
+        triangles: &[(f32, f32, f32, f32, f32, f32, f32, f32, f32)],
+    ) -> Vec<u8> {
         // Each element: (v1x, v1y, v1z, v2x, v2y, v2z, v3x, v3y, v3z)
         use byteorder::{LittleEndian, WriteBytesExt};
         let mut buf = Vec::new();
         buf.extend_from_slice(header);
-        buf.write_u32::<LittleEndian>(triangles.len() as u32).unwrap();
+        buf.write_u32::<LittleEndian>(triangles.len() as u32)
+            .unwrap();
         for &(v1x, v1y, v1z, v2x, v2y, v2z, v3x, v3y, v3z) in triangles {
             // normal (0,0,0)
             buf.write_f32::<LittleEndian>(0.0).unwrap();
@@ -1151,7 +1146,11 @@ mod tests {
 
         let mut cursor = Cursor::new(data);
         let fmt = detect_stl_format(&mut cursor).expect("detect should succeed");
-        assert_eq!(fmt, StlFormat::Binary, "Binary STL with 'solid' in header must be detected as Binary");
+        assert_eq!(
+            fmt,
+            StlFormat::Binary,
+            "Binary STL with 'solid' in header must be detected as Binary"
+        );
     }
 
     // ===== Test 4: read_ascii parses a simple single-triangle STL =====
@@ -1299,7 +1298,11 @@ endsolid dedup
         if let lib3mf_core::model::Geometry::Mesh(mesh) = &obj.geometry {
             assert_eq!(mesh.triangles.len(), 2);
             // 4 unique vertices: (0,0,0), (1,0,0), (0,1,0), (1,1,0)
-            assert_eq!(mesh.vertices.len(), 4, "shared vertices should be deduplicated");
+            assert_eq!(
+                mesh.vertices.len(),
+                4,
+                "shared vertices should be deduplicated"
+            );
         } else {
             panic!("expected Mesh");
         }
@@ -1321,7 +1324,11 @@ solid foo
 endsolid bar
 ";
         let model = StlImporter::read_ascii(Cursor::new(ascii)).expect("parse should succeed");
-        assert_eq!(model.build.items.len(), 1, "mismatched endsolid name should not cause error");
+        assert_eq!(
+            model.build.items.len(),
+            1,
+            "mismatched endsolid name should not cause error"
+        );
     }
 
     // ===== Test 10: file ends without endsolid =====
@@ -1339,7 +1346,11 @@ solid truncated
   endfacet
 ";
         let model = StlImporter::read_ascii(Cursor::new(ascii)).expect("parse should succeed");
-        assert_eq!(model.build.items.len(), 1, "truncated file should still produce one object");
+        assert_eq!(
+            model.build.items.len(),
+            1,
+            "truncated file should still produce one object"
+        );
         let obj = model.resources.get_object(ResourceId(1)).expect("object 1");
         if let lib3mf_core::model::Geometry::Mesh(mesh) = &obj.geometry {
             assert_eq!(mesh.triangles.len(), 1);
@@ -1361,13 +1372,19 @@ solid truncated
         AsciiStlExporter::write(&model, &mut output).expect("write should succeed");
         let text = String::from_utf8(output).expect("valid UTF-8");
 
-        assert!(text.contains("solid test"), "should contain solid keyword with name");
+        assert!(
+            text.contains("solid test"),
+            "should contain solid keyword with name"
+        );
         assert!(text.contains("facet normal"), "should contain facet normal");
         assert!(text.contains("outer loop"), "should contain outer loop");
         assert!(text.contains("vertex"), "should contain vertex lines");
         assert!(text.contains("endloop"), "should contain endloop");
         assert!(text.contains("endfacet"), "should contain endfacet");
-        assert!(text.contains("endsolid test"), "should contain endsolid keyword with name");
+        assert!(
+            text.contains("endsolid test"),
+            "should contain endsolid keyword with name"
+        );
 
         // Normal should be non-zero for a valid triangle
         // The normal should be (0, 0, 1) for the XY-plane triangle
@@ -1383,7 +1400,10 @@ solid truncated
                     false
                 }
             });
-        assert!(has_nonzero_normal, "normal should be non-zero for valid triangle");
+        assert!(
+            has_nonzero_normal,
+            "normal should be non-zero for valid triangle"
+        );
     }
 
     // ===== Test 12: degenerate triangle emits zero normal =====
@@ -1432,10 +1452,20 @@ solid truncated
         let text = String::from_utf8(output).expect("valid UTF-8");
 
         let first_line = text.lines().next().expect("should have lines");
-        assert_eq!(first_line, "solid MyPart", "first line should be 'solid MyPart'");
+        assert_eq!(
+            first_line, "solid MyPart",
+            "first line should be 'solid MyPart'"
+        );
 
-        let last_line = text.lines().filter(|l| !l.is_empty()).last().expect("should have lines");
-        assert_eq!(last_line, "endsolid MyPart", "last line should be 'endsolid MyPart'");
+        let last_line = text
+            .lines()
+            .filter(|l| !l.is_empty())
+            .last()
+            .expect("should have lines");
+        assert_eq!(
+            last_line, "endsolid MyPart",
+            "last line should be 'endsolid MyPart'"
+        );
     }
 
     // ===== Test 14: roundtrip ASCII STL -> Model -> ASCII STL -> Model =====
@@ -1459,20 +1489,23 @@ solid truncated
         AsciiStlExporter::write(&model, &mut buf1).expect("first write should succeed");
 
         // Parse back
-        let model2 = StlImporter::read_ascii(Cursor::new(&buf1)).expect("first re-read should succeed");
+        let model2 =
+            StlImporter::read_ascii(Cursor::new(&buf1)).expect("first re-read should succeed");
 
         // Write again
         let mut buf2 = Vec::new();
         AsciiStlExporter::write(&model2, &mut buf2).expect("second write should succeed");
 
         // Parse again
-        let model3 = StlImporter::read_ascii(Cursor::new(&buf2)).expect("second re-read should succeed");
+        let model3 =
+            StlImporter::read_ascii(Cursor::new(&buf2)).expect("second re-read should succeed");
 
         // Compare: same vertex count, triangle count, and positions
         let get_mesh_info = |m: &Model| -> (usize, usize, Vec<(f32, f32, f32)>) {
             let obj = m.resources.get_object(ResourceId(1)).expect("object 1");
             if let lib3mf_core::model::Geometry::Mesh(mesh) = &obj.geometry {
-                let verts: Vec<(f32, f32, f32)> = mesh.vertices.iter().map(|v| (v.x, v.y, v.z)).collect();
+                let verts: Vec<(f32, f32, f32)> =
+                    mesh.vertices.iter().map(|v| (v.x, v.y, v.z)).collect();
                 (mesh.vertices.len(), mesh.triangles.len(), verts)
             } else {
                 panic!("expected Mesh");
@@ -1482,8 +1515,14 @@ solid truncated
         let (v_count2, t_count2, verts2) = get_mesh_info(&model2);
         let (v_count3, t_count3, verts3) = get_mesh_info(&model3);
 
-        assert_eq!(v_count2, v_count3, "vertex count must be stable across roundtrips");
-        assert_eq!(t_count2, t_count3, "triangle count must be stable across roundtrips");
+        assert_eq!(
+            v_count2, v_count3,
+            "vertex count must be stable across roundtrips"
+        );
+        assert_eq!(
+            t_count2, t_count3,
+            "triangle count must be stable across roundtrips"
+        );
 
         // Vertex positions should match within f32 formatting tolerance (1e-5)
         for (i, (&(x2, y2, z2), &(x3, y3, z3))) in verts2.iter().zip(verts3.iter()).enumerate() {
