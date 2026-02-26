@@ -36,6 +36,8 @@ glob = "0.3"
 glam.workspace = true
 
 [dev-dependencies]
+tempfile = "3"
+glam.workspace = true
 
 [build-dependencies]
 vergen-gix = { version = "9.1.0", features = ["build", "cargo", "si"] }
