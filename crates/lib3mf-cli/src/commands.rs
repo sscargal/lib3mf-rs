@@ -1072,11 +1072,19 @@ pub fn convert(input: PathBuf, output: PathBuf, ascii: bool) -> anyhow::Result<(
             let root_model = resolver.get_root_model().clone(); // Clone to pass to export, or export takes ref
 
             if ascii {
-                lib3mf_converters::stl::AsciiStlExporter::write_with_resolver(&root_model, resolver, file)
-                    .map_err(|e| anyhow::anyhow!("Failed to export ASCII STL: {}", e))?;
+                lib3mf_converters::stl::AsciiStlExporter::write_with_resolver(
+                    &root_model,
+                    resolver,
+                    file,
+                )
+                .map_err(|e| anyhow::anyhow!("Failed to export ASCII STL: {}", e))?;
             } else {
-                lib3mf_converters::stl::BinaryStlExporter::write_with_resolver(&root_model, resolver, file)
-                    .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
+                lib3mf_converters::stl::BinaryStlExporter::write_with_resolver(
+                    &root_model,
+                    resolver,
+                    file,
+                )
+                .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
             }
 
             println!("Converted {:?} to {:?}", input, output);

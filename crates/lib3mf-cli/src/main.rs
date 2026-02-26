@@ -448,7 +448,11 @@ fn main() -> anyhow::Result<()> {
         Commands::Copy { input, output } => {
             commands::copy(input, output)?;
         }
-        Commands::Convert { input, output, ascii } => {
+        Commands::Convert {
+            input,
+            output,
+            ascii,
+        } => {
             commands::convert(input, output, ascii)?;
         }
         Commands::Validate { file, level } => {
