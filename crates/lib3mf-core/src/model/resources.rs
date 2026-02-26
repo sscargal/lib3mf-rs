@@ -334,6 +334,11 @@ impl ResourceCollection {
         self.displacement_2d.values()
     }
 
+    /// Returns an iterator over all Texture2D resources in the collection.
+    pub fn iter_texture_2d(&self) -> impl Iterator<Item = &Texture2D> {
+        self.texture_2d.values()
+    }
+
     /// Returns an iterator over all slice stacks in the collection.
     pub fn iter_slice_stacks(&self) -> impl Iterator<Item = &SliceStack> {
         self.slice_stacks.values()
