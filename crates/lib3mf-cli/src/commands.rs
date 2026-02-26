@@ -1067,7 +1067,7 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
             // Access the root model via resolver for export
             let root_model = resolver.get_root_model().clone(); // Clone to pass to export, or export takes ref
 
-            lib3mf_converters::stl::StlExporter::write_with_resolver(&root_model, resolver, file)
+            lib3mf_converters::stl::BinaryStlExporter::write_with_resolver(&root_model, resolver, file)
                 .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
 
             println!("Converted {:?} to {:?}", input, output);
@@ -1090,7 +1090,7 @@ pub fn convert(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
                 .map_err(|e| anyhow::anyhow!("Failed to write 3MF: {}", e))?;
         }
         "stl" => {
-            lib3mf_converters::stl::StlExporter::write(&model, file)
+            lib3mf_converters::stl::BinaryStlExporter::write(&model, file)
                 .map_err(|e| anyhow::anyhow!("Failed to export STL: {}", e))?;
         }
         "obj" => {

@@ -1,4 +1,4 @@
-use lib3mf_converters::stl::{StlExporter, StlImporter};
+use lib3mf_converters::stl::{BinaryStlExporter, StlImporter};
 use lib3mf_core::model::{Model, Unit};
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -45,7 +45,7 @@ fn main() -> anyhow::Result<()> {
     let stl_path = "triangle.stl";
     println!("Exporting to {}...", stl_path);
     let stl_file = File::create(stl_path)?;
-    StlExporter::write(&model, BufWriter::new(stl_file))?;
+    BinaryStlExporter::write(&model, BufWriter::new(stl_file))?;
 
     // 3. Import back from STL
     println!("Importing back from {}...", stl_path);
