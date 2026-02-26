@@ -20,26 +20,50 @@ Use `lib3mf-converters` when you need:
 lib3mf-converters = "0.1"
 ```
 
-### STL to 3MF
+### STL to 3MF (auto-detects binary or ASCII)
 
-```rust
+```rust,no_run
 use lib3mf_converters::stl::StlImporter;
-use lib3mf_core::writer::write_model;
+use std::fs::File;
 
-let importer = StlImporter::new();
-let model = importer.import_file("model.stl")?;
-write_model(&model, "output.3mf")?;
+let file = File::open("model.stl")?;
+let model = StlImporter::read(file)?;
+model.write(File::create("output.3mf")?)?;
+# Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-### 3MF to OBJ
+### 3MF to Binary STL
 
-```rust
-use lib3mf_core::Model;
-use lib3mf_converters::obj::ObjExporter;
+```rust,no_run
+use lib3mf_converters::stl::BinaryStlExporter;
+use lib3mf_core::archive::{ZipArchiver, find_model_path, ArchiveReader};
+use lib3mf_core::parser::parse_model;
+use std::fs::File;
 
-let model = Model::from_file("model.3mf")?;
-let exporter = ObjExporter::new();
-exporter.export(&model, "output.obj")?;
+let file = File::open("model.3mf")?;
+let mut archiver = ZipArchiver::new(file)?;
+let model_path = find_model_path(&mut archiver)?;
+let data = archiver.read_entry(&model_path)?;
+let model = parse_model(std::io::Cursor::new(data))?;
+BinaryStlExporter::write(&model, File::create("output.stl")?)?;
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+### 3MF to ASCII STL
+
+```rust,no_run
+use lib3mf_converters::stl::AsciiStlExporter;
+use lib3mf_core::archive::{ZipArchiver, find_model_path, ArchiveReader};
+use lib3mf_core::parser::parse_model;
+use std::fs::File;
+
+let file = File::open("model.3mf")?;
+let mut archiver = ZipArchiver::new(file)?;
+let model_path = find_model_path(&mut archiver)?;
+let data = archiver.read_entry(&model_path)?;
+let model = parse_model(std::io::Cursor::new(data))?;
+AsciiStlExporter::write(&model, File::create("output.stl")?)?;
+# Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
 ## Supported Formats
@@ -52,10 +76,10 @@ exporter.export(&model, "output.obj")?;
 
 ## Features
 
-- Binary and ASCII STL support
-- OBJ with vertex normals
+- Binary and ASCII STL import with automatic format detection
+- Binary STL export (`BinaryStlExporter`) and ASCII STL export (`AsciiStlExporter`)
+- OBJ import (vertices and faces) and export
 - Preserves mesh topology
-- Efficient memory usage with parallel processing
 - Error recovery for malformed files
 
 ## CLI Usage

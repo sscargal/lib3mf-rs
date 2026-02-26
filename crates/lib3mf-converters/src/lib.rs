@@ -9,7 +9,7 @@
 //! full 3MF [`Model`] representation.
 //!
 //! **Supported formats:**
-//! - **STL**: Binary STL only (80-byte header + triangle records)
+//! - **STL**: Binary and ASCII STL formats with auto-detection
 //! - **OBJ**: Basic geometry only (vertices and faces, no materials/textures)
 //!
 //! ## Quick Start
@@ -38,12 +38,12 @@
 //!
 //! ## Modules
 //!
-//! - [`stl`]: Binary STL import and export
+//! - [`stl`]: Binary and ASCII STL import and export
 //! - [`obj`]: Wavefront OBJ import and export
 //!
 //! ## Limitations
 //!
-//! - **STL**: Only binary STL format is supported (ASCII STL is not supported)
+//! - **STL**: No color or material attribute support in STL format
 //! - **OBJ**: Materials (mtllib/usemtl), texture coordinates (vt), and normals (vn) are ignored during import
 //! - **OBJ**: Export does not include materials or textures, only geometry
 //! - Vertex deduplication in STL import uses bitwise float comparison (exact match required)

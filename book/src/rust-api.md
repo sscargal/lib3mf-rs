@@ -39,22 +39,23 @@ Command-line interface tool providing the `3mf` binary for file inspection, vali
 
 ### [lib3mf-converters](../rustdoc/lib3mf_converters/index.html)
 
-Format converters for interoperability with other 3D file formats. Supports importing/exporting binary STL and basic OBJ files to/from 3MF.
+Format converters for interoperability with other 3D file formats. Supports importing/exporting binary and ASCII STL and basic OBJ files to/from 3MF.
 
 **Key types:**
-- `StlImporter` - Read binary STL files into 3MF models
-- `StlExporter` - Write 3MF models to binary STL format
+- `StlImporter` - Read binary and ASCII STL files into 3MF models (auto-detects format)
+- `BinaryStlExporter` - Write 3MF models to binary STL format
+- `AsciiStlExporter` - Write 3MF models to ASCII STL format with computed normals
 - `ObjImporter` - Read OBJ files (vertices and faces) into 3MF
 - `ObjExporter` - Write 3MF models to OBJ format
 
 **Features:**
-- Binary STL support (ASCII STL not supported)
+- Binary and ASCII STL support with format auto-detection
 - Multi-part STL export with `write_with_resolver` for filename mapping
 - Basic OBJ import (no materials, textures, or normals)
 - Automatic unit conversion and coordinate system handling
 
 **Limitations:**
-- STL: Binary format only, no color/material support
+- STL: No color or material attribute support
 - OBJ: No material (.mtl) files, normals, or texture coordinates
 
 ## Async I/O
