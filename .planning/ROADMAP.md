@@ -4,7 +4,7 @@
 
 - v0.2.0 Complete Implementation - Phases 1-11 (shipped 2026-02-25)
 - v0.3.0 Writer Completeness & Roundtrip Fidelity - Phases 12-14 (shipped 2026-02-25)
-- v0.4.0 Format Converters - Phases 18-19 (planned)
+- v0.4.0 Format Converters - Phases 18-19 (shipped 2026-02-26)
 - v0.5.0 Advanced CLI & Tooling - Phases 22-25 (planned)
 - v0.6.0 Production Hardening - Phases 26-29 (planned)
 
@@ -42,54 +42,15 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v0.4.0 Format Converters (Planned)
+<details>
+<summary>v0.4.0 Format Converters (Phases 18-19) - SHIPPED 2026-02-26</summary>
 
 **Milestone Goal:** Add ASCII STL format support to complete STL coverage (binary + ASCII read/write), and fix production extension component resolution for BambuStudio/OrcaSlicer real-world 3MF files.
 
-- [ ] **Phase 18: ASCII STL Support** - Read/write ASCII STL format with auto-detection, face normals, multi-solid support, and tests
-- [ ] **Phase 19: Production Extension Component Resolution** - Resolve cross-file component references, apply transforms, filter by ObjectType, handle unit conversion for real-world BambuStudio/OrcaSlicer 3MF files
+- [x] **Phase 18: ASCII STL Support** (2/2 plans) — completed 2026-02-26
+- [x] **Phase 19: Production Extension Component Resolution** (2/2 plans) — completed 2026-02-26
 
-### Phase 18: ASCII STL Support
-**Goal**: Users can read and write ASCII STL files with auto-detection between binary and ASCII formats, completing full STL format coverage.
-
-**Depends on**: Phase 14
-
-**Requirements**: ASTL-01 through ASTL-16
-
-**Success Criteria** (what must be TRUE):
-  1. StlImporter::read() auto-detects binary vs ASCII format and parses both correctly without caller intervention
-  2. ASCII STL files with varying whitespace, casing, and multiple solids parse into correct Model structures with deduplicated vertices
-  3. ASCII STL writer emits computed face normals (not zero normals) and produces valid ASCII STL files that other tools can import
-  4. Roundtrip test passes: ASCII STL -> Model -> ASCII STL -> Model with structurally identical geometry
-  5. README documentation bug fixed (currently incorrectly claims ASCII STL support exists)
-
-**Plans:** TBD
-
-Plans:
-- [ ] 18-01-PLAN.md -- TBD
-- [ ] 18-02-PLAN.md -- TBD
-
-### Phase 19: Production Extension Component Resolution
-**Goal**: Consumers of lib3mf-core can correctly load BambuStudio/OrcaSlicer 3MF files that use production extension cross-file component references (`<component p:path="...">`), with proper transform application, ObjectType filtering, unit conversion, and build item printable flag support.
-
-**Depends on**: Phase 18
-
-**Requirements**: TBD
-
-**Success Criteria** (what must be TRUE):
-  1. `PartResolver` correctly resolves `Geometry::Components` with cross-file `path` references, loading sub-model files from the archive on demand
-  2. Component transforms (`Mat4`) and BuildItem transforms are correctly composed and applied to vertices (`build_item.transform * component.transform * vertex`)
-  3. Recursive component resolution works (component → component → mesh) with a depth limit to prevent infinite loops
-  4. `ObjectType::Other` modifier volumes are filtered out — only `ObjectType::Model` objects contribute geometry
-  5. `BuildItem.printable == Some(false)` items are skipped
-  6. Unit conversion normalizes all vertex coordinates to millimeters based on `model.unit`
-  7. Real BambuStudio 3MF test files (Cube_PLA, 3DBenchy_PLA, SimplePyramid) parse successfully with correct vertex/triangle counts
-  8. Existing tests continue to pass — no regressions in non-production-extension 3MF handling
-
-**Plans:** TBD
-
-Plans:
-- [ ] 19-01-PLAN.md -- TBD
+</details>
 
 ### v0.5.0 Advanced CLI & Tooling (Planned)
 
@@ -202,8 +163,8 @@ Phases execute in numeric order: 1 -> ... -> 14 -> 18 -> 19 -> 22 -> 23 -> 24 ->
 | 12. Beam Lattice Writer | v0.3.0 | 1/1 | Complete | 2026-02-25 |
 | 13. Slice Extension Writer | v0.3.0 | 2/2 | Complete | 2026-02-25 |
 | 14. Volumetric Extension Writer | v0.3.0 | 1/1 | Complete | 2026-02-25 |
-| 18. ASCII STL Support | v0.4.0 | 0/TBD | Not started | - |
-| 19. Production Extension Component Resolution | v0.4.0 | 0/TBD | Not started | - |
+| 18. ASCII STL Support | v0.4.0 | 2/2 | Complete | 2026-02-26 |
+| 19. Production Extension Component Resolution | v0.4.0 | 2/2 | Complete | 2026-02-26 |
 | 22. Merge Command | v0.5.0 | 0/TBD | Not started | - |
 | 23. Split Command | v0.5.0 | 0/TBD | Not started | - |
 | 24. Batch Processing | v0.5.0 | 0/TBD | Not started | - |
@@ -215,4 +176,4 @@ Phases execute in numeric order: 1 -> ... -> 14 -> 18 -> 19 -> 22 -> 23 -> 24 ->
 
 ---
 *Roadmap created: 2026-02-02*
-*Last updated: 2026-02-26 (Phase 19 added to v0.4.0)*
+*Last updated: 2026-02-26 (v0.4.0 milestone completed and archived)*
