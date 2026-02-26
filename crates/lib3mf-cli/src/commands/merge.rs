@@ -11,6 +11,11 @@
 //! 7. Update texture/displacement paths after attachment remap
 //! 8. Combine all resources into one merged Model
 //! 9. Write merged model to output
+//!
+//! Note: The `run()` function is a stub implemented in Plan 02. The helper
+//! functions in this module are the complete merge engine implementation.
+// Allow dead_code for helper functions until run() is wired up in Plan 02.
+#![allow(dead_code)]
 
 use glob::glob;
 use lib3mf_core::archive::{ArchiveReader, ZipArchiver, find_model_path, opc};
