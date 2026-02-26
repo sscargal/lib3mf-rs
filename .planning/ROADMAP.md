@@ -5,8 +5,8 @@
 - v0.2.0 Complete Implementation - Phases 1-11 (shipped 2026-02-25)
 - v0.3.0 Writer Completeness & Roundtrip Fidelity - Phases 12-14 (shipped 2026-02-25)
 - v0.4.0 Format Converters - Phases 18-19 (shipped 2026-02-26)
-- v0.5.0 Advanced CLI & Tooling - Phases 22-25 (planned)
-- v0.6.0 Production Hardening - Phases 26-29 (planned)
+- v0.5.0 Advanced CLI & Tooling - Phases 22-26 (planned)
+- v0.6.0 Production Hardening - Phases 27-30 (planned)
 
 ## Phases
 
@@ -60,6 +60,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 23: Split Command** - Extract individual objects/plates to separate 3MF files
 - [ ] **Phase 24: Batch Processing** - Process directories of 3MF files with configurable operations
 - [ ] **Phase 25: OBJ Materials Import** - Parse .mtl files during OBJ import for material support
+- [ ] **Phase 26: Close Test Coverage Gaps** - Add missing tests for v0.3.0/v0.4.0 features (binary STL writer, CLI --ascii, multi-object export, resolver edge cases)
 
 ### Phase 22: Merge Command
 **Goal**: Users can combine multiple 3MF files into a single file, merging resources, build items, and metadata.
@@ -97,26 +98,41 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Plans:** TBD
 
+### Phase 26: Close Test Coverage Gaps
+**Goal**: Fill critical test gaps for v0.3.0/v0.4.0 features — binary STL writer tests, binary STL roundtrip, CLI --ascii flag tests, multi-object STL export, vendor namespace roundtrip, and resolver edge cases.
+
+**Depends on**: Phase 25
+
+**Requirements**:
+- Binary STL writer (BinaryStlExporter) unit tests: write output validation, normal computation
+- Binary STL roundtrip tests: write→read→compare cycle
+- CLI `--ascii` flag integration tests: end-to-end 3mf→ASCII STL conversion
+- Multi-object STL export tests: multiple meshes in single export
+- ASCII STL with real .3mf files: end-to-end 3mf→stl using Benchy/test models
+- Vendor namespace (`extra_namespaces`) roundtrip test
+- Beam lattice `radius` attribute roundtrip test
+- resolve_meshes modifier volume (ObjectType::Other) filtering test
+- QA test suite additions for new test scenarios
+- Real-file integration tests in QA suite (tmp/models/ dynamic discovery)
+
+**Plans:** 4 plans
+Plans:
+- [ ] 26-01-PLAN.md — Binary STL writer unit tests (write validation, roundtrip, multi-object)
+- [ ] 26-02-PLAN.md — Core roundtrip tests (vendor namespace, beam lattice radius)
+- [ ] 26-03-PLAN.md — CLI convert integration tests and QA script --ascii coverage
+- [ ] 26-04-PLAN.md — Real-file integration tests in QA suite (--no-cleanup flag, tmp/models/ discovery)
+
 ### v0.6.0 Production Hardening (Planned)
 
 **Milestone Goal:** Prepare for production deployment with streaming parser extensions, performance regression CI, crates.io publication, and conformance CI.
 
-- [ ] **Phase 26: Streaming Parser for Extensions** - Add SAX-mode parsing for boolean, displacement, and volumetric extensions to handle GB+ files
-- [ ] **Phase 27: Performance Regression CI** - Automated benchmark tracking per commit with regression alerts
-- [ ] **Phase 28: crates.io Publication** - Publish all 5 workspace crates with proper metadata and dependency structure
-- [ ] **Phase 29: Conformance CI** - Run 3MF Consortium test suite in CI pipeline to prevent conformance regressions
+- [ ] **Phase 27: Streaming Parser for Extensions** - Add SAX-mode parsing for boolean, displacement, and volumetric extensions to handle GB+ files
+- [ ] **Phase 28: Performance Regression CI** - Automated benchmark tracking per commit with regression alerts
+- [ ] **Phase 29: crates.io Publication** - Publish all 5 workspace crates with proper metadata and dependency structure
+- [ ] **Phase 30: Conformance CI** - Run 3MF Consortium test suite in CI pipeline to prevent conformance regressions
 
-### Phase 26: Streaming Parser for Extensions
+### Phase 27: Streaming Parser for Extensions
 **Goal**: Extensions (boolean, displacement, volumetric) work in SAX streaming mode for GB+ files, matching core mesh streaming support.
-
-**Depends on**: Phase 25
-
-**Requirements**: TBD (defined during milestone activation)
-
-**Plans:** TBD
-
-### Phase 27: Performance Regression CI
-**Goal**: Automated benchmark tracking per commit with alerts when performance regresses beyond threshold.
 
 **Depends on**: Phase 26
 
@@ -124,8 +140,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Plans:** TBD
 
-### Phase 28: crates.io Publication
-**Goal**: All 5 workspace crates published to crates.io with proper metadata, dependency ordering, and publication workflow.
+### Phase 28: Performance Regression CI
+**Goal**: Automated benchmark tracking per commit with alerts when performance regresses beyond threshold.
 
 **Depends on**: Phase 27
 
@@ -133,10 +149,19 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Plans:** TBD
 
-### Phase 29: Conformance CI
-**Goal**: 3MF Consortium test suite runs in CI pipeline on every PR, preventing conformance regressions.
+### Phase 29: crates.io Publication
+**Goal**: All 5 workspace crates published to crates.io with proper metadata, dependency ordering, and publication workflow.
 
 **Depends on**: Phase 28
+
+**Requirements**: TBD (defined during milestone activation)
+
+**Plans:** TBD
+
+### Phase 30: Conformance CI
+**Goal**: 3MF Consortium test suite runs in CI pipeline on every PR, preventing conformance regressions.
+
+**Depends on**: Phase 29
 
 **Requirements**: TBD (defined during milestone activation)
 
@@ -145,7 +170,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> ... -> 14 -> 18 -> 19 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28 -> 29
+Phases execute in numeric order: 1 -> ... -> 14 -> 18 -> 19 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28 -> 29 -> 30
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -169,11 +194,12 @@ Phases execute in numeric order: 1 -> ... -> 14 -> 18 -> 19 -> 22 -> 23 -> 24 ->
 | 23. Split Command | v0.5.0 | 0/TBD | Not started | - |
 | 24. Batch Processing | v0.5.0 | 0/TBD | Not started | - |
 | 25. OBJ Materials Import | v0.5.0 | 0/TBD | Not started | - |
-| 26. Streaming Parser for Extensions | v0.6.0 | 0/TBD | Not started | - |
-| 27. Performance Regression CI | v0.6.0 | 0/TBD | Not started | - |
-| 28. crates.io Publication | v0.6.0 | 0/TBD | Not started | - |
-| 29. Conformance CI | v0.6.0 | 0/TBD | Not started | - |
+| 26. Close Test Coverage Gaps | v0.5.0 | 0/4 | Not started | - |
+| 27. Streaming Parser for Extensions | v0.6.0 | 0/TBD | Not started | - |
+| 28. Performance Regression CI | v0.6.0 | 0/TBD | Not started | - |
+| 29. crates.io Publication | v0.6.0 | 0/TBD | Not started | - |
+| 30. Conformance CI | v0.6.0 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-02-02*
-*Last updated: 2026-02-26 (v0.4.0 milestone completed and archived)*
+*Last updated: 2026-02-26 (Phase 26 planned: 4 plans in 2 waves)*

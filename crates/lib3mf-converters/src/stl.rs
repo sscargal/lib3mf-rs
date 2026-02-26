@@ -1537,7 +1537,234 @@ solid truncated
         assert_eq!(t_count2, 2, "should have 2 triangles");
     }
 
-    // ===== Test 15: auto-detect dispatches to binary parser =====
+    // ===== Test 15: BinaryStlExporter::write produces correct binary output =====
+
+    #[test]
+    fn test_write_binary_simple() {
+        use byteorder::{LittleEndian, ReadBytesExt};
+
+        // One triangle: vertices at (0,0,0), (1,0,0), (0,1,0)
+        let model = make_simple_model(
+            vec![(0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)],
+            vec![(0, 1, 2)],
+            None,
+        );
+
+        let mut buf = Vec::new();
+        BinaryStlExporter::write(&model, Cursor::new(&mut buf)).expect("write should succeed");
+
+        // Total: 80-byte header + 4-byte count + 1 * 50-byte triangle = 134
+        assert_eq!(
+            buf.len(),
+            134,
+            "binary STL size should be 134 bytes for 1 triangle"
+        );
+
+        // Triangle count at bytes 80..84
+        let mut count_bytes = Cursor::new(&buf[80..84]);
+        let tri_count = count_bytes.read_u32::<LittleEndian>().unwrap();
+        assert_eq!(tri_count, 1, "triangle count should be 1");
+
+        // Triangle data layout (per triangle):
+        //   bytes 84..96:  normal (3 x f32 = 12 bytes)
+        //   bytes 96..108: vertex 1 (3 x f32 = 12 bytes)
+        //   bytes 108..120: vertex 2 (3 x f32 = 12 bytes)
+        //   bytes 120..132: vertex 3 (3 x f32 = 12 bytes)
+        //   bytes 132..134: attribute byte count (u16 = 2 bytes)
+        let mut tri_cursor = Cursor::new(&buf[96..]);
+
+        // Vertex 1: (0,0,0)
+        let v1x = tri_cursor.read_f32::<LittleEndian>().unwrap();
+        let v1y = tri_cursor.read_f32::<LittleEndian>().unwrap();
+        let v1z = tri_cursor.read_f32::<LittleEndian>().unwrap();
+        assert!((v1x - 0.0).abs() < 1e-6, "v1.x should be 0.0, got {v1x}");
+        assert!((v1y - 0.0).abs() < 1e-6, "v1.y should be 0.0, got {v1y}");
+        assert!((v1z - 0.0).abs() < 1e-6, "v1.z should be 0.0, got {v1z}");
+
+        // Vertex 2: (1,0,0)
+        let v2x = tri_cursor.read_f32::<LittleEndian>().unwrap();
+        let v2y = tri_cursor.read_f32::<LittleEndian>().unwrap();
+        let v2z = tri_cursor.read_f32::<LittleEndian>().unwrap();
+        assert!((v2x - 1.0).abs() < 1e-6, "v2.x should be 1.0, got {v2x}");
+        assert!((v2y - 0.0).abs() < 1e-6, "v2.y should be 0.0, got {v2y}");
+        assert!((v2z - 0.0).abs() < 1e-6, "v2.z should be 0.0, got {v2z}");
+
+        // Vertex 3: (0,1,0)
+        let v3x = tri_cursor.read_f32::<LittleEndian>().unwrap();
+        let v3y = tri_cursor.read_f32::<LittleEndian>().unwrap();
+        let v3z = tri_cursor.read_f32::<LittleEndian>().unwrap();
+        assert!((v3x - 0.0).abs() < 1e-6, "v3.x should be 0.0, got {v3x}");
+        assert!((v3y - 1.0).abs() < 1e-6, "v3.y should be 1.0, got {v3y}");
+        assert!((v3z - 0.0).abs() < 1e-6, "v3.z should be 0.0, got {v3z}");
+    }
+
+    // ===== Test 16: BinaryStlExporter::write roundtrip preserves triangle count =====
+
+    #[test]
+    fn test_roundtrip_binary() {
+        // Create a flat square with 4 vertices and 2 triangles
+        let model = make_simple_model(
+            vec![
+                (0.0, 0.0, 0.0),
+                (1.0, 0.0, 0.0),
+                (1.0, 1.0, 0.0),
+                (0.0, 1.0, 0.0),
+            ],
+            vec![(0, 1, 2), (0, 2, 3)],
+            None,
+        );
+
+        // Write to binary STL
+        let mut buf = Vec::new();
+        BinaryStlExporter::write(&model, Cursor::new(&mut buf)).expect("write should succeed");
+
+        // Read back using StlImporter
+        let model2 =
+            StlImporter::read(Cursor::new(buf)).expect("binary roundtrip read should succeed");
+
+        // Binary STL import deduplicates vertices, so only check triangle count
+        let obj2 = model2
+            .resources
+            .get_object(ResourceId(1))
+            .expect("object 1");
+        if let lib3mf_core::model::Geometry::Mesh(mesh2) = &obj2.geometry {
+            assert_eq!(
+                mesh2.triangles.len(),
+                2,
+                "read-back should have 2 triangles"
+            );
+        } else {
+            panic!("expected Mesh geometry");
+        }
+    }
+
+    // ===== Test 17: BinaryStlExporter::write combines triangles from multiple build items =====
+
+    #[test]
+    fn test_write_binary_multi_object() {
+        use byteorder::{LittleEndian, ReadBytesExt};
+        use lib3mf_core::model::{Geometry, Object, ObjectType};
+
+        // Object 1: 1 triangle
+        let mut mesh1 = Mesh::default();
+        mesh1.vertices.push(Vertex {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        mesh1.vertices.push(Vertex {
+            x: 1.0,
+            y: 0.0,
+            z: 0.0,
+        });
+        mesh1.vertices.push(Vertex {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        });
+        mesh1.triangles.push(Triangle {
+            v1: 0,
+            v2: 1,
+            v3: 2,
+            ..Default::default()
+        });
+
+        let obj1 = Object {
+            id: ResourceId(1),
+            object_type: ObjectType::Model,
+            name: None,
+            part_number: None,
+            uuid: None,
+            pid: None,
+            pindex: None,
+            thumbnail: None,
+            geometry: Geometry::Mesh(mesh1),
+        };
+
+        // Object 2: 2 triangles
+        let mut mesh2 = Mesh::default();
+        mesh2.vertices.push(Vertex {
+            x: 0.0,
+            y: 0.0,
+            z: 1.0,
+        });
+        mesh2.vertices.push(Vertex {
+            x: 1.0,
+            y: 0.0,
+            z: 1.0,
+        });
+        mesh2.vertices.push(Vertex {
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+        });
+        mesh2.vertices.push(Vertex {
+            x: 0.0,
+            y: 1.0,
+            z: 1.0,
+        });
+        mesh2.triangles.push(Triangle {
+            v1: 0,
+            v2: 1,
+            v3: 2,
+            ..Default::default()
+        });
+        mesh2.triangles.push(Triangle {
+            v1: 0,
+            v2: 2,
+            v3: 3,
+            ..Default::default()
+        });
+
+        let obj2 = Object {
+            id: ResourceId(2),
+            object_type: ObjectType::Model,
+            name: None,
+            part_number: None,
+            uuid: None,
+            pid: None,
+            pindex: None,
+            thumbnail: None,
+            geometry: Geometry::Mesh(mesh2),
+        };
+
+        let mut model = Model::default();
+        let _ = model.resources.add_object(obj1);
+        let _ = model.resources.add_object(obj2);
+        model.build.items.push(BuildItem {
+            object_id: ResourceId(1),
+            transform: glam::Mat4::IDENTITY,
+            part_number: None,
+            uuid: None,
+            path: None,
+            printable: None,
+        });
+        model.build.items.push(BuildItem {
+            object_id: ResourceId(2),
+            transform: glam::Mat4::IDENTITY,
+            part_number: None,
+            uuid: None,
+            path: None,
+            printable: None,
+        });
+
+        let mut buf = Vec::new();
+        BinaryStlExporter::write(&model, Cursor::new(&mut buf)).expect("write should succeed");
+
+        // Total: 80 + 4 + 3 * 50 = 234 bytes
+        assert_eq!(
+            buf.len(),
+            234,
+            "binary STL size should be 234 bytes for 3 triangles"
+        );
+
+        // Triangle count at bytes 80..84 should be 3
+        let mut count_cursor = Cursor::new(&buf[80..84]);
+        let tri_count = count_cursor.read_u32::<LittleEndian>().unwrap();
+        assert_eq!(tri_count, 3, "combined triangle count should be 3 (1 + 2)");
+    }
+
+    // ===== Test 18: auto-detect dispatches to binary parser =====
 
     #[test]
     fn test_auto_detect_read_binary() {
@@ -1556,7 +1783,7 @@ solid truncated
         }
     }
 
-    // ===== Test 16: auto-detect dispatches to ASCII parser =====
+    // ===== Test 19: auto-detect dispatches to ASCII parser =====
 
     #[test]
     fn test_auto_detect_read_ascii() {
