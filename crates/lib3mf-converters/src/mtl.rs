@@ -225,10 +225,7 @@ mod tests {
         assert_eq!(materials.len(), 3);
         assert_eq!(materials["Red"].display_color, Color::new(255, 0, 0, 255));
         assert_eq!(materials["Blue"].display_color, Color::new(0, 0, 255, 255));
-        assert_eq!(
-            materials["Green"].display_color,
-            Color::new(0, 255, 0, 255)
-        );
+        assert_eq!(materials["Green"].display_color, Color::new(0, 255, 0, 255));
     }
 
     #[test]
@@ -266,10 +263,7 @@ mod tests {
         let materials = parse_mtl(&mtl[..]);
         assert_eq!(materials.len(), 1);
         // Only Kd matters
-        assert_eq!(
-            materials["Fancy"].display_color,
-            Color::new(255, 0, 0, 255)
-        );
+        assert_eq!(materials["Fancy"].display_color, Color::new(255, 0, 0, 255));
     }
 
     #[test]

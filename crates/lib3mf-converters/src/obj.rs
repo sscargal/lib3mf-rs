@@ -259,9 +259,7 @@ impl ObjImporter {
             match parts[0] {
                 "v" => {
                     if parts.len() < 4 {
-                        return Err(Lib3mfError::Validation(
-                            "Invalid OBJ vertex".to_string(),
-                        ));
+                        return Err(Lib3mfError::Validation("Invalid OBJ vertex".to_string()));
                     }
                     let x = parts[1]
                         .parse::<f32>()
@@ -420,8 +418,7 @@ impl ObjImporter {
         };
 
         // Determine if we're in single-object backward-compat mode
-        let single_object_mode =
-            !intermediate.had_explicit_group && intermediate.groups.len() == 1;
+        let single_object_mode = !intermediate.had_explicit_group && intermediate.groups.len() == 1;
 
         if single_object_mode && !has_materials {
             // Full backward compatibility: single object with ResourceId(1), no materials
@@ -572,18 +569,22 @@ impl ObjImporter {
 
             // Build triangle with material assignment
             if local_indices.len() == 3 {
-                let (pid, p1, p2, p3) =
-                    if let (Some(group_id), Some(index_map), Some(mat_name)) =
-                        (materials_group_id, material_index_map, &face.material_name)
-                    {
-                        if let Some(&mat_idx) = index_map.get(mat_name.as_str()) {
-                            (Some(group_id.0), Some(mat_idx), Some(mat_idx), Some(mat_idx))
-                        } else {
-                            (None, None, None, None)
-                        }
+                let (pid, p1, p2, p3) = if let (Some(group_id), Some(index_map), Some(mat_name)) =
+                    (materials_group_id, material_index_map, &face.material_name)
+                {
+                    if let Some(&mat_idx) = index_map.get(mat_name.as_str()) {
+                        (
+                            Some(group_id.0),
+                            Some(mat_idx),
+                            Some(mat_idx),
+                            Some(mat_idx),
+                        )
                     } else {
                         (None, None, None, None)
-                    };
+                    }
+                } else {
+                    (None, None, None, None)
+                };
 
                 mesh.triangles.push(Triangle {
                     v1: local_indices[0],
@@ -851,8 +852,7 @@ mod tests {
     #[test]
     fn test_empty_groups_are_skipped() {
         // Group "Empty" has no faces between it and GroupB
-        let obj_data =
-            b"v 0 0 0\nv 1 0 0\nv 0 1 0\ng Empty\ng HasFaces\nf 1 2 3\n";
+        let obj_data = b"v 0 0 0\nv 1 0 0\nv 0 1 0\ng Empty\ng HasFaces\nf 1 2 3\n";
         let intermediate = ObjImporter::parse_obj(BufReader::new(&obj_data[..])).unwrap();
         let model = ObjImporter::build_model(intermediate, &HashMap::new()).unwrap();
 
@@ -867,8 +867,7 @@ mod tests {
 
     #[test]
     fn test_undefined_material_gets_gray() {
-        let obj_data =
-            b"v 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl Unknown\nf 1 2 3\n";
+        let obj_data = b"v 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl Unknown\nf 1 2 3\n";
         let intermediate = ObjImporter::parse_obj(BufReader::new(&obj_data[..])).unwrap();
 
         // Empty materials map -- "Unknown" is not defined
@@ -909,8 +908,7 @@ mod tests {
     #[test]
     fn test_face_with_vt_vn_format() {
         // v/vt/vn format -- should extract vertex index only
-        let obj_data =
-            b"v 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 0 1\nf 1/1/1 2/2/1 3/3/1\n";
+        let obj_data = b"v 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 0 1\nf 1/1/1 2/2/1 3/3/1\n";
         let model = ObjImporter::read(&obj_data[..]).unwrap();
         let obj = model.resources.get_object(ResourceId(1)).unwrap();
         if let Geometry::Mesh(mesh) = &obj.geometry {
