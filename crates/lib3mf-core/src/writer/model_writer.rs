@@ -269,6 +269,12 @@ impl Model {
                         obj_elem = obj_elem.attr("volumetricstackid", &vsid.0.to_string());
                     }
 
+                    if let Some(pid) = obj.pid {
+                        obj_elem = obj_elem.attr("pid", &pid.0.to_string());
+                    }
+                    if let Some(pindex) = obj.pindex {
+                        obj_elem = obj_elem.attr("pindex", &pindex.to_string());
+                    }
                     if let Some(pid) = obj.part_number.as_ref() {
                         obj_elem = obj_elem.attr("partnumber", pid);
                     }

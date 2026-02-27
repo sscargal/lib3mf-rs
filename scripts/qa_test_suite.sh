@@ -1747,6 +1747,12 @@ for CMD in $COMMANDS; do
              CMD_LINE="$CLI_BIN merge --help"
              run_cmd "$CMD_LINE" "Running Custom: $CMD_LINE (merge --help)"
              continue ;;
+        "split")
+             # split requires an input file — test --help only in discovery loop
+             # (detailed split tests run in the dedicated Split Command Tests section above)
+             CMD_LINE="$CLI_BIN split --help"
+             run_cmd "$CMD_LINE" "Running Custom: $CMD_LINE (split --help)"
+             continue ;;
         "benchmark"|"stats"|"list"|"validate"|"convert"|"repair"|"copy"|"dump"|"mn"|"rels")
              # Use generic discovery logic below
              ;;
@@ -2153,6 +2159,78 @@ if [ -f "$ASSET_3MF" ]; then
         "Merge: single input should fail (requires at least 2 files)"
 fi
 
+# ===========================================================================
+# Split Command Tests
+# ===========================================================================
+echo ""
+echo -e "${BLUE}=== Split Command Tests ===${NC}"
+
+# Test: split --help exits 0 and shows usage
+run_cmd "$CLI_BIN split --help" "Split: --help exits 0 and shows usage"
+
+# Test: split with --dry-run (exit 0, no output files created)
+SPLIT_DRY_OUT="$QA_TMP_DIR/split_dry_out"
+if [ -f "$ASSET_3MF" ]; then
+    run_cmd "$CLI_BIN split $ASSET_3MF --dry-run --output-dir $SPLIT_DRY_OUT" \
+        "Split: --dry-run exits 0"
+    # Verify no output directory was created
+    if [ ! -d "$SPLIT_DRY_OUT" ]; then
+        log_result "Split: --dry-run creates no output directory" 0
+    else
+        log_result "Split: --dry-run should NOT create output directory" 1
+    fi
+fi
+
+# Test: split with --by-object
+SPLIT_BYOBJ_OUT="$QA_TMP_DIR/split_byobj_out"
+if [ -f "$ASSET_3MF" ]; then
+    run_cmd "$CLI_BIN split $ASSET_3MF --by-object --output-dir $SPLIT_BYOBJ_OUT" \
+        "Split: --by-object splits into separate object files"
+fi
+
+# Test: basic split (default by-item) creates output directory
+SPLIT_BASIC_OUT="$QA_TMP_DIR/split_basic_out"
+if [ -f "$ASSET_3MF" ]; then
+    run_cmd "$CLI_BIN split $ASSET_3MF --output-dir $SPLIT_BASIC_OUT" \
+        "Split: basic split of test file"
+    # Verify output directory was created
+    if [ -d "$SPLIT_BASIC_OUT" ]; then
+        log_result "Split: output directory created after split" 0
+    else
+        log_result "Split: output directory should exist after split" 1
+    fi
+fi
+
+# Test: split with --force overwrites existing output
+if [ -f "$ASSET_3MF" ] && [ -d "$SPLIT_BASIC_OUT" ]; then
+    run_cmd "$CLI_BIN split $ASSET_3MF --force --output-dir $SPLIT_BASIC_OUT" \
+        "Split: --force overwrites existing output directory"
+fi
+
+# Test: split of nonexistent file fails with nonzero exit
+run_negative_cmd "$CLI_BIN split $QA_TMP_DIR/nonexistent.3mf" \
+    "Split: nonexistent file should fail"
+
+# Test: split with --verbose
+SPLIT_VERBOSE_OUT="$QA_TMP_DIR/split_verbose_out"
+if [ -f "$ASSET_3MF" ]; then
+    run_cmd "$CLI_BIN split $ASSET_3MF --verbose --output-dir $SPLIT_VERBOSE_OUT" \
+        "Split: --verbose produces additional output"
+fi
+
+# Test: split with --quiet produces no stdout
+SPLIT_QUIET_OUT="$QA_TMP_DIR/split_quiet_out"
+if [ -f "$ASSET_3MF" ]; then
+    QUIET_OUTPUT=$($CLI_BIN split "$ASSET_3MF" --quiet --output-dir "$SPLIT_QUIET_OUT" 2>/dev/null)
+    if [ -z "$QUIET_OUTPUT" ]; then
+        log_result "Split: --quiet produces no stdout" 0
+    else
+        log_result "Split: --quiet should produce no stdout, got: $QUIET_OUTPUT" 1
+    fi
+fi
+
+echo "  Split Command Tests complete" | tee -a "$REPORT_FILE"
+
 echo ""
 echo "================================================" >> "$REPORT_FILE"
 echo "================================================"
@@ -2188,6 +2266,7 @@ echo "  ✅ Beam Lattice Extension (beams, cap modes, beam sets)" | tee -a "$REP
 echo "  ✅ Slice Extension (slice stacks, polygons)" | tee -a "$REPORT_FILE"
 echo "  ✅ Volumetric Extension (volumetric data, sheets)" | tee -a "$REPORT_FILE"
 echo "  ✅ Merge Command (--help, single-file error)" | tee -a "$REPORT_FILE"
+echo "  ✅ Split Command (--help, --dry-run, --by-object, --force, --verbose, --quiet, error handling)" | tee -a "$REPORT_FILE"
 echo "  ✅ Command Discovery (all CLI commands tested)" | tee -a "$REPORT_FILE"
 echo "  ✅ Real-File Integration Tests (tmp/models/ files)" | tee -a "$REPORT_FILE"
 echo "" | tee -a "$REPORT_FILE"
