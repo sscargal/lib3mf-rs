@@ -61,5 +61,6 @@
 //! [`lib3mf_core::model::Mesh`]: https://docs.rs/lib3mf-core/latest/lib3mf_core/model/struct.Mesh.html
 //! [`lib3mf_core::error::Lib3mfError`]: https://docs.rs/lib3mf-core/latest/lib3mf_core/error/enum.Lib3mfError.html
 
+pub mod mtl;
 pub mod obj;
 pub mod stl;
