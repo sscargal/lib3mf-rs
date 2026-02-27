@@ -87,7 +87,7 @@ fn open_model(path: &PathBuf) -> anyhow::Result<ModelSource> {
                 Ok(ModelSource::Raw(model))
             }
             "obj" => {
-                let model = lib3mf_converters::obj::ObjImporter::read(file)
+                let model = lib3mf_converters::obj::ObjImporter::read_from_path(path)
                     .map_err(|e| anyhow::anyhow!("Failed to import OBJ: {}", e))?;
                 Ok(ModelSource::Raw(model))
             }

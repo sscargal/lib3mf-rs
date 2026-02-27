@@ -32,7 +32,7 @@ use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
@@ -643,21 +643,7 @@ fn process_stl_file(result: &mut FileResult, path: &Path, ops: &BatchOps) {
 
 /// Process an OBJ file — supports validate (basic), stats (via converter), convert (to 3MF).
 fn process_obj_file(result: &mut FileResult, path: &Path, ops: &BatchOps) {
-    let file = match File::open(path) {
-        Ok(f) => f,
-        Err(e) => {
-            result.errors.push(FileError {
-                category: ErrorCategory::FileError,
-                operation: "open".to_string(),
-                message: e.to_string(),
-            });
-            return;
-        }
-    };
-
-    // ObjImporter::read takes a BufRead
-    let reader = BufReader::new(file);
-    let model = match lib3mf_converters::obj::ObjImporter::read(reader) {
+    let model = match lib3mf_converters::obj::ObjImporter::read_from_path(path) {
         Ok(m) => m,
         Err(e) => {
             result.errors.push(FileError {
@@ -676,6 +662,7 @@ fn process_obj_file(result: &mut FileResult, path: &Path, ops: &BatchOps) {
     if ops.stats {
         let obj_count = model.resources.iter_objects().count();
         let (tri_count, vert_count) = count_triangles_vertices(&model);
+        let base_mat_count = model.resources.iter_base_materials().count();
         result.operations.insert(
             "stats".to_string(),
             serde_json::json!({
@@ -686,7 +673,7 @@ fn process_obj_file(result: &mut FileResult, path: &Path, ops: &BatchOps) {
                     "instance_count": model.build.items.len(),
                 },
                 "materials": {
-                    "base_materials_count": 0,
+                    "base_materials_count": base_mat_count,
                     "color_groups_count": 0,
                     "texture_2d_groups_count": 0,
                 },
