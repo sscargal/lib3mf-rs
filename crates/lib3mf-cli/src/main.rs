@@ -463,6 +463,69 @@ enum Commands {
         #[arg(long, short = 'v', conflicts_with = "quiet")]
         verbose: bool,
     },
+    /// Split a 3MF file into separate files per object or build item
+    ///
+    /// Extracts individual objects or plates from a 3MF file into separate
+    /// output files. Each output contains only the resources needed by its
+    /// object, with compact renumbered IDs.
+    ///
+    /// Examples:
+    ///
+    /// # Split by build item (default)
+    ///
+    /// $ lib3mf split model.3mf
+    ///
+    /// # Split by object resource
+    ///
+    /// $ lib3mf split model.3mf --by-object
+    ///
+    /// # Cherry-pick specific items
+    ///
+    /// $ lib3mf split model.3mf --select 0,Gear
+    ///
+    /// # Preview without writing
+    ///
+    /// $ lib3mf split model.3mf --dry-run
+    Split {
+        /// Input 3MF file to split
+        input: PathBuf,
+
+        /// Output directory (default: <input_stem>_split/ next to input)
+        #[arg(long, short = 'o')]
+        output_dir: Option<PathBuf>,
+
+        /// Split by build item (default)
+        #[arg(long, conflicts_with = "by_object")]
+        by_item: bool,
+
+        /// Split by unique object resource
+        #[arg(long, conflicts_with = "by_item")]
+        by_object: bool,
+
+        /// Select specific items by index or name (comma-separated)
+        #[arg(long, value_delimiter = ',')]
+        select: Vec<String>,
+
+        /// Keep original position/rotation/scale from source
+        #[arg(long)]
+        preserve_transforms: bool,
+
+        /// Preview output files without writing
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Overwrite existing output directory/files
+        #[arg(long, short = 'f')]
+        force: bool,
+
+        /// Suppress all output
+        #[arg(long, conflicts_with = "verbose")]
+        quiet: bool,
+
+        /// Show per-item dependency tracing details
+        #[arg(long, short = 'v', conflicts_with = "quiet")]
+        verbose: bool,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -576,6 +639,41 @@ fn main() -> anyhow::Result<()> {
                 commands::merge::Verbosity::Normal
             };
             commands::merge::run(inputs, output, force, single_plate, pack, verbosity)?;
+        }
+        Commands::Split {
+            input,
+            output_dir,
+            by_item: _,
+            by_object,
+            select,
+            preserve_transforms,
+            dry_run,
+            force,
+            quiet,
+            verbose,
+        } => {
+            let mode = if by_object {
+                commands::split::SplitMode::ByObject
+            } else {
+                commands::split::SplitMode::ByItem
+            };
+            let verbosity = if quiet {
+                commands::merge::Verbosity::Quiet
+            } else if verbose {
+                commands::merge::Verbosity::Verbose
+            } else {
+                commands::merge::Verbosity::Normal
+            };
+            commands::split::run(
+                input,
+                output_dir,
+                mode,
+                select,
+                preserve_transforms,
+                dry_run,
+                force,
+                verbosity,
+            )?;
         }
     }
 
