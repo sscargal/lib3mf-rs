@@ -1986,6 +1986,92 @@ echo -e "${BLUE}[SKIP]${NC} Secure: Empty key file validation (not yet implement
 echo -e "${BLUE}[SKIP]${NC} Secure: Malformed certificate validation (not yet implemented)"
 
 # ===========================================================================
+# OBJ Materials Import Tests
+# ===========================================================================
+echo ""
+echo -e "${BLUE}--- OBJ Materials Import Tests ---${NC}"
+
+# Create OBJ + MTL test assets
+OBJ_MAT_DIR="$QA_TMP_DIR/obj_materials"
+mkdir -p "$OBJ_MAT_DIR"
+
+cat > "$OBJ_MAT_DIR/with_mtl.obj" <<'OBJEOF'
+mtllib colors.mtl
+usemtl Red
+v 0 0 0
+v 10 0 0
+v 0 10 0
+v 5 5 10
+f 1 3 2
+f 1 2 4
+f 2 3 4
+f 1 4 3
+OBJEOF
+
+cat > "$OBJ_MAT_DIR/colors.mtl" <<'MTLEOF'
+newmtl Red
+Kd 1.0 0.0 0.0
+MTLEOF
+
+cat > "$OBJ_MAT_DIR/missing_mtl.obj" <<'OBJEOF'
+mtllib nonexistent.mtl
+v 0 0 0
+v 10 0 0
+v 0 10 0
+f 1 2 3
+OBJEOF
+
+# Scenario 1: Convert OBJ with materials to 3MF
+OBJ_MAT_3MF="$OBJ_MAT_DIR/with_mtl.3mf"
+run_cmd "$CLI_BIN convert $OBJ_MAT_DIR/with_mtl.obj $OBJ_MAT_3MF" "OBJ Materials: Convert OBJ+MTL to 3MF"
+if [ -f "$OBJ_MAT_3MF" ]; then
+    log_result "OBJ Materials: Output 3MF exists after convert" 0
+else
+    log_result "OBJ Materials: Output 3MF exists after convert" 1
+fi
+
+# Scenario 2: Stats on OBJ with materials shows base_materials_count > 0
+STATS_JSON=$($CLI_BIN stats "$OBJ_MAT_DIR/with_mtl.obj" --format json 2>&1)
+STATS_EXIT=$?
+if [ $STATS_EXIT -eq 0 ]; then
+    log_result "OBJ Materials: Stats on OBJ+MTL succeeds" 0
+    if echo "$STATS_JSON" | grep -q '"base_materials_count": 1'; then
+        log_result "OBJ Materials: Stats reports base_materials_count=1" 0
+    else
+        log_result "OBJ Materials: Stats reports base_materials_count=1" 1
+    fi
+else
+    log_result "OBJ Materials: Stats on OBJ+MTL succeeds" 1
+fi
+
+# Scenario 3: Stats on converted 3MF preserves materials
+if [ -f "$OBJ_MAT_3MF" ]; then
+    CONV_STATS=$($CLI_BIN stats "$OBJ_MAT_3MF" --format json 2>&1)
+    if echo "$CONV_STATS" | grep -q '"base_materials_count": 1'; then
+        log_result "OBJ Materials: Converted 3MF preserves materials" 0
+    else
+        log_result "OBJ Materials: Converted 3MF preserves materials" 1
+    fi
+fi
+
+# Scenario 4: Missing MTL warns but succeeds
+MISSING_OUT=$($CLI_BIN convert "$OBJ_MAT_DIR/missing_mtl.obj" "$OBJ_MAT_DIR/missing_out.3mf" 2>&1)
+MISSING_EXIT=$?
+if [ $MISSING_EXIT -eq 0 ]; then
+    log_result "OBJ Materials: Missing MTL still succeeds" 0
+else
+    log_result "OBJ Materials: Missing MTL still succeeds" 1
+fi
+if echo "$MISSING_OUT" | grep -qi "Warning.*MTL file not found"; then
+    log_result "OBJ Materials: Missing MTL produces warning" 0
+else
+    log_result "OBJ Materials: Missing MTL produces warning" 1
+fi
+
+# Scenario 5: Validate OBJ with materials passes
+run_cmd "$CLI_BIN validate $OBJ_MAT_DIR/with_mtl.obj" "OBJ Materials: Validate OBJ+MTL passes"
+
+# ===========================================================================
 # Real-File Integration Tests
 # ===========================================================================
 echo ""
