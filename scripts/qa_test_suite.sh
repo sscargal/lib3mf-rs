@@ -1753,6 +1753,12 @@ for CMD in $COMMANDS; do
              CMD_LINE="$CLI_BIN split --help"
              run_cmd "$CMD_LINE" "Running Custom: $CMD_LINE (split --help)"
              continue ;;
+        "batch")
+             # batch requires at least one input path — test --help only in discovery loop
+             # (detailed batch tests run in the dedicated Batch Command Tests section below)
+             CMD_LINE="$CLI_BIN batch --help"
+             run_cmd "$CMD_LINE" "Running Custom: $CMD_LINE (batch --help)"
+             continue ;;
         "benchmark"|"stats"|"list"|"validate"|"convert"|"repair"|"copy"|"dump"|"mn"|"rels")
              # Use generic discovery logic below
              ;;
@@ -2231,6 +2237,136 @@ fi
 
 echo "  Split Command Tests complete" | tee -a "$REPORT_FILE"
 
+# ===========================================================================
+# Batch Command Tests
+# ===========================================================================
+echo ""
+echo -e "${BLUE}=== Batch Command Tests ===${NC}"
+
+# Test: batch --help exits 0 and shows usage
+run_cmd "$CLI_BIN batch --help" "Batch: --help exits 0 and shows usage"
+
+# Test: batch validate a single good 3MF file exits 0
+if [ -f "$ASSET_3MF" ]; then
+    run_cmd "$CLI_BIN batch $ASSET_3MF --validate" \
+        "Batch: validate single good 3MF file exits 0"
+fi
+
+# Test: batch stats on a 3MF file
+if [ -f "$ASSET_3MF" ]; then
+    run_cmd "$CLI_BIN batch $ASSET_3MF --stats" \
+        "Batch: stats on a 3MF file exits 0"
+fi
+
+# Test: batch --validate --stats combined
+if [ -f "$ASSET_3MF" ]; then
+    run_cmd "$CLI_BIN batch $ASSET_3MF --validate --stats" \
+        "Batch: --validate --stats combined exits 0"
+fi
+
+# Test: batch --list on a 3MF file
+if [ -f "$ASSET_3MF" ]; then
+    run_cmd "$CLI_BIN batch $ASSET_3MF --list" \
+        "Batch: --list on a 3MF file exits 0"
+fi
+
+# Test: batch --format json produces JSON Lines output
+if [ -f "$ASSET_3MF" ]; then
+    BATCH_JSON_OUT=$($CLI_BIN batch "$ASSET_3MF" --validate --format json 2>/dev/null)
+    if echo "$BATCH_JSON_OUT" | grep -q '{'; then
+        log_result "Batch: --format json produces JSON Lines output" 0
+    else
+        log_result "Batch: --format json should produce JSON output, got: $BATCH_JSON_OUT" 1
+    fi
+fi
+
+# Test: batch --summary shows summary in stderr
+if [ -f "$ASSET_3MF" ]; then
+    BATCH_SUMMARY_ERR=$($CLI_BIN batch "$ASSET_3MF" --validate --summary 2>&1 >/dev/null)
+    if echo "$BATCH_SUMMARY_ERR" | grep -qi "summary\|total"; then
+        log_result "Batch: --summary shows summary in stderr" 0
+    else
+        log_result "Batch: --summary should show summary in stderr, got: $BATCH_SUMMARY_ERR" 1
+    fi
+fi
+
+# Test: batch --quiet produces no stdout
+if [ -f "$ASSET_3MF" ]; then
+    BATCH_QUIET_OUT=$($CLI_BIN batch "$ASSET_3MF" --validate --quiet 2>/dev/null)
+    if [ -z "$BATCH_QUIET_OUT" ]; then
+        log_result "Batch: --quiet produces no stdout" 0
+    else
+        log_result "Batch: --quiet should produce no stdout, got: $BATCH_QUIET_OUT" 1
+    fi
+fi
+
+# Test: batch non-existent directory gives no-files-found (not a crash, exit 0)
+BATCH_NONEXIST_STATUS=0
+$CLI_BIN batch "$QA_TMP_DIR/nonexistent_dir_xyz/" --validate >/dev/null 2>&1 || BATCH_NONEXIST_STATUS=$?
+if [ "$BATCH_NONEXIST_STATUS" -eq 0 ]; then
+    log_result "Batch: no-files-found exits 0 gracefully" 0
+else
+    log_result "Batch: no-files-found should exit 0, got: $BATCH_NONEXIST_STATUS" 1
+fi
+
+# Test: batch --convert 3MF to STL with --output-dir
+BATCH_CONV_DIR="$QA_TMP_DIR/batch_convert"
+mkdir -p "$BATCH_CONV_DIR"
+if [ -f "$ASSET_3MF" ]; then
+    run_cmd "$CLI_BIN batch $ASSET_3MF --convert --output-dir $BATCH_CONV_DIR" \
+        "Batch: --convert 3MF to STL with --output-dir"
+    BATCH_STL_FILES=$(find "$BATCH_CONV_DIR" -name "*.stl" 2>/dev/null | wc -l)
+    if [ "$BATCH_STL_FILES" -gt 0 ]; then
+        log_result "Batch: --convert creates STL file in output-dir" 0
+    else
+        log_result "Batch: --convert should create STL file in output-dir" 1
+    fi
+fi
+
+# Test: batch --jobs 2 processes files in parallel
+BATCH_PARALLEL_DIR="$QA_TMP_DIR/batch_parallel"
+mkdir -p "$BATCH_PARALLEL_DIR"
+if [ -f "$ASSET_3MF" ]; then
+    cp "$ASSET_3MF" "$BATCH_PARALLEL_DIR/p1.3mf"
+    cp "$ASSET_3MF" "$BATCH_PARALLEL_DIR/p2.3mf"
+    run_cmd "$CLI_BIN batch $BATCH_PARALLEL_DIR --validate --jobs 2" \
+        "Batch: --jobs 2 processes files in parallel"
+fi
+
+# Test: batch --recursive finds files in subdirectories
+BATCH_RECUR_DIR="$QA_TMP_DIR/batch_recursive"
+BATCH_RECUR_SUBDIR="$BATCH_RECUR_DIR/subdir"
+mkdir -p "$BATCH_RECUR_SUBDIR"
+if [ -f "$ASSET_3MF" ]; then
+    cp "$ASSET_3MF" "$BATCH_RECUR_DIR/top.3mf"
+    cp "$ASSET_3MF" "$BATCH_RECUR_SUBDIR/sub.3mf"
+    BATCH_RECUR_OUT=$($CLI_BIN batch "$BATCH_RECUR_DIR" --validate --recursive 2>&1)
+    if echo "$BATCH_RECUR_OUT" | grep -q "2/2\|\[1/2\]\|\[2/2\]"; then
+        log_result "Batch: --recursive finds files in subdirectories" 0
+    else
+        log_result "Batch: --recursive should find files in subdirectories. Output: $BATCH_RECUR_OUT" 1
+    fi
+fi
+
+# Test: batch corrupt file exits 1 (any-failure exit code)
+BATCH_CORRUPT_FILE="$QA_TMP_DIR/batch_corrupt.3mf"
+printf 'PK\003\004this is not valid zip content' > "$BATCH_CORRUPT_FILE"
+BATCH_CORRUPT_STATUS=0
+$CLI_BIN batch "$BATCH_CORRUPT_FILE" --validate >/dev/null 2>&1 || BATCH_CORRUPT_STATUS=$?
+if [ "$BATCH_CORRUPT_STATUS" -eq 1 ]; then
+    log_result "Batch: corrupt file causes exit 1" 0
+else
+    log_result "Batch: corrupt file should cause exit 1, got exit $BATCH_CORRUPT_STATUS" 1
+fi
+
+# Test: batch with no operation flags exits 0 (all files skipped gracefully)
+if [ -f "$ASSET_3MF" ]; then
+    run_cmd "$CLI_BIN batch $ASSET_3MF" \
+        "Batch: no operation flags exits 0 (all files skipped)"
+fi
+
+echo "  Batch Command Tests complete" | tee -a "$REPORT_FILE"
+
 echo ""
 echo "================================================" >> "$REPORT_FILE"
 echo "================================================"
@@ -2267,6 +2403,7 @@ echo "  ✅ Slice Extension (slice stacks, polygons)" | tee -a "$REPORT_FILE"
 echo "  ✅ Volumetric Extension (volumetric data, sheets)" | tee -a "$REPORT_FILE"
 echo "  ✅ Merge Command (--help, single-file error)" | tee -a "$REPORT_FILE"
 echo "  ✅ Split Command (--help, --dry-run, --by-object, --force, --verbose, --quiet, error handling)" | tee -a "$REPORT_FILE"
+echo "  ✅ Batch Command (--help, --validate, --stats, --list, --convert, --format json, --summary, --quiet, --recursive, --jobs, error handling)" | tee -a "$REPORT_FILE"
 echo "  ✅ Command Discovery (all CLI commands tested)" | tee -a "$REPORT_FILE"
 echo "  ✅ Real-File Integration Tests (tmp/models/ files)" | tee -a "$REPORT_FILE"
 echo "" | tee -a "$REPORT_FILE"

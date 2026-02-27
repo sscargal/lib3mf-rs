@@ -203,7 +203,11 @@ fn test_split_single_object() {
     let input = create_test_3mf(tmp.path(), "single", 5, Some("MyPart"), None);
     let split_dir = tmp.path().join("single_split");
 
-    let result = run_split(&[input.to_str().unwrap(), "--output-dir", split_dir.to_str().unwrap()]);
+    let result = run_split(&[
+        input.to_str().unwrap(),
+        "--output-dir",
+        split_dir.to_str().unwrap(),
+    ]);
 
     assert!(
         result.status.success(),
@@ -218,13 +222,26 @@ fn test_split_single_object() {
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("3mf"))
         .collect();
-    assert_eq!(entries.len(), 1, "Expected 1 output file, got {}", entries.len());
+    assert_eq!(
+        entries.len(),
+        1,
+        "Expected 1 output file, got {}",
+        entries.len()
+    );
 
     // Parse and verify
     let model = load_3mf(&entries[0]);
     let obj_count = model.resources.iter_objects().count();
-    assert_eq!(obj_count, 1, "Expected 1 object in split output, got {}", obj_count);
-    assert_eq!(model.build.items.len(), 1, "Expected 1 build item in split output");
+    assert_eq!(
+        obj_count, 1,
+        "Expected 1 object in split output, got {}",
+        obj_count
+    );
+    assert_eq!(
+        model.build.items.len(),
+        1,
+        "Expected 1 build item in split output"
+    );
 
     // Compact IDs start from 1
     let obj = model.resources.iter_objects().next().unwrap();
@@ -243,7 +260,11 @@ fn test_split_multi_object_by_item() {
     );
     let split_dir = tmp.path().join("multi_split");
 
-    let result = run_split(&[input.to_str().unwrap(), "--output-dir", split_dir.to_str().unwrap()]);
+    let result = run_split(&[
+        input.to_str().unwrap(),
+        "--output-dir",
+        split_dir.to_str().unwrap(),
+    ]);
 
     assert!(
         result.status.success(),
@@ -256,7 +277,12 @@ fn test_split_multi_object_by_item() {
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("3mf"))
         .collect();
-    assert_eq!(entries.len(), 2, "Expected 2 output files, got {}", entries.len());
+    assert_eq!(
+        entries.len(),
+        2,
+        "Expected 2 output files, got {}",
+        entries.len()
+    );
 
     // Each output should have exactly 1 object
     for entry in &entries {
@@ -268,7 +294,11 @@ fn test_split_multi_object_by_item() {
             model.resources.iter_objects().count(),
             entry
         );
-        assert_eq!(model.build.items.len(), 1, "Expected 1 build item per split file");
+        assert_eq!(
+            model.build.items.len(),
+            1,
+            "Expected 1 build item per split file"
+        );
     }
 }
 
@@ -302,7 +332,12 @@ fn test_split_by_object() {
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("3mf"))
         .collect();
-    assert_eq!(entries.len(), 2, "Expected 2 output files from by-object split, got {}", entries.len());
+    assert_eq!(
+        entries.len(),
+        2,
+        "Expected 2 output files from by-object split, got {}",
+        entries.len()
+    );
 }
 
 /// Test 4: Split with materials — object references a BaseMaterialsGroup.
@@ -314,7 +349,11 @@ fn test_split_with_materials() {
     let input = create_test_3mf(tmp.path(), "withmat", 5, Some("Part"), Some(10));
     let split_dir = tmp.path().join("withmat_split");
 
-    let result = run_split(&[input.to_str().unwrap(), "--output-dir", split_dir.to_str().unwrap()]);
+    let result = run_split(&[
+        input.to_str().unwrap(),
+        "--output-dir",
+        split_dir.to_str().unwrap(),
+    ]);
 
     assert!(
         result.status.success(),
@@ -332,7 +371,11 @@ fn test_split_with_materials() {
     let model = load_3mf(&entries[0]);
 
     // Should have 1 object and 1 material group
-    assert_eq!(model.resources.iter_objects().count(), 1, "Expected 1 object");
+    assert_eq!(
+        model.resources.iter_objects().count(),
+        1,
+        "Expected 1 object"
+    );
     assert_eq!(
         model.resources.iter_base_materials().count(),
         1,
@@ -345,10 +388,18 @@ fn test_split_with_materials() {
     let all_ids = [obj.id.0, mat.id.0];
     let mut sorted = all_ids;
     sorted.sort_unstable();
-    assert_eq!(sorted, [1, 2], "Expected compact IDs [1, 2], got {:?}", sorted);
+    assert_eq!(
+        sorted,
+        [1, 2],
+        "Expected compact IDs [1, 2], got {:?}",
+        sorted
+    );
 
     // Object's pid should point to the material group's (remapped) ID
-    assert!(obj.pid.is_some(), "Object should still reference material group");
+    assert!(
+        obj.pid.is_some(),
+        "Object should still reference material group"
+    );
     assert!(
         model.resources.exists(obj.pid.unwrap()),
         "Object pid should resolve in split model"
@@ -362,7 +413,11 @@ fn test_split_select_by_index() {
     let input = create_multi_object_3mf(
         tmp.path(),
         "select_idx",
-        &[(1, "Part_A", None), (2, "Part_B", None), (3, "Part_C", None)],
+        &[
+            (1, "Part_A", None),
+            (2, "Part_B", None),
+            (3, "Part_C", None),
+        ],
     );
     let split_dir = tmp.path().join("select_idx_split");
 
@@ -385,7 +440,12 @@ fn test_split_select_by_index() {
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("3mf"))
         .collect();
-    assert_eq!(entries.len(), 1, "Expected 1 output file from --select 1, got {}", entries.len());
+    assert_eq!(
+        entries.len(),
+        1,
+        "Expected 1 output file from --select 1, got {}",
+        entries.len()
+    );
 }
 
 /// Test 6: Select by name — split with --select Gear picks only the named object.
@@ -418,7 +478,12 @@ fn test_split_select_by_name() {
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("3mf"))
         .collect();
-    assert_eq!(entries.len(), 1, "Expected 1 output file from --select Gear, got {}", entries.len());
+    assert_eq!(
+        entries.len(),
+        1,
+        "Expected 1 output file from --select Gear, got {}",
+        entries.len()
+    );
 
     // Verify the selected file is indeed the Gear
     let model = load_3mf(&entries[0]);
@@ -530,7 +595,10 @@ fn test_split_preserve_transforms() {
         "--output-dir",
         split_dir_default.to_str().unwrap(),
     ]);
-    assert!(result.status.success(), "Split without preserve-transforms failed");
+    assert!(
+        result.status.success(),
+        "Split without preserve-transforms failed"
+    );
 
     let entries: Vec<PathBuf> = std::fs::read_dir(&split_dir_default)
         .unwrap()
@@ -553,7 +621,10 @@ fn test_split_preserve_transforms() {
         "--output-dir",
         split_dir_preserved.to_str().unwrap(),
     ]);
-    assert!(result.status.success(), "Split with --preserve-transforms failed");
+    assert!(
+        result.status.success(),
+        "Split with --preserve-transforms failed"
+    );
 
     let entries: Vec<PathBuf> = std::fs::read_dir(&split_dir_preserved)
         .unwrap()
@@ -585,9 +656,16 @@ fn test_split_force_overwrite() {
     let split_dir = tmp.path().join("force_split");
 
     // First split — creates the directory
-    let result = run_split(&[input.to_str().unwrap(), "--output-dir", split_dir.to_str().unwrap()]);
+    let result = run_split(&[
+        input.to_str().unwrap(),
+        "--output-dir",
+        split_dir.to_str().unwrap(),
+    ]);
     assert!(result.status.success(), "First split failed");
-    assert!(split_dir.exists(), "Split directory should exist after first split");
+    assert!(
+        split_dir.exists(),
+        "Split directory should exist after first split"
+    );
 
     // Second split without --force — should error because directory exists
     let result_no_force = run_split(&[
@@ -623,7 +701,11 @@ fn test_split_compact_ids() {
     let input = create_test_3mf(tmp.path(), "compact_ids", 100, Some("Part"), Some(200));
     let split_dir = tmp.path().join("compact_ids_split");
 
-    let result = run_split(&[input.to_str().unwrap(), "--output-dir", split_dir.to_str().unwrap()]);
+    let result = run_split(&[
+        input.to_str().unwrap(),
+        "--output-dir",
+        split_dir.to_str().unwrap(),
+    ]);
 
     assert!(
         result.status.success(),
@@ -670,7 +752,11 @@ fn test_split_output_naming_collision() {
     );
     let split_dir = tmp.path().join("collision_split");
 
-    let result = run_split(&[input.to_str().unwrap(), "--output-dir", split_dir.to_str().unwrap()]);
+    let result = run_split(&[
+        input.to_str().unwrap(),
+        "--output-dir",
+        split_dir.to_str().unwrap(),
+    ]);
 
     assert!(
         result.status.success(),
@@ -683,7 +769,12 @@ fn test_split_output_naming_collision() {
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("3mf"))
         .collect();
-    assert_eq!(entries.len(), 2, "Expected 2 output files despite name collision, got {}", entries.len());
+    assert_eq!(
+        entries.len(),
+        2,
+        "Expected 2 output files despite name collision, got {}",
+        entries.len()
+    );
 
     // One should be Part.3mf and one Part_1.3mf
     let names: Vec<String> = entries
@@ -776,7 +867,11 @@ fn test_split_unnamed_objects() {
     let input = create_test_3mf(tmp.path(), "unnamed", 1, None, None);
     let split_dir = tmp.path().join("unnamed_split");
 
-    let result = run_split(&[input.to_str().unwrap(), "--output-dir", split_dir.to_str().unwrap()]);
+    let result = run_split(&[
+        input.to_str().unwrap(),
+        "--output-dir",
+        split_dir.to_str().unwrap(),
+    ]);
 
     assert!(
         result.status.success(),
@@ -789,7 +884,11 @@ fn test_split_unnamed_objects() {
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("3mf"))
         .collect();
-    assert_eq!(entries.len(), 1, "Expected 1 output file for unnamed object");
+    assert_eq!(
+        entries.len(),
+        1,
+        "Expected 1 output file for unnamed object"
+    );
 
     // Filename should use fallback naming (part_1.3mf or similar)
     let filename = entries[0]
@@ -831,7 +930,11 @@ fn test_split_default_output_directory() {
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("3mf"))
         .collect();
-    assert_eq!(entries.len(), 1, "Expected 1 output file in default split dir");
+    assert_eq!(
+        entries.len(),
+        1,
+        "Expected 1 output file in default split dir"
+    );
 }
 
 /// Test 16: split --help exits with code 0 and mentions expected flags.
@@ -850,9 +953,24 @@ fn test_cli_split_help() {
     );
 
     let help_text = String::from_utf8_lossy(&output.stdout);
-    assert!(help_text.contains("--by-object"), "Help should mention --by-object");
-    assert!(help_text.contains("--dry-run"), "Help should mention --dry-run");
-    assert!(help_text.contains("--force") || help_text.contains("force"), "Help should mention --force");
-    assert!(help_text.contains("--select"), "Help should mention --select");
-    assert!(help_text.contains("--preserve-transforms"), "Help should mention --preserve-transforms");
+    assert!(
+        help_text.contains("--by-object"),
+        "Help should mention --by-object"
+    );
+    assert!(
+        help_text.contains("--dry-run"),
+        "Help should mention --dry-run"
+    );
+    assert!(
+        help_text.contains("--force") || help_text.contains("force"),
+        "Help should mention --force"
+    );
+    assert!(
+        help_text.contains("--select"),
+        "Help should mention --select"
+    );
+    assert!(
+        help_text.contains("--preserve-transforms"),
+        "Help should mention --preserve-transforms"
+    );
 }

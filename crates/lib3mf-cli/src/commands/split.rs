@@ -243,11 +243,7 @@ fn build_split_model(
     let mut metadata = source.metadata.clone();
     metadata.insert(
         "Source".to_string(),
-        source
-            .metadata
-            .get("Source")
-            .cloned()
-            .unwrap_or_default(),
+        source.metadata.get("Source").cloned().unwrap_or_default(),
     );
     metadata.insert("SourceObject".to_string(), target.name.clone());
 
@@ -373,11 +369,9 @@ fn build_split_model(
     for mut comp in composite_materials {
         remap_id(&mut comp.id, id_remap);
         remap_id(&mut comp.base_material_id, id_remap);
-        out.resources
-            .add_composite_materials(comp)
-            .map_err(|e| {
-                anyhow::anyhow!("Failed to add composite materials to split model: {}", e)
-            })?;
+        out.resources.add_composite_materials(comp).map_err(|e| {
+            anyhow::anyhow!("Failed to add composite materials to split model: {}", e)
+        })?;
     }
 
     // --- MultiProperties ---
@@ -422,9 +416,7 @@ fn build_split_model(
         remap_id(&mut vs.id, id_remap);
         out.resources
             .add_volumetric_stack(vs)
-            .map_err(|e| {
-                anyhow::anyhow!("Failed to add volumetric stack to split model: {}", e)
-            })?;
+            .map_err(|e| anyhow::anyhow!("Failed to add volumetric stack to split model: {}", e))?;
     }
 
     // --- Displacement2D ---
@@ -658,10 +650,7 @@ fn select_items(all_targets: Vec<SplitTarget>, selectors: &[String]) -> Vec<Spli
                     return target.index == n;
                 }
                 // Try case-insensitive name contains-match
-                target
-                    .name
-                    .to_lowercase()
-                    .contains(&sel.to_lowercase())
+                target.name.to_lowercase().contains(&sel.to_lowercase())
             })
         })
         .collect()
@@ -704,9 +693,7 @@ pub fn run(
     let targets = select_items(all_targets, &select);
 
     if targets.is_empty() {
-        anyhow::bail!(
-            "--select matched no items. Use a valid index or object name substring."
-        );
+        anyhow::bail!("--select matched no items. Use a valid index or object name substring.");
     }
 
     // Step 5: Compute output directory
@@ -775,7 +762,11 @@ pub fn run(
 
     // Step 7: Dry-run — print summary and return without writing
     if dry_run {
-        println!("DRY RUN: Would write {} files to {}/", prepared.len(), out_dir.display());
+        println!(
+            "DRY RUN: Would write {} files to {}/",
+            prepared.len(),
+            out_dir.display()
+        );
         for p in &prepared {
             let filename = p
                 .output_path
@@ -804,9 +795,8 @@ pub fn run(
             out_dir
         );
     }
-    fs::create_dir_all(&out_dir).map_err(|e| {
-        anyhow::anyhow!("Failed to create output directory {:?}: {}", out_dir, e)
-    })?;
+    fs::create_dir_all(&out_dir)
+        .map_err(|e| anyhow::anyhow!("Failed to create output directory {:?}: {}", out_dir, e))?;
 
     // Step 9: Phase 2 — Write each split model to its output file
     for p in &prepared {
@@ -826,9 +816,9 @@ pub fn run(
         let file = File::create(&p.output_path).map_err(|e| {
             anyhow::anyhow!("Failed to create output file {:?}: {}", p.output_path, e)
         })?;
-        split_model
-            .write(BufWriter::new(file))
-            .map_err(|e| anyhow::anyhow!("Failed to write split model {:?}: {}", p.output_path, e))?;
+        split_model.write(BufWriter::new(file)).map_err(|e| {
+            anyhow::anyhow!("Failed to write split model {:?}: {}", p.output_path, e)
+        })?;
     }
 
     // Step 10: Print summary

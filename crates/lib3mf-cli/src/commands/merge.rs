@@ -103,11 +103,8 @@ pub fn run(
         // Step 4c: Merge attachments with path deduplication
         // Take attachments out of source first so we can still borrow source mutably after.
         let src_attachments = std::mem::take(&mut source.attachments);
-        let path_remap = merge_attachments(
-            &mut merged.attachments,
-            src_attachments,
-            actual_file_index,
-        );
+        let path_remap =
+            merge_attachments(&mut merged.attachments, src_attachments, actual_file_index);
 
         // Step 4d: Update texture/displacement paths after attachment remap
         update_texture_paths(&mut source, &path_remap);
@@ -160,11 +157,7 @@ pub fn run(
     std::fs::rename(&tmp_path, &out_path).map_err(|e| {
         // Attempt cleanup
         let _ = std::fs::remove_file(&tmp_path);
-        anyhow::anyhow!(
-            "Failed to finalize output file {:?}: {}",
-            out_path,
-            e
-        )
+        anyhow::anyhow!("Failed to finalize output file {:?}: {}", out_path, e)
     })?;
 
     // Step 7: Print summary
@@ -192,10 +185,7 @@ fn resolve_output_path(output: &Path, force: bool) -> anyhow::Result<PathBuf> {
     for n in 1u32..=999 {
         let candidate = PathBuf::from(format!("{}.{}", output.display(), n));
         if !candidate.exists() {
-            if !matches!(
-                std::env::var("RUST_TEST_QUIET").as_deref(),
-                Ok("1")
-            ) {
+            if !matches!(std::env::var("RUST_TEST_QUIET").as_deref(), Ok("1")) {
                 eprintln!(
                     "Warning: output {:?} exists, writing to {:?}",
                     output, candidate
@@ -249,11 +239,17 @@ fn transfer_resources(
             .add_texture_2d_group(grp)
             .map_err(|e| anyhow::anyhow!("Failed to add texture 2D group during merge: {}", e))?;
     }
-    for comp in source.iter_composite_materials().cloned().collect::<Vec<_>>() {
+    for comp in source
+        .iter_composite_materials()
+        .cloned()
+        .collect::<Vec<_>>()
+    {
         merged
             .resources
             .add_composite_materials(comp)
-            .map_err(|e| anyhow::anyhow!("Failed to add composite materials during merge: {}", e))?;
+            .map_err(|e| {
+                anyhow::anyhow!("Failed to add composite materials during merge: {}", e)
+            })?;
     }
     for mp in source.iter_multi_properties().cloned().collect::<Vec<_>>() {
         merged
@@ -323,7 +319,10 @@ pub(crate) fn check_build_item_overlaps(model: &Model, verbosity: Verbosity) {
         .iter()
         .enumerate()
         .filter_map(|(i, item)| {
-            let obj = model.resources.iter_objects().find(|o| o.id == item.object_id)?;
+            let obj = model
+                .resources
+                .iter_objects()
+                .find(|o| o.id == item.object_id)?;
             let aabb = mesh_aabb_for_object(obj, model)?;
             let world_aabb = aabb.transform(item.transform);
             Some((i, world_aabb))
@@ -372,7 +371,10 @@ fn mesh_aabb_for_object(obj: &Object, model: &Model) -> Option<BoundingBox> {
             // For component objects, compute union of child AABBs
             let mut combined: Option<BoundingBox> = None;
             for comp in &comps.components {
-                if let Some(child_obj) = model.resources.iter_objects().find(|o| o.id == comp.object_id)
+                if let Some(child_obj) = model
+                    .resources
+                    .iter_objects()
+                    .find(|o| o.id == comp.object_id)
                     && let Some(child_aabb) = mesh_aabb_for_object(child_obj, model)
                 {
                     let transformed = child_aabb.transform(comp.transform);
@@ -516,8 +518,7 @@ pub(crate) fn apply_single_plate_placement(
 // ---------------------------------------------------------------------------
 
 pub(crate) fn load_full(path: &Path) -> anyhow::Result<Model> {
-    let file = File::open(path)
-        .map_err(|e| anyhow::anyhow!("Failed to open {:?}: {}", path, e))?;
+    let file = File::open(path).map_err(|e| anyhow::anyhow!("Failed to open {:?}: {}", path, e))?;
     let mut archiver = ZipArchiver::new(file)
         .map_err(|e| anyhow::anyhow!("Failed to open zip archive {:?}: {}", path, e))?;
     let model_path = find_model_path(&mut archiver)
@@ -977,7 +978,9 @@ pub(crate) fn update_texture_paths(model: &mut Model, path_remap: &HashMap<Strin
         new_resources.add_object(obj).expect("no ID collision");
     }
     for mat in base_materials {
-        new_resources.add_base_materials(mat).expect("no ID collision");
+        new_resources
+            .add_base_materials(mat)
+            .expect("no ID collision");
     }
     for col in color_groups {
         new_resources.add_color_group(col).expect("no ID collision");
@@ -986,22 +989,32 @@ pub(crate) fn update_texture_paths(model: &mut Model, path_remap: &HashMap<Strin
         new_resources.add_texture_2d(tex).expect("no ID collision");
     }
     for grp in texture_2d_groups {
-        new_resources.add_texture_2d_group(grp).expect("no ID collision");
+        new_resources
+            .add_texture_2d_group(grp)
+            .expect("no ID collision");
     }
     for comp in composite_materials {
-        new_resources.add_composite_materials(comp).expect("no ID collision");
+        new_resources
+            .add_composite_materials(comp)
+            .expect("no ID collision");
     }
     for mp in multi_properties {
-        new_resources.add_multi_properties(mp).expect("no ID collision");
+        new_resources
+            .add_multi_properties(mp)
+            .expect("no ID collision");
     }
     for ss in slice_stacks {
         new_resources.add_slice_stack(ss).expect("no ID collision");
     }
     for vs in volumetric_stacks {
-        new_resources.add_volumetric_stack(vs).expect("no ID collision");
+        new_resources
+            .add_volumetric_stack(vs)
+            .expect("no ID collision");
     }
     for d in displacement_2d {
-        new_resources.add_displacement_2d(d).expect("no ID collision");
+        new_resources
+            .add_displacement_2d(d)
+            .expect("no ID collision");
     }
     if let Some(ks) = key_store {
         new_resources.set_key_store(ks);
@@ -1023,7 +1036,9 @@ pub(crate) fn expand_inputs(raw_inputs: Vec<PathBuf>) -> anyhow::Result<Vec<Path
                 .map_err(|e| anyhow::anyhow!("Invalid glob pattern {:?}: {}", input, e))?
                 .filter_map(|r| r.ok())
                 .filter(|p| {
-                    p.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase())
+                    p.extension()
+                        .and_then(|e| e.to_str())
+                        .map(|e| e.to_lowercase())
                         == Some("3mf".to_string())
                 })
                 .collect();

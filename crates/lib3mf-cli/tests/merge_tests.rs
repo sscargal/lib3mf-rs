@@ -26,12 +26,7 @@ use tempfile::TempDir;
 ///
 /// The tetrahedron has 4 vertices and 4 triangles, making it a closed manifold
 /// mesh suitable for use as a Model-type object.
-fn create_test_3mf(
-    dir: &Path,
-    name: &str,
-    object_id: u32,
-    material_id: Option<u32>,
-) -> PathBuf {
+fn create_test_3mf(dir: &Path, name: &str, object_id: u32, material_id: Option<u32>) -> PathBuf {
     let mut mesh = Mesh::new();
     // Tetrahedron vertices
     let v0 = mesh.add_vertex(0.0, 0.0, 0.0);
@@ -173,7 +168,11 @@ fn test_basic_two_file_merge() {
 
     let model = load_3mf(&out);
     let object_count = model.resources.iter_objects().count();
-    assert_eq!(object_count, 2, "Expected 2 objects in merged model, got {}", object_count);
+    assert_eq!(
+        object_count, 2,
+        "Expected 2 objects in merged model, got {}",
+        object_count
+    );
     assert_eq!(
         model.build.items.len(),
         2,
@@ -210,7 +209,12 @@ fn test_three_file_merge() {
     let model = load_3mf(&out);
     let object_count = model.resources.iter_objects().count();
     assert_eq!(object_count, 3, "Expected 3 objects, got {}", object_count);
-    assert_eq!(model.build.items.len(), 3, "Expected 3 build items, got {}", model.build.items.len());
+    assert_eq!(
+        model.build.items.len(),
+        3,
+        "Expected 3 build items, got {}",
+        model.build.items.len()
+    );
     assert_no_duplicate_ids(&model);
 }
 
@@ -247,7 +251,11 @@ fn test_id_remapping_correctness() {
 
     // Collect all IDs — they must all be unique
     let obj_ids: Vec<u32> = model.resources.iter_objects().map(|o| o.id.0).collect();
-    let mat_ids: Vec<u32> = model.resources.iter_base_materials().map(|m| m.id.0).collect();
+    let mat_ids: Vec<u32> = model
+        .resources
+        .iter_base_materials()
+        .map(|m| m.id.0)
+        .collect();
     let all_ids: Vec<u32> = obj_ids.iter().chain(mat_ids.iter()).copied().collect();
     let unique: std::collections::HashSet<u32> = all_ids.iter().copied().collect();
     assert_eq!(
@@ -402,13 +410,15 @@ fn test_force_overwrite() {
         "Force overwrite merge failed: {}",
         String::from_utf8_lossy(&result.stderr)
     );
-    assert!(out.exists(), "Output file should exist after force overwrite");
+    assert!(
+        out.exists(),
+        "Output file should exist after force overwrite"
+    );
 
     // Should be a real 3MF file now, not "old content"
     let content = std::fs::read(&out).unwrap();
     assert_ne!(
-        content,
-        b"old content",
+        content, b"old content",
         "Output file should have been overwritten"
     );
     // Should be parseable as a valid 3MF
@@ -423,11 +433,7 @@ fn test_minimum_two_files_required() {
     let a = create_test_3mf(tmp.path(), "single_a", 1, None);
     let out = tmp.path().join("should_not_exist.3mf");
 
-    let result = run_merge(&[
-        a.to_str().unwrap(),
-        "--output",
-        out.to_str().unwrap(),
-    ]);
+    let result = run_merge(&[a.to_str().unwrap(), "--output", out.to_str().unwrap()]);
 
     assert!(
         !result.status.success(),

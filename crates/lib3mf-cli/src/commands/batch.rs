@@ -21,8 +21,8 @@
 // (A) Imports
 // ---------------------------------------------------------------------------
 
-use crate::commands::merge::Verbosity;
 use crate::commands::OutputFormat;
+use crate::commands::merge::Verbosity;
 use glob::glob;
 use lib3mf_core::archive::{ArchiveReader, ZipArchiver, find_model_path};
 use lib3mf_core::model::{Geometry, Model};
@@ -362,12 +362,16 @@ fn process_3mf_file(result: &mut FileResult, path: &Path, ops: &BatchOps) {
     };
 
     // validate operation — calls model.validate(level) directly
-    if ops.validate && let Some(ref m) = model {
+    if ops.validate
+        && let Some(ref m) = model
+    {
         run_validate_op(result, m, ops);
     }
 
     // stats operation — calls model.compute_stats(&mut archiver) directly
-    if ops.stats && let Some(ref m) = model {
+    if ops.stats
+        && let Some(ref m) = model
+    {
         run_stats_op(result, m, &mut archiver);
     }
 
@@ -783,11 +787,7 @@ impl Default for BatchConfig {
 ///
 /// # Returns
 /// `Ok(true)` if all files processed without errors, `Ok(false)` if any failed.
-pub fn run(
-    inputs: Vec<PathBuf>,
-    ops: BatchOps,
-    config: BatchConfig,
-) -> anyhow::Result<bool> {
+pub fn run(inputs: Vec<PathBuf>, ops: BatchOps, config: BatchConfig) -> anyhow::Result<bool> {
     let BatchConfig {
         jobs,
         recursive,
