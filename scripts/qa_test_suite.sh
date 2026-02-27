@@ -128,6 +128,13 @@ run_negative_cmd() {
     fi
 }
 
+skip_test() {
+    local msg="$1"
+    echo -e "${YELLOW}[SKIP]${NC} $msg"
+    echo "[SKIP] $msg" >> "$REPORT_FILE"
+    ((SKIP_COUNT++))
+}
+
 echo "=== Project Validation ==="
 run_cmd "cargo build" "Building Debug"
 run_cmd "cargo build --release" "Building Release"
@@ -180,6 +187,66 @@ else
     log_result "test: all-features" 1
 fi
 
+# Helper: create a minimal valid 3MF (OPC container with single tetrahedron)
+# Usage: create_minimal_3mf <output_file> [object_name] [x_offset]
+create_minimal_3mf() {
+    local output_file="$1"
+    local obj_name="${2:-Object}"
+    local x_offset="${3:-0}"
+
+    local x0=$((x_offset + 0))
+    local x1=$((x_offset + 10))
+    local x2=$((x_offset + 0))
+    local x3=$((x_offset + 0))
+
+    mkdir -p "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D"
+
+    cat > "$QA_TMP_DIR/[Content_Types].xml" <<'CMEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
+</Types>
+CMEOF
+
+    cat > "$QA_TMP_DIR/_rels/.rels" <<'CMREOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rel0" Target="/3D/3dmodel.model" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>
+</Relationships>
+CMREOF
+
+    cat > "$QA_TMP_DIR/3D/3dmodel.model" <<CMMODEL
+<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
+  <resources>
+    <object id="1" name="$obj_name" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="$x0" y="0" z="0"/>
+          <vertex x="$x1" y="0" z="0"/>
+          <vertex x="$x2" y="10" z="0"/>
+          <vertex x="$x3" y="0" z="10"/>
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2"/>
+          <triangle v1="0" v2="2" v3="3"/>
+          <triangle v1="0" v2="3" v3="1"/>
+          <triangle v1="1" v2="3" v3="2"/>
+        </triangles>
+      </mesh>
+    </object>
+  </resources>
+  <build>
+    <item objectid="1"/>
+  </build>
+</model>
+CMMODEL
+
+    (cd "$QA_TMP_DIR" && zip -q -r "$output_file" "[Content_Types].xml" "_rels" "3D" 2>/dev/null)
+    rm -rf "$QA_TMP_DIR/_rels" "$QA_TMP_DIR/3D" "$QA_TMP_DIR/[Content_Types].xml"
+}
+
 # --- Asset Generation (from test_cli.sh) ---
 echo -e "\n${BLUE}=== Generating Test Assets ===${NC}"
 
@@ -211,6 +278,13 @@ v 10 0 0
 v 0 10 0
 f 1 2 3
 EOF
+
+# Synthetic 3MF files for merge tests (generated unconditionally, no external deps)
+MERGE_A="$QA_TMP_DIR/merge_a.3mf"
+MERGE_B="$QA_TMP_DIR/merge_b.3mf"
+echo "Generating synthetic 3MF files for merge tests..."
+create_minimal_3mf "$MERGE_A" "ObjectA" 0
+create_minimal_3mf "$MERGE_B" "ObjectB" 20
 
 # Define Test Assets (Real vs Dummy)
 ASSET_3MF="models/Benchy.3mf"
