@@ -2318,12 +2318,58 @@ echo -e "${BLUE}=== Merge Command Tests ===${NC}"
 run_cmd "$CLI_BIN merge --help" "Merge: --help exits 0 and shows usage"
 
 # Test: merge with fewer than 2 inputs fails with a clear error
-MERGE_SINGLE="$QA_TMP_DIR/merge_single.3mf"
 if [ -f "$ASSET_3MF" ]; then
     MERGE_SINGLE_OUT="$QA_TMP_DIR/merge_single_out.3mf"
     run_negative_cmd "$CLI_BIN merge $ASSET_3MF --output $MERGE_SINGLE_OUT" \
         "Merge: single input should fail (requires at least 2 files)"
+else
+    skip_test "Merge: single input failure test (models/Benchy.3mf not found)"
 fi
+
+# Test: basic 2-file merge using synthetic 3MF files
+MERGE_OUT="$QA_TMP_DIR/merge_out.3mf"
+if [ -f "$MERGE_A" ] && [ -f "$MERGE_B" ]; then
+    run_cmd "$CLI_BIN merge $MERGE_A $MERGE_B --output $MERGE_OUT" \
+        "Merge: 2-file merge exits 0"
+    if [ -f "$MERGE_OUT" ]; then
+        log_result "Merge: output file exists after merge" 0
+    else
+        log_result "Merge: output file should exist after merge" 1
+    fi
+    run_cmd "$CLI_BIN validate $MERGE_OUT" "Merge: validate merged output"
+    MERGE_STATS_OUT=$($CLI_BIN stats "$MERGE_OUT" --format json 2>/dev/null)
+    if echo "$MERGE_STATS_OUT" | grep -q '"object_count": 2'; then
+        log_result "Merge: merged output contains 2 objects" 0
+    else
+        log_result "Merge: merged output should contain 2 objects. Got: $MERGE_STATS_OUT" 1
+    fi
+else
+    skip_test "Merge: 2-file merge (synthetic files not found)"
+fi
+
+# Test: --single-plate merge
+MERGE_SP_OUT="$QA_TMP_DIR/merge_singleplate_out.3mf"
+if [ -f "$MERGE_A" ] && [ -f "$MERGE_B" ]; then
+    run_cmd "$CLI_BIN merge $MERGE_A $MERGE_B --single-plate --output $MERGE_SP_OUT" \
+        "Merge: --single-plate merge exits 0"
+    if [ -f "$MERGE_SP_OUT" ]; then
+        run_cmd "$CLI_BIN validate $MERGE_SP_OUT" "Merge: validate --single-plate merged output"
+    fi
+else
+    skip_test "Merge: --single-plate (synthetic files not found)"
+fi
+
+# Test: --force overwrites existing output
+if [ -f "$MERGE_OUT" ] && [ -f "$MERGE_A" ] && [ -f "$MERGE_B" ]; then
+    run_cmd "$CLI_BIN merge $MERGE_A $MERGE_B --output $MERGE_OUT --force" \
+        "Merge: --force overwrites existing output"
+else
+    skip_test "Merge: --force overwrite (prerequisite merge_out.3mf not created)"
+fi
+
+# Test: nonexistent files negative test (unconditional)
+run_negative_cmd "$CLI_BIN merge $QA_TMP_DIR/nonexistent_a.3mf $QA_TMP_DIR/nonexistent_b.3mf" \
+    "Merge: nonexistent files should fail"
 
 # ===========================================================================
 # Split Command Tests
@@ -2345,6 +2391,8 @@ if [ -f "$ASSET_3MF" ]; then
     else
         log_result "Split: --dry-run should NOT create output directory" 1
     fi
+else
+    skip_test "Split: --dry-run (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: split with --by-object
@@ -2352,6 +2400,8 @@ SPLIT_BYOBJ_OUT="$QA_TMP_DIR/split_byobj_out"
 if [ -f "$ASSET_3MF" ]; then
     run_cmd "$CLI_BIN split $ASSET_3MF --by-object --output-dir $SPLIT_BYOBJ_OUT" \
         "Split: --by-object splits into separate object files"
+else
+    skip_test "Split: --by-object (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: basic split (default by-item) creates output directory
@@ -2365,12 +2415,16 @@ if [ -f "$ASSET_3MF" ]; then
     else
         log_result "Split: output directory should exist after split" 1
     fi
+else
+    skip_test "Split: basic split (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: split with --force overwrites existing output
 if [ -f "$ASSET_3MF" ] && [ -d "$SPLIT_BASIC_OUT" ]; then
     run_cmd "$CLI_BIN split $ASSET_3MF --force --output-dir $SPLIT_BASIC_OUT" \
         "Split: --force overwrites existing output directory"
+else
+    skip_test "Split: --force (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: split of nonexistent file fails with nonzero exit
@@ -2382,6 +2436,8 @@ SPLIT_VERBOSE_OUT="$QA_TMP_DIR/split_verbose_out"
 if [ -f "$ASSET_3MF" ]; then
     run_cmd "$CLI_BIN split $ASSET_3MF --verbose --output-dir $SPLIT_VERBOSE_OUT" \
         "Split: --verbose produces additional output"
+else
+    skip_test "Split: --verbose (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: split with --quiet produces no stdout
@@ -2393,6 +2449,8 @@ if [ -f "$ASSET_3MF" ]; then
     else
         log_result "Split: --quiet should produce no stdout, got: $QUIET_OUTPUT" 1
     fi
+else
+    skip_test "Split: --quiet (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 echo "  Split Command Tests complete" | tee -a "$REPORT_FILE"
@@ -2410,24 +2468,32 @@ run_cmd "$CLI_BIN batch --help" "Batch: --help exits 0 and shows usage"
 if [ -f "$ASSET_3MF" ]; then
     run_cmd "$CLI_BIN batch $ASSET_3MF --validate" \
         "Batch: validate single good 3MF file exits 0"
+else
+    skip_test "Batch: validate (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: batch stats on a 3MF file
 if [ -f "$ASSET_3MF" ]; then
     run_cmd "$CLI_BIN batch $ASSET_3MF --stats" \
         "Batch: stats on a 3MF file exits 0"
+else
+    skip_test "Batch: stats (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: batch --validate --stats combined
 if [ -f "$ASSET_3MF" ]; then
     run_cmd "$CLI_BIN batch $ASSET_3MF --validate --stats" \
         "Batch: --validate --stats combined exits 0"
+else
+    skip_test "Batch: --validate --stats combined (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: batch --list on a 3MF file
 if [ -f "$ASSET_3MF" ]; then
     run_cmd "$CLI_BIN batch $ASSET_3MF --list" \
         "Batch: --list on a 3MF file exits 0"
+else
+    skip_test "Batch: --list (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: batch --format json produces JSON Lines output
@@ -2438,6 +2504,8 @@ if [ -f "$ASSET_3MF" ]; then
     else
         log_result "Batch: --format json should produce JSON output, got: $BATCH_JSON_OUT" 1
     fi
+else
+    skip_test "Batch: --format json (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: batch --summary shows summary in stderr
@@ -2448,6 +2516,8 @@ if [ -f "$ASSET_3MF" ]; then
     else
         log_result "Batch: --summary should show summary in stderr, got: $BATCH_SUMMARY_ERR" 1
     fi
+else
+    skip_test "Batch: --summary (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: batch --quiet produces no stdout
@@ -2458,6 +2528,8 @@ if [ -f "$ASSET_3MF" ]; then
     else
         log_result "Batch: --quiet should produce no stdout, got: $BATCH_QUIET_OUT" 1
     fi
+else
+    skip_test "Batch: --quiet (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: batch non-existent directory gives no-files-found (not a crash, exit 0)
@@ -2481,6 +2553,8 @@ if [ -f "$ASSET_3MF" ]; then
     else
         log_result "Batch: --convert should create STL file in output-dir" 1
     fi
+else
+    skip_test "Batch: --convert (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: batch --jobs 2 processes files in parallel
@@ -2491,6 +2565,8 @@ if [ -f "$ASSET_3MF" ]; then
     cp "$ASSET_3MF" "$BATCH_PARALLEL_DIR/p2.3mf"
     run_cmd "$CLI_BIN batch $BATCH_PARALLEL_DIR --validate --jobs 2" \
         "Batch: --jobs 2 processes files in parallel"
+else
+    skip_test "Batch: --jobs parallel (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: batch --recursive finds files in subdirectories
@@ -2506,6 +2582,8 @@ if [ -f "$ASSET_3MF" ]; then
     else
         log_result "Batch: --recursive should find files in subdirectories. Output: $BATCH_RECUR_OUT" 1
     fi
+else
+    skip_test "Batch: --recursive (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 # Test: batch corrupt file exits 1 (any-failure exit code)
@@ -2523,6 +2601,8 @@ fi
 if [ -f "$ASSET_3MF" ]; then
     run_cmd "$CLI_BIN batch $ASSET_3MF" \
         "Batch: no operation flags exits 0 (all files skipped)"
+else
+    skip_test "Batch: no operation flags (models/Benchy.3mf not found -- place file in models/ to enable)"
 fi
 
 echo "  Batch Command Tests complete" | tee -a "$REPORT_FILE"
@@ -2561,7 +2641,7 @@ echo "  ✅ Secure Content (sign, verify, encrypt, decrypt, tamper detection)" |
 echo "  ✅ Beam Lattice Extension (beams, cap modes, beam sets)" | tee -a "$REPORT_FILE"
 echo "  ✅ Slice Extension (slice stacks, polygons)" | tee -a "$REPORT_FILE"
 echo "  ✅ Volumetric Extension (volumetric data, sheets)" | tee -a "$REPORT_FILE"
-echo "  ✅ Merge Command (--help, single-file error)" | tee -a "$REPORT_FILE"
+echo "  ✅ Merge Command (--help, single-file error, 2-file merge, --single-plate, --force, nonexistent files)" | tee -a "$REPORT_FILE"
 echo "  ✅ Split Command (--help, --dry-run, --by-object, --force, --verbose, --quiet, error handling)" | tee -a "$REPORT_FILE"
 echo "  ✅ Batch Command (--help, --validate, --stats, --list, --convert, --format json, --summary, --quiet, --recursive, --jobs, error handling)" | tee -a "$REPORT_FILE"
 echo "  ✅ Command Discovery (all CLI commands tested)" | tee -a "$REPORT_FILE"
