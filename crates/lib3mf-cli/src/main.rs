@@ -526,6 +526,90 @@ enum Commands {
         #[arg(long, short = 'v', conflicts_with = "quiet")]
         verbose: bool,
     },
+    /// Process multiple 3MF/STL/OBJ files with batch operations
+    ///
+    /// Runs one or more operations (validate, stats, list, convert) across
+    /// multiple files in a single invocation. Files can be specified as paths,
+    /// directories, or glob patterns.
+    ///
+    /// Examples:
+    ///
+    /// # Validate all 3MF files in a directory
+    ///
+    /// $ lib3mf batch ./models/ --validate
+    ///
+    /// # Validate and compute stats, JSON Lines output
+    ///
+    /// $ lib3mf batch "*.3mf" --validate --stats --format json
+    ///
+    /// # Convert all 3MF files to STL in parallel
+    ///
+    /// $ lib3mf batch ./models/ --convert --jobs 4
+    ///
+    /// # Recursive batch validate with summary
+    ///
+    /// $ lib3mf batch ./models/ --validate --recursive --summary
+    Batch {
+        /// Input paths, directories, or glob patterns
+        #[arg(required = true, num_args = 1..)]
+        inputs: Vec<PathBuf>,
+
+        /// Validate each file
+        #[arg(long)]
+        validate: bool,
+
+        /// Validation level (minimal, standard, strict, paranoid)
+        #[arg(long, default_value = "standard")]
+        validate_level: String,
+
+        /// Report statistics for each file
+        #[arg(long)]
+        stats: bool,
+
+        /// List archive entries for each file
+        #[arg(long)]
+        list: bool,
+
+        /// Convert files (3MF to STL, or STL/OBJ to 3MF)
+        #[arg(long)]
+        convert: bool,
+
+        /// Write ASCII STL instead of binary (only for --convert with 3MF->STL)
+        #[arg(long, default_value_t = false)]
+        convert_ascii: bool,
+
+        /// Output directory for --convert (default: next to source file)
+        #[arg(long)]
+        output_dir: Option<PathBuf>,
+
+        /// Number of parallel jobs (default: 1 = sequential)
+        #[arg(long, short = 'j', default_value = "1")]
+        jobs: usize,
+
+        /// Recurse into subdirectories
+        #[arg(long, short = 'r')]
+        recursive: bool,
+
+        /// Add summary table at end
+        #[arg(long)]
+        summary: bool,
+
+        /// Output format (text, json)
+        #[arg(long, value_enum, default_value_t = OutputFormat::Text)]
+        format: OutputFormat,
+
+        /// Suppress large-file-count warning
+        #[arg(long)]
+        yes: bool,
+
+        /// Suppress all output
+        #[arg(long, conflicts_with = "verbose")]
+        quiet: bool,
+
+        /// Verbose per-file output
+        #[arg(long, short = 'v', conflicts_with = "quiet")]
+        verbose: bool,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -674,6 +758,53 @@ fn main() -> anyhow::Result<()> {
                 force,
                 verbosity,
             )?;
+        }
+        Commands::Batch {
+            inputs,
+            validate,
+            validate_level,
+            stats,
+            list,
+            convert,
+            convert_ascii,
+            output_dir,
+            jobs,
+            recursive,
+            summary,
+            format,
+            yes,
+            quiet,
+            verbose,
+        } => {
+            let verbosity = if quiet {
+                commands::merge::Verbosity::Quiet
+            } else if verbose {
+                commands::merge::Verbosity::Verbose
+            } else {
+                commands::merge::Verbosity::Normal
+            };
+            let ops = commands::batch::BatchOps {
+                validate,
+                validate_level: Some(validate_level),
+                stats,
+                list,
+                convert,
+                convert_ascii,
+                output_dir,
+            };
+            let config = commands::batch::BatchConfig {
+                jobs,
+                recursive,
+                summary,
+                verbosity,
+                format,
+                yes,
+            };
+            // run() returns Ok(true) when all files succeeded, Ok(false) when any failed
+            let all_succeeded = commands::batch::run(inputs, ops, config)?;
+            if !all_succeeded {
+                std::process::exit(1);
+            }
         }
     }
 
