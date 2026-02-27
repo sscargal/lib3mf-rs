@@ -3,6 +3,7 @@
 //! This module contains the core logic for all CLI commands. Each public function
 //! corresponds to a CLI subcommand and can be called programmatically.
 
+pub mod batch;
 pub mod merge;
 pub mod split;
 pub mod thumbnails;

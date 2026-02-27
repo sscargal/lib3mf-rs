@@ -34,6 +34,8 @@ thiserror.workspace = true
 anyhow.workspace = true
 glob = "0.3"
 glam.workspace = true
+walkdir = "2"
+rayon = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"
