@@ -1,5 +1,7 @@
 use crate::error::Result;
-use crate::model::{Beam, BaseMaterialsGroup, BuildItem, ColorGroup, DisplacementTriangle, ResourceId};
+use crate::model::{
+    BaseMaterialsGroup, Beam, BuildItem, ColorGroup, DisplacementTriangle, ResourceId,
+};
 
 /// Trait for receiving callback events during streaming parsing of a 3MF model.
 /// This allows for processing massive files with constant memory usage.
