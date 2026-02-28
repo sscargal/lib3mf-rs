@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::model::{BaseMaterialsGroup, BuildItem, ColorGroup, ResourceId};
+use crate::model::{Beam, BaseMaterialsGroup, BuildItem, ColorGroup, DisplacementTriangle, ResourceId};
 
 /// Trait for receiving callback events during streaming parsing of a 3MF model.
 /// This allows for processing massive files with constant memory usage.
@@ -61,6 +61,59 @@ pub trait ModelVisitor {
 
     /// Called when a Mesh object ends.
     fn on_end_mesh(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    // --- Beam Lattice (Streaming) ---
+
+    /// Called when a beam lattice starts (inside a mesh object).
+    ///
+    /// The `object_id` identifies which mesh object contains this beam lattice.
+    /// Note: BeamSets are silently skipped in streaming mode since they reference
+    /// beams by index and require all beams to be known (violating streaming semantics).
+    /// Use DOM mode if BeamSet data is required.
+    fn on_start_beam_lattice(&mut self, _object_id: ResourceId) -> Result<()> {
+        Ok(())
+    }
+
+    /// Called for each beam in the current beam lattice.
+    fn on_beam(&mut self, _beam: &Beam) -> Result<()> {
+        Ok(())
+    }
+
+    /// Called when a beam lattice ends.
+    fn on_end_beam_lattice(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    // --- Displacement Mesh (Streaming) ---
+
+    /// Called when a displacement mesh object starts.
+    ///
+    /// The `id` identifies this displacement mesh resource.
+    /// Note: disp2dgroups (gradient vectors) are silently skipped in streaming mode.
+    /// Use DOM mode if gradient vector data is required.
+    fn on_start_displacement_mesh(&mut self, _id: ResourceId) -> Result<()> {
+        Ok(())
+    }
+
+    /// Called for each vertex in the displacement mesh.
+    fn on_displacement_vertex(&mut self, _x: f32, _y: f32, _z: f32) -> Result<()> {
+        Ok(())
+    }
+
+    /// Called for each triangle in the displacement mesh.
+    fn on_displacement_triangle(&mut self, _triangle: &DisplacementTriangle) -> Result<()> {
+        Ok(())
+    }
+
+    /// Called for each normal vector in the displacement mesh.
+    fn on_displacement_normal(&mut self, _nx: f32, _ny: f32, _nz: f32) -> Result<()> {
+        Ok(())
+    }
+
+    /// Called when a displacement mesh ends.
+    fn on_end_displacement_mesh(&mut self) -> Result<()> {
         Ok(())
     }
 
