@@ -1,0 +1,58 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages-benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    name: Run benchmarks and store results
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run timing benchmarks
+        run: |
+          cargo bench -p lib3mf-core --bench core_bench -- --output-format bencher --noplot 2>/dev/null | tee bench_output.txt
+
+      - name: Run memory benchmarks
+        run: |
+          cargo bench -p lib3mf-core --bench memory_bench -- --output-format bencher --noplot 2>/dev/null | tee -a bench_output.txt
+
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: lib3mf Performance Benchmarks
+          tool: cargo
+          output-file-path: bench_output.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: dev/bench
+          gh-pages-branch: gh-pages
+          alert-threshold: '120%'
+          comment-on-alert: true
+          fail-on-alert: false
+          comment-always: false
+
+      - name: Trigger docs rebuild
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'docs.yml',
+              ref: 'main'
+            });

@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     tags: ['v*.*.*']
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,7 +13,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
@@ -179,6 +180,22 @@ jobs:
           HEREDOC
 
           touch deploy/.nojekyll
+
+      - name: Fetch benchmark dashboard from gh-pages
+        run: |
+          if git fetch origin gh-pages 2>/dev/null; then
+            if git show origin/gh-pages:dev/bench/index.html >/dev/null 2>&1; then
+              mkdir -p deploy/dev/bench
+              git checkout origin/gh-pages -- dev/bench/
+              cp -r dev/bench/* deploy/dev/bench/
+              rm -rf dev/
+              echo "Benchmark dashboard included in deploy"
+            else
+              echo "No benchmark data on gh-pages yet, skipping"
+            fi
+          else
+            echo "No gh-pages branch yet, skipping benchmark dashboard"
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
