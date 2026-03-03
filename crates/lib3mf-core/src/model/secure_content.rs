@@ -19,13 +19,13 @@ pub struct KeyStore {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Consumer {
     /// Consumer ID (e.g., email address or a UUID string).
-    pub id: String,             // Consumer ID (e.g. email or unique string)
+    pub id: String, // Consumer ID (e.g. email or unique string)
     /// Key ID used to wrap (encrypt) the content key for this consumer.
     pub key_id: Option<String>, // Key ID used to wrap the content key
     /// Wrapped (encrypted) content key value, if applicable.
     pub key_value: Option<String>, // Wrapped Key Value usage (if applicable)
-                                // Detailed spec has more fields for X.509 certificates etc.
-                                // For now, we store basic identifiers.
+                                   // Detailed spec has more fields for X.509 certificates etc.
+                                   // For now, we store basic identifiers.
 }
 
 /// A group of encrypted resources sharing a single content encryption key.
@@ -45,7 +45,7 @@ pub struct AccessRight {
     /// ID of the consumer this access right is for.
     pub consumer_id: String,
     /// Key wrapping algorithm URI (e.g., RSA-OAEP).
-    pub algorithm: String,    // Parsing algorithm (e.g. RSA-OAEP)
+    pub algorithm: String, // Parsing algorithm (e.g. RSA-OAEP)
     /// The content encryption key encrypted for this consumer.
     pub wrapped_key: Vec<u8>, // The encrypted content key for this consumer
 }

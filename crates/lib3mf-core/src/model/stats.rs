@@ -365,7 +365,7 @@ pub struct BambuProfileConfig {
     /// Profile category: `"filament"`, `"machine"`, or `"process"`.
     pub config_type: String, // "filament", "machine", "process"
     /// Index suffix (the N in `filament_settings_N.config`).
-    pub index: u32,          // the N in filament_settings_N.config
+    pub index: u32, // the N in filament_settings_N.config
     /// Name of the profile this inherits from.
     pub inherits: Option<String>,
     /// Display name of this profile.

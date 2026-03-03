@@ -1,12 +1,12 @@
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
+use lib3mf_core::Model;
 use lib3mf_core::archive::{ArchiveReader, ZipArchiver, find_model_path};
 use lib3mf_core::error::Result;
-use lib3mf_core::model::{BuildItem, ColorGroup, BaseMaterialsGroup, ResourceId};
+use lib3mf_core::model::{BaseMaterialsGroup, BuildItem, ColorGroup, ResourceId};
 use lib3mf_core::parser::model_parser::parse_model;
 use lib3mf_core::parser::streaming::parse_model_streaming;
 use lib3mf_core::parser::visitor::ModelVisitor;
 use lib3mf_core::validation::ValidationLevel;
-use lib3mf_core::Model;
 use std::io::{BufReader, Cursor};
 use std::sync::OnceLock;
 
@@ -23,13 +23,11 @@ fn get_test_file(name: &str) -> Vec<u8> {
         .unwrap();
     match name {
         "small" => std::fs::read(
-            workspace_root
-                .join("tests/conformance/3mf-samples/examples/core/box.3mf"),
+            workspace_root.join("tests/conformance/3mf-samples/examples/core/box.3mf"),
         )
         .expect("Failed to read small test file. Run: git submodule update --init"),
         "medium" => std::fs::read(
-            workspace_root
-                .join("tests/conformance/3mf-samples/examples/core/cube_gears.3mf"),
+            workspace_root.join("tests/conformance/3mf-samples/examples/core/cube_gears.3mf"),
         )
         .expect("Failed to read medium test file. Run: git submodule update --init"),
         "large" => std::fs::read(workspace_root.join("models/Benchy.3mf"))
@@ -170,11 +168,7 @@ impl ModelVisitor for CountingVisitor {
         Ok(())
     }
 
-    fn on_base_materials(
-        &mut self,
-        _id: ResourceId,
-        _group: &BaseMaterialsGroup,
-    ) -> Result<()> {
+    fn on_base_materials(&mut self, _id: ResourceId, _group: &BaseMaterialsGroup) -> Result<()> {
         Ok(())
     }
 
@@ -224,16 +218,12 @@ fn bench_parse_full(c: &mut Criterion) {
         let bytes = data.len() as u64;
 
         group.throughput(Throughput::Bytes(bytes));
-        group.bench_with_input(
-            BenchmarkId::new("parse_full", size),
-            &data,
-            |b, data| {
-                b.iter(|| {
-                    let model = parse_complete(black_box(data));
-                    black_box(model);
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("parse_full", size), &data, |b, data| {
+            b.iter(|| {
+                let model = parse_complete(black_box(data));
+                black_box(model);
+            });
+        });
     }
 
     group.finish();
@@ -287,19 +277,15 @@ fn bench_write_xml(c: &mut Criterion) {
         let output_bytes = sample_out.len() as u64;
 
         group.throughput(Throughput::Bytes(output_bytes));
-        group.bench_with_input(
-            BenchmarkId::new("write_xml", size),
-            &model,
-            |b, model| {
-                b.iter(|| {
-                    let mut out = Vec::with_capacity(output_bytes as usize);
-                    black_box(model)
-                        .write_xml(&mut out, None)
-                        .expect("write_xml failed");
-                    black_box(out);
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("write_xml", size), &model, |b, model| {
+            b.iter(|| {
+                let mut out = Vec::with_capacity(output_bytes as usize);
+                black_box(model)
+                    .write_xml(&mut out, None)
+                    .expect("write_xml failed");
+                black_box(out);
+            });
+        });
     }
 
     group.finish();

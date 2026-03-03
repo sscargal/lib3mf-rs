@@ -40,7 +40,7 @@ pub struct SlicePlateInfo {
     /// Estimated print time in seconds.
     pub prediction: Option<u32>, // seconds
     /// Estimated total filament weight in grams.
-    pub weight: Option<f32>,     // grams
+    pub weight: Option<f32>, // grams
     /// Per-filament usage statistics.
     pub filaments: Vec<SliceFilamentUsage>,
     /// Slicer warnings for this plate.

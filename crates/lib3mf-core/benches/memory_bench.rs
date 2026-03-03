@@ -29,8 +29,7 @@ fn get_test_file(name: &str) -> Vec<u8> {
         .unwrap();
     match name {
         "medium" => std::fs::read(
-            workspace_root
-                .join("tests/conformance/3mf-samples/examples/core/cube_gears.3mf"),
+            workspace_root.join("tests/conformance/3mf-samples/examples/core/cube_gears.3mf"),
         )
         .expect("Failed to read medium test file. Run: git submodule update --init"),
         "large" => std::fs::read(workspace_root.join("models/Benchy.3mf"))
@@ -85,11 +84,7 @@ impl ModelVisitor for CountingVisitor {
         Ok(())
     }
 
-    fn on_base_materials(
-        &mut self,
-        _id: ResourceId,
-        _group: &BaseMaterialsGroup,
-    ) -> Result<()> {
+    fn on_base_materials(&mut self, _id: ResourceId, _group: &BaseMaterialsGroup) -> Result<()> {
         Ok(())
     }
 
