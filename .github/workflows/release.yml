@@ -38,6 +38,40 @@ jobs:
           submodules: true
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+      - name: Verify versions are publishable
+        run: |
+          check_version() {
+            local crate=$1
+            local published
+            published=$(curl -s "https://crates.io/api/v1/crates/$crate" \
+              -H "User-Agent: lib3mf-rs-release/1.0" | jq -r '.crate.newest_version // "0.0.0"')
+            local local_ver
+            local_ver=$(cargo metadata --no-deps --format-version 1 | \
+              jq -r --arg c "$crate" '.packages[] | select(.name==$c) | .version')
+
+            if [ "$published" = "0.0.0" ]; then
+              echo "OK: $crate is new (not yet on crates.io), local=$local_ver"
+              return 0
+            fi
+
+            local lower
+            lower=$(printf '%s\n%s' "$published" "$local_ver" | sort -V | head -1)
+            if [ "$lower" != "$published" ]; then
+              echo "ERROR: $crate crates.io=$published is NOT lower than local=$local_ver"
+              exit 1
+            fi
+            if [ "$published" = "$local_ver" ]; then
+              echo "ERROR: $crate crates.io=$published equals local=$local_ver (already published)"
+              exit 1
+            fi
+            echo "OK: $crate crates.io=$published < local=$local_ver"
+          }
+          check_version lib3mf-core
+          check_version lib3mf-converters
+          check_version lib3mf-async
+          check_version lib3mf-cli
+      - name: Dry-run publish lib3mf-core
+        run: cargo publish -p lib3mf-core --dry-run
       - name: Publish lib3mf-core
         run: cargo publish -p lib3mf-core
         env:
