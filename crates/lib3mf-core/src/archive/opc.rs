@@ -39,21 +39,31 @@ pub mod bambu_rel_types {
 /// Represents an OPC Relationship.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Relationship {
+    /// Unique identifier for this relationship within the package.
     pub id: String,
+    /// The relationship type URI (e.g., `http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel`).
     pub rel_type: String,
+    /// Target part path (e.g., `/3D/3dmodel.model`).
     pub target: String,
+    /// Target mode: `"Internal"` for package-relative paths, `"External"` for absolute URIs.
     pub target_mode: String,
 }
 
 /// Represents an OPC Content Type override or default.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ContentType {
+    /// A default content type mapped to a file extension.
     Default {
+        /// File extension (without the leading dot, e.g., `"model"`).
         extension: String,
+        /// MIME content type string (e.g., `"application/vnd.ms-package.3dmanufacturing-3dmodel+xml"`).
         content_type: String,
     },
+    /// An explicit content type override for a specific part path.
     Override {
+        /// Package-relative path of the part (e.g., `/3D/3dmodel.model`).
         part_name: String,
+        /// MIME content type string for this specific part.
         content_type: String,
     },
 }

@@ -15,12 +15,14 @@ pub struct PartResolver<'a, A: ArchiveReader> {
 }
 
 impl<'a, A: ArchiveReader> PartResolver<'a, A> {
+    /// Creates a new `PartResolver` with the given archive and root model.
     pub fn new(archive: &'a mut A, root_model: Model) -> Self {
         let mut models = HashMap::new();
         models.insert(ROOT_PATH.to_string(), root_model);
         Self { archive, models }
     }
 
+    /// Resolves an object by ID and optional model part path.
     pub fn resolve_object(
         &mut self,
         id: ResourceId,
@@ -30,6 +32,7 @@ impl<'a, A: ArchiveReader> PartResolver<'a, A> {
         Ok(model.resources.get_object(id).map(|obj| (model, obj)))
     }
 
+    /// Resolves a base materials group by ID and optional model part path.
     pub fn resolve_base_materials(
         &mut self,
         id: ResourceId,
@@ -39,6 +42,7 @@ impl<'a, A: ArchiveReader> PartResolver<'a, A> {
         Ok(model.resources.get_base_materials(id))
     }
 
+    /// Resolves a color group by ID and optional model part path.
     pub fn resolve_color_group(
         &mut self,
         id: ResourceId,
@@ -74,10 +78,12 @@ impl<'a, A: ArchiveReader> PartResolver<'a, A> {
         Ok(self.models.get(part_path).unwrap())
     }
 
+    /// Returns a reference to the root model.
     pub fn get_root_model(&self) -> &Model {
         self.models.get("ROOT").unwrap()
     }
 
+    /// Returns a mutable reference to the underlying archive reader.
     pub fn archive_mut(&mut self) -> &mut A {
         self.archive
     }

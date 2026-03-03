@@ -7,6 +7,7 @@ use crate::model::stats::{
 use crate::model::{Geometry, Model};
 
 impl Model {
+    /// Computes comprehensive statistics about the model, including geometry, materials, and vendor data.
     pub fn compute_stats(&self, archiver: &mut impl ArchiveReader) -> Result<ModelStats> {
         let mut resolver = crate::model::resolver::PartResolver::new(archiver, self.clone());
         let mut geom_stats = GeometryStats::default();

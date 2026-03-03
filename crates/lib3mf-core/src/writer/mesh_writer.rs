@@ -4,6 +4,7 @@ use crate::writer::beamlattice_writer::write_beam_lattice;
 use crate::writer::xml_writer::XmlWriter;
 use std::io::Write;
 
+/// Serializes a mesh (vertices and triangles) to XML inside a `<mesh>` element.
 pub fn write_mesh<W: Write>(writer: &mut XmlWriter<W>, mesh: &Mesh) -> Result<()> {
     writer.start_element("mesh").write_start()?;
 

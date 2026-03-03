@@ -18,6 +18,7 @@ use crate::parser::xml_parser::{XmlParser, get_attribute, get_attribute_f32, get
 use quick_xml::events::Event;
 use std::io::BufRead;
 
+/// Parses a complete 3MF model XML document from the given reader into a `Model`.
 pub fn parse_model<R: BufRead>(reader: R) -> Result<Model> {
     let mut parser = XmlParser::new(reader);
     let mut model = Model::default();

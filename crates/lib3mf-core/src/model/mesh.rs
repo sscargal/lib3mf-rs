@@ -659,15 +659,20 @@ pub struct Triangle {
 /// A normal vector for displacement mesh vertices.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
 pub struct NormalVector {
+    /// X component of the normal.
     pub nx: f32,
+    /// Y component of the normal.
     pub ny: f32,
+    /// Z component of the normal.
     pub nz: f32,
 }
 
 /// A gradient vector for displacement texture mapping.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
 pub struct GradientVector {
+    /// U (horizontal) gradient component.
     pub gu: f32,
+    /// V (vertical) gradient component.
     pub gv: f32,
 }
 

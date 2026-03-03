@@ -35,29 +35,43 @@ pub struct SliceInfoData {
 /// Slicing results for a single plate.
 #[derive(Debug, Clone, Default)]
 pub struct SlicePlateInfo {
+    /// Plate index (1-based).
     pub id: u32,
+    /// Estimated print time in seconds.
     pub prediction: Option<u32>, // seconds
+    /// Estimated total filament weight in grams.
     pub weight: Option<f32>,     // grams
+    /// Per-filament usage statistics.
     pub filaments: Vec<SliceFilamentUsage>,
+    /// Slicer warnings for this plate.
     pub warnings: Vec<SlicerWarning>,
+    /// Objects included on this plate.
     pub objects: Vec<SliceObjectInfo>,
 }
 
 /// Per-filament usage data for a plate.
 #[derive(Debug, Clone, Default)]
 pub struct SliceFilamentUsage {
+    /// Filament slot index.
     pub id: u32,
+    /// AMS tray info index.
     pub tray_info_idx: Option<String>,
+    /// Filament type string (e.g., `"PLA"`).
     pub type_: Option<String>,
+    /// Display color in hex format.
     pub color: Option<String>,
+    /// Filament used in meters.
     pub used_m: Option<f32>,
+    /// Filament used in grams.
     pub used_g: Option<f32>,
 }
 
 /// Object participation record within a plate.
 #[derive(Debug, Clone, Default)]
 pub struct SliceObjectInfo {
+    /// Object resource ID.
     pub id: u32,
+    /// Object display name.
     pub name: Option<String>,
 }
 

@@ -1,13 +1,17 @@
 use crate::model::{Mesh, Triangle};
 use glam::Vec3;
 
+/// Axis-Aligned Bounding Box used for BVH acceleration in collision/intersection tests.
 #[derive(Debug, Clone, Copy)]
 pub struct AABB {
+    /// Minimum corner of the bounding box.
     pub min: Vec3,
+    /// Maximum corner of the bounding box.
     pub max: Vec3,
 }
 
 impl AABB {
+    /// Constructs an `AABB` that tightly bounds the given triangle in the mesh.
     pub fn from_triangle(mesh: &Mesh, tri: &Triangle) -> Self {
         let v1 = mesh.vertices[tri.v1 as usize];
         let v2 = mesh.vertices[tri.v2 as usize];
@@ -26,6 +30,7 @@ impl AABB {
         Self { min, max }
     }
 
+    /// Returns `true` if this AABB overlaps with `other`.
     pub fn intersects(&self, other: &Self) -> bool {
         self.min.x <= other.max.x
             && self.max.x >= other.min.x
@@ -36,17 +41,24 @@ impl AABB {
     }
 }
 
+/// A node in a Bounding Volume Hierarchy tree for O(n log n) triangle intersection queries.
 pub struct BvhNode {
+    /// Bounding box of this node (covers all triangles in its subtree).
     pub aabb: AABB,
+    /// Content of this node: either a leaf with triangle indices or a branch with two children.
     pub content: BvhContent,
 }
 
+/// Content of a BVH node.
 pub enum BvhContent {
+    /// Leaf node containing triangle indices.
     Leaf(Vec<usize>), // Indices of triangles
+    /// Branch node with two child sub-trees.
     Branch(Box<BvhNode>, Box<BvhNode>),
 }
 
 impl BvhNode {
+    /// Builds a BVH tree over the given set of triangle indices from `mesh`.
     pub fn build(mesh: &Mesh, tri_indices: Vec<usize>) -> Self {
         let aabbs: Vec<AABB> = tri_indices
             .iter()
@@ -110,6 +122,7 @@ impl BvhNode {
         }
     }
 
+    /// Finds all triangles in this BVH subtree that intersect the given triangle.
     pub fn find_intersections(
         &self,
         mesh: &Mesh,

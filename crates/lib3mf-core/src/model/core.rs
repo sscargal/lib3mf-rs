@@ -44,7 +44,7 @@ pub struct Model {
     pub existing_relationships: HashMap<String, Vec<crate::archive::opc::Relationship>>,
 
     /// Extra XML namespace declarations from the model element (e.g., vendor namespaces).
-    /// Key: prefix (e.g., "BambuStudio"), Value: URI (e.g., "http://schemas.bambulab.com/...")
+    /// Key: prefix (e.g., `"BambuStudio"`), Value: URI (e.g., `"http://schemas.bambulab.com/..."`).
     #[serde(default)]
     pub extra_namespaces: HashMap<String, String>,
 }

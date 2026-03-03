@@ -6,6 +6,7 @@ use quick_xml::events::Event;
 use std::io::BufRead;
 use std::str::FromStr;
 
+/// Parses a `<components>` element and its `<component>` children into a `Components`.
 pub fn parse_components<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Components> {
     let mut components = Vec::new();
 
@@ -42,6 +43,7 @@ pub fn parse_components<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Compone
     Ok(Components { components })
 }
 
+/// Parses a 3MF transform matrix string (12 space-separated floats in column-major order) into a `Mat4`.
 pub fn parse_transform(s: &str) -> Result<Mat4> {
     let parts: Vec<&str> = s.split_whitespace().collect();
     if parts.len() != 12 {

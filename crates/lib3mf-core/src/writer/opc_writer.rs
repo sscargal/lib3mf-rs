@@ -2,6 +2,7 @@ use crate::error::Result;
 use crate::writer::xml_writer::XmlWriter;
 use std::io::Write;
 
+/// Writes the `[Content_Types].xml` file for a 3MF package.
 pub fn write_content_types<W: Write>(writer: W) -> Result<()> {
     let mut xml = XmlWriter::new(writer);
     xml.write_declaration()?;
@@ -41,6 +42,7 @@ pub fn write_content_types<W: Write>(writer: W) -> Result<()> {
     Ok(())
 }
 
+/// Writes the `_rels/.rels` OPC relationships file pointing to the model and optional thumbnail.
 pub fn write_relationships<W: Write>(
     writer: W,
     model_part: &str,

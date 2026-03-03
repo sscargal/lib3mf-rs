@@ -18,11 +18,12 @@ pub struct Color {
 }
 
 impl Color {
+    /// Creates a new `Color` from individual RGBA component values (0-255 each).
     pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
 
-    // Parse hex string #RRGGBB or #RRGGBBAA
+    /// Parses a hex color string in `#RRGGBB` or `#RRGGBBAA` format.
     pub fn from_hex(hex: &str) -> Option<Self> {
         let hex = hex.trim_start_matches('#');
         let val = u32::from_str_radix(hex, 16).ok()?;
@@ -199,10 +200,14 @@ pub enum BlendMethod {
 /// Texture channel for displacement mapping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Channel {
+    /// Red channel.
     R,
+    /// Green channel (default).
     #[default]
     G,
+    /// Blue channel.
     B,
+    /// Alpha channel.
     A,
 }
 
@@ -210,10 +215,14 @@ pub enum Channel {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum TileStyle {
+    /// Texture repeats by wrapping (default).
     #[default]
     Wrap,
+    /// Texture repeats by mirroring at boundaries.
     Mirror,
+    /// Texture is clamped to its edge color at boundaries.
     Clamp,
+    /// Texture coordinates outside \[0,1\] produce transparent/default values.
     None,
 }
 
@@ -221,8 +230,10 @@ pub enum TileStyle {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum FilterMode {
+    /// Bilinear or trilinear interpolation (default).
     #[default]
     Linear,
+    /// Nearest-neighbor (point) filtering.
     Nearest,
 }
 

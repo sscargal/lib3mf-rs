@@ -14,9 +14,12 @@ use std::io::Write;
 ///   Not yet implemented.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SliceMode {
+    /// Write slices inline as `<slice>` elements and references as `<sliceref>` elements (default).
     #[default]
     PreserveOriginal,
+    /// Convert all external slice references to inline `<slice>` elements (not yet implemented).
     Inline,
+    /// Move inline slices to external files with `<sliceref>` elements (not yet implemented).
     External,
 }
 

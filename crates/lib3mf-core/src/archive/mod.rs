@@ -77,8 +77,11 @@
 //!
 //! Implementations handle compression, content type registration, and relationship generation.
 
+/// OPC relationship discovery — finds the main model XML path within a 3MF archive.
 pub mod model_locator;
+/// OPC relationship and content type parsers.
 pub mod opc;
+/// ZIP-based `ArchiveReader` implementation using the `zip` crate.
 pub mod zip_archive;
 
 pub use model_locator::*;

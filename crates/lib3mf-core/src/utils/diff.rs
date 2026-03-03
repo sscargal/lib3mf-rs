@@ -1,42 +1,78 @@
 use crate::model::Model;
 use serde::{Deserialize, Serialize};
 
+/// The computed diff between two 3MF models.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ModelDiff {
+    /// Differences in metadata key-value pairs.
     pub metadata_diffs: Vec<MetadataDiff>,
+    /// Differences in resource objects (added, removed, or changed).
     pub resource_diffs: Vec<ResourceDiff>,
+    /// Differences in build item lists.
     pub build_diffs: Vec<BuildDiff>,
 }
 
+/// A difference in a single metadata key between two models.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MetadataDiff {
+    /// The metadata key that differs.
     pub key: String,
+    /// The value in model A (or `None` if absent).
     pub old_value: Option<String>,
+    /// The value in model B (or `None` if absent).
     pub new_value: Option<String>,
 }
 
+/// A difference in a resource between two models.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ResourceDiff {
-    Added { id: u32, type_name: String },
-    Removed { id: u32, type_name: String },
-    Changed { id: u32, details: Vec<String> },
+    /// A resource was added in model B.
+    Added {
+        /// Resource ID.
+        id: u32,
+        /// Type name of the resource (e.g., `"Mesh"`, `"Components"`).
+        type_name: String,
+    },
+    /// A resource was removed from model A.
+    Removed {
+        /// Resource ID.
+        id: u32,
+        /// Type name of the resource.
+        type_name: String,
+    },
+    /// A resource changed between the two models.
+    Changed {
+        /// Resource ID.
+        id: u32,
+        /// Human-readable descriptions of what changed.
+        details: Vec<String>,
+    },
 }
 
+/// A difference in the build item list between two models.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuildDiff {
+    /// A build item was added in model B.
     Added {
+        /// Object ID of the added build item.
         object_id: u32,
     },
+    /// A build item was removed from model A.
     Removed {
+        /// Object ID of the removed build item.
         object_id: u32,
     },
+    /// A build item changed (e.g., count or transform).
     Changed {
+        /// Object ID of the changed build item.
         object_id: u32,
+        /// Human-readable descriptions of what changed.
         details: Vec<String>,
     },
 }
 
 impl ModelDiff {
+    /// Returns `true` if there are no differences between the two models.
     pub fn is_empty(&self) -> bool {
         self.metadata_diffs.is_empty()
             && self.resource_diffs.is_empty()
@@ -44,6 +80,7 @@ impl ModelDiff {
     }
 }
 
+/// Compares two 3MF models and returns a `ModelDiff` describing the differences.
 pub fn compare_models(model_a: &Model, model_b: &Model) -> ModelDiff {
     let mut diff = ModelDiff::default();
 

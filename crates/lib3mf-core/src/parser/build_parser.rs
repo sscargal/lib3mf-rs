@@ -8,6 +8,7 @@ use quick_xml::events::Event;
 use std::borrow::Cow;
 use std::io::BufRead;
 
+/// Parses a `<build>` element and its `<item>` children into a `Build`.
 pub fn parse_build<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Build> {
     let mut build = Build::default();
 

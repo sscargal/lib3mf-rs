@@ -9,6 +9,7 @@ use std::io::BufRead;
 
 // ... existing code ...
 
+/// Parses a `<texture2dgroup>` element into a `Texture2DGroup`.
 pub fn parse_texture_2d_group<R: BufRead>(
     parser: &mut XmlParser<R>,
     id: ResourceId,
@@ -46,6 +47,7 @@ pub fn parse_texture_2d_group<R: BufRead>(
     })
 }
 
+/// Parses a `<compositematerials>` element into a `CompositeMaterials`.
 pub fn parse_composite_materials<R: BufRead>(
     parser: &mut XmlParser<R>,
     id: ResourceId,
@@ -88,6 +90,7 @@ pub fn parse_composite_materials<R: BufRead>(
     })
 }
 
+/// Parses a `<multiproperties>` element into a `MultiProperties`.
 pub fn parse_multi_properties<R: BufRead>(
     parser: &mut XmlParser<R>,
     id: ResourceId,
@@ -129,6 +132,7 @@ pub fn parse_multi_properties<R: BufRead>(
     })
 }
 
+/// Parses a `<basematerials>` element into a `BaseMaterialsGroup`.
 pub fn parse_base_materials<R: BufRead>(
     parser: &mut XmlParser<R>,
     id: ResourceId,
@@ -168,6 +172,7 @@ pub fn parse_base_materials<R: BufRead>(
     Ok(BaseMaterialsGroup { id, materials })
 }
 
+/// Parses a `<colorgroup>` element into a `ColorGroup`.
 pub fn parse_color_group<R: BufRead>(
     parser: &mut XmlParser<R>,
     id: ResourceId,

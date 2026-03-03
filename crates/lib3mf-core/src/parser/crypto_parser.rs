@@ -4,6 +4,7 @@ use crate::parser::xml_parser::{XmlParser, get_attribute};
 use quick_xml::events::Event;
 use std::io::BufRead;
 
+/// Parses an XML-DSIG `<Signature>` element into a `Signature` structure.
 pub fn parse_signature<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Signature> {
     let mut signature = Signature::default();
 

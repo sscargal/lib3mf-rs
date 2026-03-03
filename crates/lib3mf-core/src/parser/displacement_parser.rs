@@ -7,6 +7,7 @@ use crate::parser::xml_parser::{XmlParser, get_attribute_f32, get_attribute_u32}
 use quick_xml::events::Event;
 use std::io::BufRead;
 
+/// Parses a `<displacementmesh>` element and its contents into a `DisplacementMesh`.
 pub fn parse_displacement_mesh<R: BufRead>(parser: &mut XmlParser<R>) -> Result<DisplacementMesh> {
     let mut vertices = Vec::new();
     let mut triangles = Vec::new();
@@ -184,6 +185,7 @@ fn parse_disp2d_groups<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Vec<Grad
     Ok(gradients)
 }
 
+/// Parses a `<displacement2d>` element (with pre-parsed attributes) into a `Displacement2D`.
 #[allow(clippy::too_many_arguments)]
 pub fn parse_displacement_2d<R: BufRead>(
     parser: &mut XmlParser<R>,

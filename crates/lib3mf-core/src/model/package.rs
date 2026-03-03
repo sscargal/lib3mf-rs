@@ -12,6 +12,7 @@ pub struct Package {
 }
 
 impl Package {
+    /// Creates a new `Package` with the given main model and no additional parts.
     pub fn new(main_model: Model) -> Self {
         Self {
             main_model,
@@ -19,6 +20,7 @@ impl Package {
         }
     }
 
+    /// Adds an additional model part to the package, keyed by its package path.
     pub fn add_part(&mut self, path: String, model: Model) {
         self.parts.insert(path, model);
     }

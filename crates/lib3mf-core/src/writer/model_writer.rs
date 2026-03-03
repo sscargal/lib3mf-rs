@@ -29,6 +29,7 @@ fn format_transform_matrix(mat: &glam::Mat4) -> String {
 }
 
 impl Model {
+    /// Serializes the model to XML, writing the `<model>` document to the given writer.
     pub fn write_xml<W: Write>(
         &self,
         writer: W,

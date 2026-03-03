@@ -5,6 +5,7 @@ use crate::parser::xml_parser::{XmlParser, get_attribute, get_attribute_f32, get
 use quick_xml::events::Event;
 use std::io::BufRead;
 
+/// Parses a `<mesh>` element (vertices and triangles) into a `Mesh`.
 pub fn parse_mesh<R: BufRead>(parser: &mut XmlParser<R>) -> Result<Mesh> {
     let mut mesh = Mesh::default();
 

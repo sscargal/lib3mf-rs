@@ -12,6 +12,7 @@ pub struct PackageWriter<W: Write + Seek> {
 }
 
 impl<W: Write + Seek> PackageWriter<W> {
+    /// Creates a new `PackageWriter` wrapping the given writer with Deflate compression.
     pub fn new(writer: W) -> Self {
         let options = FileOptions::default()
             .compression_method(zip::CompressionMethod::Deflated)
@@ -23,6 +24,7 @@ impl<W: Write + Seek> PackageWriter<W> {
         }
     }
 
+    /// Writes all parts of the package to the ZIP archive and finalizes it.
     pub fn write(mut self, package: &Package) -> Result<()> {
         // 1. Write Attachments (Textures, Thumbnails) from the main model
         // (In a true multi-part, attachments might be shared or part-specific,

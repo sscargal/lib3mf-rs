@@ -2,6 +2,7 @@ use crate::model::{Geometry, Model, ResourceId};
 use crate::validation::report::ValidationReport;
 use std::collections::{HashMap, HashSet};
 
+/// Validates semantic correctness of the model (build references, material constraints, metadata).
 pub fn validate_semantic(model: &Model, report: &mut ValidationReport) {
     // Validate build items
     validate_build_references(model, report);

@@ -3,12 +3,17 @@ use crate::error::{Lib3mfError, Result};
 use std::io::{Read, Seek};
 use zip::ZipArchive;
 
+/// A ZIP-based archive reader for 3MF files.
+///
+/// Wraps a [`zip::ZipArchive`] and implements [`ArchiveReader`] for use with the 3MF parser.
+/// This is the standard entry point for reading `.3mf` files from disk or memory.
 #[derive(Debug)]
 pub struct ZipArchiver<R> {
     archive: ZipArchive<R>,
 }
 
 impl<R: Read + Seek> ZipArchiver<R> {
+    /// Creates a new `ZipArchiver` by reading a ZIP archive from the given reader.
     pub fn new(reader: R) -> Result<Self> {
         Ok(Self {
             archive: ZipArchive::new(reader).map_err(|e| Lib3mfError::Io(e.into()))?,

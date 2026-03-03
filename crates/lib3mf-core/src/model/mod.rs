@@ -54,21 +54,36 @@
 //! For convenience, all public types are re-exported at the crate root via `pub use model::*`.
 //! You can use `lib3mf_core::Model` instead of `lib3mf_core::model::Model`.
 
+/// Build instructions — `Build` and `BuildItem` types.
 pub mod build;
+/// Root `Model` struct and its `validate` / `compute_stats` methods.
 pub mod core;
+/// XML-DSIG crypto data structures used by the Secure Content Extension.
 pub mod crypto;
+/// Material and texture types (colors, base materials, composites, etc.).
 pub mod materials;
+/// Mesh geometry types (`Mesh`, `Triangle`, `Vertex`, `BeamLattice`, etc.).
 pub mod mesh;
+/// Multi-part `Package` type for Production Extension multi-model files.
 pub mod package;
+/// Mesh repair operations (`MeshRepair` trait and `RepairStats`).
 pub mod repair;
+/// Cross-file component resolver (`PartResolver`, `ResolvedMesh`, `ResolveOptions`).
 pub mod resolver;
+/// `ResourceCollection` — central registry for all model resources.
 pub mod resources;
+/// Secure Content Extension key store types (`KeyStore`, `Consumer`, etc.).
 pub mod secure_content;
+/// Slice Extension types (`SliceStack`, `Slice`, `Polygon`, etc.).
 pub mod slice;
+/// Model statistics types returned by `Model::compute_stats()`.
 pub mod stats;
+/// Internal implementation of `compute_stats()` — not part of the public API surface.
 pub mod stats_impl;
 
+/// Unit of measurement enum and conversion utilities.
 pub mod units;
+/// Volumetric Extension types (`VolumetricStack`, `VolumetricLayer`, etc.).
 pub mod volumetric;
 
 pub use build::*;

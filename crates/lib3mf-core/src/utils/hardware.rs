@@ -1,12 +1,17 @@
 use serde::{Deserialize, Serialize};
 
+/// Hardware capabilities of the current system, used for informational statistics.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HardwareCapabilities {
+    /// CPU architecture string (e.g., `"x86_64"`, `"aarch64"`).
     pub architecture: String,
+    /// Number of available CPU threads (uses rayon thread count if parallel feature is enabled).
     pub num_cpus: usize,
+    /// List of detected SIMD feature strings (e.g., `["sse", "sse2", "avx2"]`).
     pub simd_features: Vec<String>,
 }
 
+/// Detects and returns the hardware capabilities of the current system.
 pub fn detect_capabilities() -> HardwareCapabilities {
     #[allow(unused_mut)]
     let mut features = Vec::new();

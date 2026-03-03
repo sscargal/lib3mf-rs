@@ -7,6 +7,7 @@ use std::io::BufRead;
 
 // parse_slice_stack removed (used content version directly)
 
+/// Parses the content of a `<slicestack>` element (after attributes are read) into a `SliceStack`.
 pub fn parse_slice_stack_content<R: BufRead>(
     parser: &mut XmlParser<R>,
     id: crate::model::ResourceId,

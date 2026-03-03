@@ -95,13 +95,23 @@
 //!
 //! The writer never panics on invalid input, though it may produce a 3MF file that fails validation.
 
+/// Beam lattice extension writer.
 pub mod beamlattice_writer;
+/// Displacement extension writer.
 pub mod displacement_writer;
+/// Mesh geometry writer.
 pub mod mesh_writer;
+/// `Model::write()` convenience method implementation.
 pub mod model_write_zip;
+/// Core model XML serializer.
 pub mod model_writer;
+/// OPC content types and relationship writers.
 pub mod opc_writer;
+/// Package-level ZIP archive writer.
 pub mod package_writer;
+/// Slice extension writer.
 pub mod slice_writer;
+/// Volumetric extension writer.
 pub mod volumetric_writer;
+/// Low-level XML writer primitives.
 pub mod xml_writer;

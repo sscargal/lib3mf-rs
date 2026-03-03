@@ -59,7 +59,7 @@
 //! - [`boolean_parser`]: Boolean Operations Extension (CSG operations)
 //! - [`displacement_parser`]: Displacement Extension (texture-driven surface modification)
 //! - [`crypto_parser`]: Digital signature metadata (always available, parses XML only)
-//! - [`secure_content_parser`]: Secure Content Extension (encryption/decryption, requires `crypto` feature)
+//! - `secure_content_parser`: Secure Content Extension (encryption/decryption, requires `crypto` feature)
 //!
 //! ### Vendor Extensions
 //!
@@ -85,22 +85,38 @@
 //!
 //! The parser never panics on invalid input.
 
+/// Bambu Studio project file parsers (plate info, filament config, print settings).
 pub mod bambu_config;
+/// Beam Lattice Extension parser.
 pub mod beamlattice_parser;
+/// Boolean Operations Extension parser.
 pub mod boolean_parser;
+/// Build element parser (`<build>` and `<item>` elements).
 pub mod build_parser;
+/// Component and components element parser.
 pub mod component_parser;
+/// XML-DSIG crypto structure parser (always available; no crypto operations).
 pub mod crypto_parser;
+/// Displacement Extension parser.
 pub mod displacement_parser;
+/// Materials and Properties Extension parser.
 pub mod material_parser;
+/// Mesh geometry parser (`<vertices>` and `<triangles>`).
 pub mod mesh_parser;
+/// Root model XML parser — main entry point for DOM-mode parsing.
 pub mod model_parser;
 #[cfg(feature = "crypto")]
+/// Secure Content Extension parser (requires `crypto` feature).
 pub mod secure_content_parser;
+/// Slice Extension parser.
 pub mod slice_parser;
+/// SAX/streaming parser for memory-efficient processing of large 3MF files.
 pub mod streaming;
+/// `ModelVisitor` trait for streaming parser callbacks.
 pub mod visitor;
+/// Volumetric Extension parser.
 pub mod volumetric_parser;
+/// Low-level XML parser primitives used by all parser modules.
 pub mod xml_parser;
 
 pub use bambu_config::{

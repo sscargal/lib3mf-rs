@@ -68,6 +68,7 @@ pub struct ResourceCollection {
     composite_materials: HashMap<ResourceId, CompositeMaterials>,
     multi_properties: HashMap<ResourceId, MultiProperties>,
     displacement_2d: HashMap<ResourceId, Displacement2D>,
+    /// Optional Secure Content key store for this model (at most one per model).
     pub key_store: Option<KeyStore>, // Usually one KeyStore per model/part
 }
 
@@ -141,6 +142,11 @@ impl ResourceCollection {
         Ok(())
     }
 
+    /// Adds a slice stack resource to the collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Lib3mfError::Validation` if a resource with the same ID already exists.
     pub fn add_slice_stack(&mut self, stack: SliceStack) -> Result<()> {
         if self.exists(stack.id) {
             return Err(Lib3mfError::Validation(format!(
@@ -152,6 +158,11 @@ impl ResourceCollection {
         Ok(())
     }
 
+    /// Adds a volumetric stack resource to the collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Lib3mfError::Validation` if a resource with the same ID already exists.
     pub fn add_volumetric_stack(&mut self, stack: VolumetricStack) -> Result<()> {
         if self.exists(stack.id) {
             return Err(Lib3mfError::Validation(format!(
@@ -163,6 +174,7 @@ impl ResourceCollection {
         Ok(())
     }
 
+    /// Sets the Secure Content key store for this model (replaces any existing key store).
     pub fn set_key_store(&mut self, store: KeyStore) {
         self.key_store = Some(store);
     }
@@ -188,14 +200,25 @@ impl ResourceCollection {
         self.color_groups.get(&id)
     }
 
+    /// Retrieves a slice stack by its ID.
+    ///
+    /// Returns `None` if no slice stack with the given ID exists.
     pub fn get_slice_stack(&self, id: ResourceId) -> Option<&SliceStack> {
         self.slice_stacks.get(&id)
     }
 
+    /// Retrieves a volumetric stack by its ID.
+    ///
+    /// Returns `None` if no volumetric stack with the given ID exists.
     pub fn get_volumetric_stack(&self, id: ResourceId) -> Option<&VolumetricStack> {
         self.volumetric_stacks.get(&id)
     }
 
+    /// Adds a 2D texture resource to the collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Lib3mfError::Validation` if a resource with the same ID already exists.
     pub fn add_texture_2d(&mut self, texture: Texture2D) -> Result<()> {
         if self.exists(texture.id) {
             return Err(Lib3mfError::Validation(format!(
@@ -207,6 +230,11 @@ impl ResourceCollection {
         Ok(())
     }
 
+    /// Adds a 2D texture coordinate group to the collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Lib3mfError::Validation` if a resource with the same ID already exists.
     pub fn add_texture_2d_group(&mut self, group: Texture2DGroup) -> Result<()> {
         if self.exists(group.id) {
             return Err(Lib3mfError::Validation(format!(
@@ -218,10 +246,18 @@ impl ResourceCollection {
         Ok(())
     }
 
+    /// Retrieves a 2D texture coordinate group by its ID.
+    ///
+    /// Returns `None` if no texture 2D group with the given ID exists.
     pub fn get_texture_2d_group(&self, id: ResourceId) -> Option<&Texture2DGroup> {
         self.texture_2d_groups.get(&id)
     }
 
+    /// Adds a composite materials group to the collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Lib3mfError::Validation` if a resource with the same ID already exists.
     pub fn add_composite_materials(&mut self, group: CompositeMaterials) -> Result<()> {
         if self.exists(group.id) {
             return Err(Lib3mfError::Validation(format!(
@@ -233,10 +269,18 @@ impl ResourceCollection {
         Ok(())
     }
 
+    /// Retrieves a composite materials group by its ID.
+    ///
+    /// Returns `None` if no composite materials group with the given ID exists.
     pub fn get_composite_materials(&self, id: ResourceId) -> Option<&CompositeMaterials> {
         self.composite_materials.get(&id)
     }
 
+    /// Adds a multi-properties group to the collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Lib3mfError::Validation` if a resource with the same ID already exists.
     pub fn add_multi_properties(&mut self, group: MultiProperties) -> Result<()> {
         if self.exists(group.id) {
             return Err(Lib3mfError::Validation(format!(
@@ -248,30 +292,39 @@ impl ResourceCollection {
         Ok(())
     }
 
+    /// Retrieves a multi-properties group by its ID.
+    ///
+    /// Returns `None` if no multi-properties group with the given ID exists.
     pub fn get_multi_properties(&self, id: ResourceId) -> Option<&MultiProperties> {
         self.multi_properties.get(&id)
     }
 
+    /// Returns the number of base material groups in the collection.
     pub fn base_material_groups_count(&self) -> usize {
         self.base_materials.len()
     }
 
+    /// Returns the number of color groups in the collection.
     pub fn color_groups_count(&self) -> usize {
         self.color_groups.len()
     }
 
+    /// Returns the number of volumetric stacks in the collection.
     pub fn volumetric_stacks_count(&self) -> usize {
         self.volumetric_stacks.len()
     }
 
+    /// Returns the number of 2D texture coordinate groups in the collection.
     pub fn texture_2d_groups_count(&self) -> usize {
         self.texture_2d_groups.len()
     }
 
+    /// Returns the number of composite materials groups in the collection.
     pub fn composite_materials_count(&self) -> usize {
         self.composite_materials.len()
     }
 
+    /// Returns the number of multi-properties groups in the collection.
     pub fn multi_properties_count(&self) -> usize {
         self.multi_properties.len()
     }
@@ -311,6 +364,11 @@ impl ResourceCollection {
         self.multi_properties.values()
     }
 
+    /// Adds a 2D displacement texture resource to the collection.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Lib3mfError::Validation` if a resource with the same ID already exists.
     pub fn add_displacement_2d(&mut self, res: Displacement2D) -> Result<()> {
         if self.exists(res.id) {
             return Err(Lib3mfError::Validation(format!(
@@ -322,14 +380,19 @@ impl ResourceCollection {
         Ok(())
     }
 
+    /// Retrieves a 2D displacement texture resource by its ID.
+    ///
+    /// Returns `None` if no displacement 2D resource with the given ID exists.
     pub fn get_displacement_2d(&self, id: ResourceId) -> Option<&Displacement2D> {
         self.displacement_2d.get(&id)
     }
 
+    /// Returns the number of 2D displacement texture resources in the collection.
     pub fn displacement_2d_count(&self) -> usize {
         self.displacement_2d.len()
     }
 
+    /// Returns an iterator over all 2D displacement texture resources in the collection.
     pub fn iter_displacement_2d(&self) -> impl Iterator<Item = &Displacement2D> {
         self.displacement_2d.values()
     }

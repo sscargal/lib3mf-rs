@@ -2,6 +2,7 @@ use crate::model::{DisplacementMesh, Geometry, Mesh, Model, ObjectType, Resource
 use crate::validation::{ValidationLevel, ValidationReport};
 use std::collections::HashMap;
 
+/// Validates the geometry of all mesh objects in the model at the given validation level.
 pub fn validate_geometry(model: &Model, level: ValidationLevel, report: &mut ValidationReport) {
     for object in model.resources.iter_objects() {
         // Per spec: "The object type is ignored on objects that contain components"

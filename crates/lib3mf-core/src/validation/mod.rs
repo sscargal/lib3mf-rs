@@ -111,11 +111,17 @@
 //! - **Cache results**: Validation reports are cloneable and serializable
 //! - **Progressive checking**: Validate incrementally during parsing (not yet implemented)
 
+/// Bounding Volume Hierarchy for accelerated spatial queries and intersection tests.
 pub mod bvh;
+/// Displacement mesh validation helpers.
 pub mod displacement;
+/// Mesh geometry validation algorithms (manifoldness, self-intersection, orientation).
 pub mod geometry;
+/// Validation report types (`ValidationReport`, `ValidationItem`, `ValidationSeverity`).
 pub mod report;
+/// Schema-level validation against the 3MF core specification structure.
 pub mod schema;
+/// Semantic validation — resource references, ID uniqueness, and cross-reference integrity.
 pub mod semantic;
 
 use serde::{Deserialize, Serialize};

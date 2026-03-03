@@ -4,6 +4,7 @@ use crate::parser::xml_parser::{XmlParser, get_attribute, get_attribute_f32, get
 use quick_xml::events::Event;
 use std::io::BufRead;
 
+/// Parses the content of a `<volumestack>` element into a `VolumetricStack`.
 pub fn parse_volumetric_stack_content<R: BufRead>(
     parser: &mut XmlParser<R>,
     id: ResourceId,

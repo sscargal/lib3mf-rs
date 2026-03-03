@@ -9,6 +9,7 @@ use std::io::BufRead;
 // I will define `pub fn parse_beam_lattice_content<R>(parser, min_length, precision, clipping) -> Result<BeamLattice>`
 // And the caller will handle the attributes.
 
+/// Parses the content of a `<beamlattice>` element into a `BeamLattice`, given pre-parsed attributes.
 pub fn parse_beam_lattice_content<R: BufRead>(
     parser: &mut XmlParser<R>,
     radius: Option<f32>,

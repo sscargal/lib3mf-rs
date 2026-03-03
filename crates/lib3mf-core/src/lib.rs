@@ -152,6 +152,7 @@ pub mod crypto;
 pub mod error;
 pub mod model;
 pub mod parser;
+/// Utility types and functions (model diffing, hardware detection, XML canonicalization).
 pub mod utils;
 pub mod validation;
 pub mod writer;
