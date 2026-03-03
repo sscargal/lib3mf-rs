@@ -30,6 +30,7 @@ harness = false
 version = "0.4.0"
 authors = ["Steve Scargall"]
 edition = "2024"
+rust-version = "1.88"
 license = "BSD-2-Clause"
 repository = "https://github.com/sscargal/lib3mf-rs"
 homepage = "https://github.com/sscargal/lib3mf-rs"
