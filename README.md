@@ -8,7 +8,7 @@
   <a href="https://crates.io/crates/lib3mf-core"><img src="https://img.shields.io/crates/d/lib3mf-core.svg" alt="Downloads"></a>
   <br>
   <a href="https://github.com/sscargal/lib3mf-rs/actions"><img src="https://github.com/sscargal/lib3mf-rs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/crates/l/lib3mf-core.svg" alt="License"></a>
   <a href="https://sscargal.github.io/lib3mf-rs/"><img src="https://img.shields.io/badge/docs-guide-blue.svg" alt="Documentation"></a>
 </p>
 
@@ -25,10 +25,10 @@ Memory-safe, high-performance library for reading, writing, and processing [3MF 
 cargo install lib3mf-cli
 
 # Analyze a 3MF file
-lib3mf-cli stats path/to/model.3mf
+3mf stats path/to/model.3mf
 
 # Get JSON output
-lib3mf-cli stats path/to/model.3mf --format json
+3mf stats path/to/model.3mf --format json
 ```
 
 ### Use as Library
@@ -41,12 +41,18 @@ lib3mf-core = "0.4"
 
 Simple example:
 ```rust
-use lib3mf_core::Model;
+use lib3mf_core::archive::{ZipArchiver, ArchiveReader, find_model_path};
+use lib3mf_core::parser::parse_model;
+use std::fs::File;
+use std::io::Cursor;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let model = Model::from_file("model.3mf")?;
-    let stats = model.compute_stats()?;
-    println!("Triangles: {}", stats.geometry.triangle_count);
+    let file = File::open("model.3mf")?;
+    let mut archiver = ZipArchiver::new(file)?;
+    let model_path = find_model_path(&mut archiver)?;
+    let model_data = archiver.read_entry(&model_path)?;
+    let model = parse_model(Cursor::new(model_data))?;
+    println!("Build items: {}", model.build.items.len());
     Ok(())
 }
 ```
@@ -164,17 +170,18 @@ lib3mf-core = "0.4"
 Parse a 3MF file and get statistics:
 
 ```rust
-use lib3mf_core::Model;
+use lib3mf_core::archive::{ZipArchiver, ArchiveReader, find_model_path};
+use lib3mf_core::parser::parse_model;
+use std::fs::File;
+use std::io::Cursor;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Load and parse the model
-    let model = Model::from_file("model.3mf")?;
-    
-    // Get statistics
-    let stats = model.compute_stats()?;
-    println!("Triangles: {}", stats.geometry.triangle_count);
-    println!("Vertices: {}", stats.geometry.vertex_count);
-    
+    let file = File::open("model.3mf")?;
+    let mut archiver = ZipArchiver::new(file)?;
+    let model_path = find_model_path(&mut archiver)?;
+    let model_data = archiver.read_entry(&model_path)?;
+    let model = parse_model(Cursor::new(model_data))?;
+    println!("Build items: {}", model.build.items.len());
     Ok(())
 }
 ```
@@ -254,10 +261,10 @@ cargo install lib3mf-cli
 Get a summary of the model, including geometry counts, advanced materials (textures, composites), and vendor metadata (like Bambu Studio plates).
 
 ```bash
-lib3mf-cli stats path/to/model.3mf
+3mf stats path/to/model.3mf
 
 # Output as JSON
-lib3mf-cli stats path/to/model.3mf --format json
+3mf stats path/to/model.3mf --format json
 
 # Or run from source
 cargo run -p lib3mf-cli -- stats path/to/model.3mf
@@ -267,35 +274,35 @@ cargo run -p lib3mf-cli -- stats path/to/model.3mf
 See what's inside the 3MF container. Use `--format tree` for a file tree view.
 
 ```bash
-lib3mf-cli list path/to/model.3mf --format tree
+3mf list path/to/model.3mf --format tree
 ```
 
 #### 3. Inspect Relationships
 Debug OPC relationships and content types.
 
 ```bash
-lib3mf-cli rels path/to/model.3mf
+3mf rels path/to/model.3mf
 ```
 
 #### 4. Extract Files
 Extract specific files (like thumbnails or internal config) from the archive.
 
 ```bash
-lib3mf-cli extract path/to/model.3mf "Auxiliaries/.thumbnails/thumbnail_small.png" --output thumb.png
+3mf extract path/to/model.3mf "Auxiliaries/.thumbnails/thumbnail_small.png" --output thumb.png
 ```
 
 #### 5. Compare Models
 Compare two 3MF files to find structural or metadata differences.
 
 ```bash
-lib3mf-cli diff v1.3mf v2.3mf
+3mf diff v1.3mf v2.3mf
 ```
 
 #### 6. Copy (Roundtrip)
 Read a 3MF file and write it back to a new file. Validates the read/write cycle.
 
 ```bash
-lib3mf-cli copy path/to/model.3mf output.3mf
+3mf copy path/to/model.3mf output.3mf
 ```
 
 ---

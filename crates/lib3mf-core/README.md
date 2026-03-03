@@ -4,6 +4,7 @@
 [![docs.rs](https://docs.rs/lib3mf-core/badge.svg)](https://docs.rs/lib3mf-core)
 [![Downloads](https://img.shields.io/crates/d/lib3mf-core.svg)](https://crates.io/crates/lib3mf-core)
 [![CI](https://github.com/sscargal/lib3mf-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/sscargal/lib3mf-rs/actions)
+[![License](https://img.shields.io/crates/l/lib3mf-core.svg)](LICENSE)
 
 Parse and validate 3MF files for manufacturing workflows - production-ready with streaming parser and comprehensive validation.
 
@@ -19,12 +20,18 @@ lib3mf-core = "0.4"
 Parse a 3MF file:
 
 ```rust
-use lib3mf_core::Model;
+use lib3mf_core::archive::{ZipArchiver, ArchiveReader, find_model_path};
+use lib3mf_core::parser::parse_model;
+use std::fs::File;
+use std::io::Cursor;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let model = Model::from_file("model.3mf")?;
-    let stats = model.compute_stats()?;
-    println!("Triangles: {}", stats.geometry.triangle_count);
+    let file = File::open("model.3mf")?;
+    let mut archiver = ZipArchiver::new(file)?;
+    let model_path = find_model_path(&mut archiver)?;
+    let model_data = archiver.read_entry(&model_path)?;
+    let model = parse_model(Cursor::new(model_data))?;
+    println!("Build items: {}", model.build.items.len());
     Ok(())
 }
 ```
@@ -34,9 +41,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Parse and Validate
 
 ```rust
-use lib3mf_core::{Model, validation::ValidationLevel};
+use lib3mf_core::archive::{ZipArchiver, ArchiveReader, find_model_path};
+use lib3mf_core::parser::parse_model;
+use lib3mf_core::validation::ValidationLevel;
+use std::fs::File;
+use std::io::Cursor;
 
-let model = Model::from_file("model.3mf")?;
+let file = File::open("model.3mf")?;
+let mut archiver = ZipArchiver::new(file)?;
+let model_path = find_model_path(&mut archiver)?;
+let model_data = archiver.read_entry(&model_path)?;
+let model = parse_model(Cursor::new(model_data))?;
 let report = model.validate(ValidationLevel::Standard)?;
 
 if report.has_errors() {
@@ -60,10 +75,12 @@ println!("Vertices: {}", visitor.vertex_count());
 ### Write 3MF
 
 ```rust
-use lib3mf_core::{Model, writer::write_model};
+use lib3mf_core::Model;
+use std::fs::File;
 
-let model = create_model()?;
-write_model(&model, "output.3mf")?;
+let model = Model::default();
+let output = File::create("output.3mf")?;
+model.write(output)?;
 ```
 
 ### Geometry Repair
@@ -114,7 +131,7 @@ lib3mf-rs is a multi-crate workspace:
 | [lib3mf-async](https://crates.io/crates/lib3mf-async) | Non-blocking async I/O with tokio |
 | [lib3mf-cli](https://crates.io/crates/lib3mf-cli) | Command-line analysis and processing |
 | [lib3mf-converters](https://crates.io/crates/lib3mf-converters) | STL/OBJ format conversion |
-| [lib3mf-wasm](https://crates.io/crates/lib3mf-wasm) | Browser and edge deployment |
+| [lib3mf-wasm](https://www.npmjs.com/package/@lib3mf-rs/lib3mf-wasm) | Browser and edge deployment (NPM) |
 
 ## Specification Compliance
 
@@ -147,4 +164,4 @@ See [benchmarks](../../benches/) for detailed metrics.
 
 ## License
 
-MIT OR Apache-2.0
+BSD-2-Clause

@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/lib3mf-cli.svg)](https://crates.io/crates/lib3mf-cli)
 [![docs.rs](https://docs.rs/lib3mf-cli/badge.svg)](https://docs.rs/lib3mf-cli)
+[![License](https://img.shields.io/crates/l/lib3mf-cli.svg)](LICENSE)
 
 Command-line tool for analyzing, validating, and processing 3MF files.
 
@@ -23,19 +24,19 @@ cargo install lib3mf-cli
 
 ```bash
 # Analyze a 3MF file
-lib3mf-cli stats model.3mf
+3mf stats model.3mf
 
 # Get JSON output
-lib3mf-cli stats model.3mf --format json
+3mf stats model.3mf --format json
 
 # Validate with paranoid checks
-lib3mf-cli validate model.3mf --level paranoid
+3mf validate model.3mf --level paranoid
 
 # Convert STL to 3MF
-lib3mf-cli convert input.stl output.3mf
+3mf convert input.stl output.3mf
 
 # List archive contents
-lib3mf-cli list model.3mf --format tree
+3mf list model.3mf --format tree
 ```
 
 ## Commands
@@ -66,7 +67,7 @@ Use in continuous integration to validate 3MF files:
 - name: Validate 3MF
   run: |
     cargo install lib3mf-cli
-    lib3mf-cli validate model.3mf --level strict
+    3mf validate model.3mf --level strict
 ```
 
 ## Related
@@ -76,4 +77,4 @@ Use in continuous integration to validate 3MF files:
 
 ## License
 
-MIT OR Apache-2.0
+BSD-2-Clause

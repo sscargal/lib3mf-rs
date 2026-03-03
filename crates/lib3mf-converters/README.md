@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/lib3mf-converters.svg)](https://crates.io/crates/lib3mf-converters)
 [![docs.rs](https://docs.rs/lib3mf-converters/badge.svg)](https://docs.rs/lib3mf-converters)
+[![License](https://img.shields.io/crates/l/lib3mf-converters.svg)](LICENSE)
 
 Convert between 3MF, STL, and OBJ formats for 3D printing workflows.
 
@@ -88,8 +89,8 @@ Format conversion is also available via the CLI tool:
 
 ```bash
 cargo install lib3mf-cli
-lib3mf-cli convert input.stl output.3mf
-lib3mf-cli convert model.3mf output.obj
+3mf convert input.stl output.3mf
+3mf convert model.3mf output.obj
 ```
 
 ## Related
@@ -100,4 +101,4 @@ lib3mf-cli convert model.3mf output.obj
 
 ## License
 
-MIT OR Apache-2.0
+BSD-2-Clause

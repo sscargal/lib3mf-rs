@@ -2,6 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/lib3mf-async.svg)](https://crates.io/crates/lib3mf-async)
 [![docs.rs](https://docs.rs/lib3mf-async/badge.svg)](https://docs.rs/lib3mf-async)
+[![License](https://img.shields.io/crates/l/lib3mf-async.svg)](LICENSE)
 
 Non-blocking async 3MF parsing with tokio - high-throughput manufacturing data processing.
 
@@ -21,13 +22,12 @@ tokio = { version = "1", features = ["full"] }
 ```
 
 ```rust
-use lib3mf_async::AsyncZipArchiver;
+use lib3mf_async::loader::load_model_async;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let archiver = AsyncZipArchiver::from_file("model.3mf").await?;
-    let model = archiver.parse_model().await?;
-    println!("Loaded model with {} objects", model.iter_objects().count());
+    let model = load_model_async("model.3mf").await?;
+    println!("Loaded model with {} objects", model.resources.iter_objects().count());
     Ok(())
 }
 ```
@@ -44,21 +44,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Async I/O allows processing multiple 3MF files concurrently without blocking:
 
 ```rust
-use lib3mf_async::AsyncZipArchiver;
-use tokio::fs::File;
+use lib3mf_async::loader::load_model_async;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Process multiple files concurrently
-    let handles: Vec<_> = files.iter().map(|path| {
+    let files = vec!["model1.3mf", "model2.3mf", "model3.3mf"];
+    let handles: Vec<_> = files.into_iter().map(|path| {
         tokio::spawn(async move {
-            let archiver = AsyncZipArchiver::from_file(path).await?;
-            archiver.parse_model().await
+            load_model_async(path).await
         })
     }).collect();
 
-    // Wait for all to complete
-    let models = futures::future::join_all(handles).await;
+    let results = futures::future::join_all(handles).await;
+    for result in results {
+        match result {
+            Ok(Ok(model)) => println!("Loaded: {} objects", model.resources.iter_objects().count()),
+            _ => eprintln!("Failed to load model"),
+        }
+    }
     Ok(())
 }
 ```
@@ -70,4 +73,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## License
 
-MIT OR Apache-2.0
+BSD-2-Clause
