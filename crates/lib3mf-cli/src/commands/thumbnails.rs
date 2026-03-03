@@ -5,6 +5,11 @@ use std::fs::{self, File};
 use std::io::Write; // Removed Read
 use std::path::PathBuf;
 
+/// Entry point for the `thumbnails` subcommand.
+///
+/// Depending on the flags provided, this function either lists all thumbnail
+/// attachments in the 3MF archive, extracts them to a directory, or injects
+/// a new thumbnail image into the archive.
 pub fn run(
     file: PathBuf,
     list: bool,

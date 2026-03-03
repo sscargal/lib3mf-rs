@@ -1,3 +1,8 @@
+//! Command-line interface binary for `lib3mf-rs`.
+//!
+//! Provides the `3mf` binary with subcommands for inspecting, validating,
+//! converting, and manipulating 3MF files.
+
 use clap::{Parser, Subcommand};
 use lib3mf_cli::commands;
 use lib3mf_cli::commands::{OutputFormat, RepairType};

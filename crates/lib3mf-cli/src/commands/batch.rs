@@ -15,7 +15,7 @@
 //! Instead, we call lib3mf-core APIs directly:
 //!   - model.validate(level)         → ValidationReport
 //!   - model.compute_stats(archiver) → ModelStats
-//!   - archiver.list_entries()       → Vec<String>
+//!   - archiver.list_entries()       → `Vec<String>`
 
 // ---------------------------------------------------------------------------
 // (A) Imports
@@ -67,8 +67,11 @@ pub enum ErrorCategory {
 /// Error record for a single failed operation on a file.
 #[derive(Debug, Clone, Serialize)]
 pub struct FileError {
+    /// The broad category of the error (IO, Parse, Validation, etc.).
     pub category: ErrorCategory,
+    /// The name of the operation that failed (e.g. "validate", "stats").
     pub operation: String,
+    /// Human-readable description of the error.
     pub message: String,
 }
 
@@ -251,7 +254,7 @@ fn insert_unique(
 /// effects (process::exit). We call lib3mf-core APIs directly:
 ///   - model.validate(level)           → ValidationReport
 ///   - model.compute_stats(&archiver)  → ModelStats
-///   - archiver.list_entries()         → Vec<String>
+///   - archiver.list_entries()         → `Vec<String>`
 pub fn process_file(index: usize, path: &Path, ops: &BatchOps) -> FileResult {
     let file_type = detect_file_type(path);
 

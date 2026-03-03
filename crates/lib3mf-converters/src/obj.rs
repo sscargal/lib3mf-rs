@@ -11,7 +11,7 @@
 //! - `f` - Faces (vertex indices, with automatic fan triangulation for polygons)
 //! - `g` / `o` - Group/object directives (each creates a separate 3MF Object)
 //! - `usemtl` - Material assignment (maps to per-triangle `pid`/`p1`/`p2`/`p3`)
-//! - `mtllib` - Material library file reference (parsed via [`mtl`](crate::mtl) module)
+//! - `mtllib` - Material library file reference (parsed via [`mtl`] module)
 //!
 //! **Ignored features:**
 //! - `vt` - Texture coordinates

@@ -37,8 +37,11 @@ pub enum PackAlgorithm {
 /// Verbosity level for merge output.
 #[derive(Debug, Clone, Copy)]
 pub enum Verbosity {
+    /// Suppress all output except errors.
     Quiet,
+    /// Print a summary of merged objects (default).
     Normal,
+    /// Print detailed per-object merge information.
     Verbose,
 }
 

@@ -87,7 +87,9 @@ use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 /// Detected STL file format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StlFormat {
+    /// Binary STL — compact 80-byte header followed by packed triangle records.
     Binary,
+    /// ASCII STL — human-readable `solid`/`facet normal`/`vertex` text format.
     Ascii,
 }
 

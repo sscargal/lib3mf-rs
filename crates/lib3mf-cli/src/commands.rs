@@ -6,6 +6,7 @@
 pub mod batch;
 pub mod merge;
 pub mod split;
+/// Thumbnail extraction, injection, and listing for 3MF files.
 pub mod thumbnails;
 
 use clap::ValueEnum;
