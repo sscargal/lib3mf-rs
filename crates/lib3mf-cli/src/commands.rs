@@ -1045,8 +1045,8 @@ pub fn convert(input: PathBuf, output: PathBuf, ascii: bool) -> anyhow::Result<(
         .unwrap_or("")
         .to_lowercase();
 
-    // Special handling for STL export from 3MF to support components
-    if output_ext == "stl" {
+    // Special handling for STL/OBJ export from 3MF to support components
+    if output_ext == "stl" || output_ext == "obj" {
         // We need to keep the archive open for resolving components
         // Try opening as archive (zip)
         let file_res = File::open(&input);
@@ -1075,7 +1075,14 @@ pub fn convert(input: PathBuf, output: PathBuf, ascii: bool) -> anyhow::Result<(
             // Access the root model via resolver for export
             let root_model = resolver.get_root_model().clone(); // Clone to pass to export, or export takes ref
 
-            if ascii {
+            if output_ext == "obj" {
+                lib3mf_converters::obj::ObjExporter::write_with_resolver(
+                    &root_model,
+                    resolver,
+                    file,
+                )
+                .map_err(|e| anyhow::anyhow!("Failed to export OBJ: {}", e))?;
+            } else if ascii {
                 lib3mf_converters::stl::AsciiStlExporter::write_with_resolver(
                     &root_model,
                     resolver,

@@ -694,6 +694,109 @@ impl ObjExporter {
         }
         Ok(())
     }
+
+    /// Writes a 3MF [`Model`] to OBJ text format, resolving Production Extension
+    /// component references across model parts via [`PartResolver`].
+    ///
+    /// This method should be used when exporting multi-model 3MF files (e.g. those
+    /// created by Bambu Studio) where build items may reference objects defined in
+    /// child model part files.
+    ///
+    /// [`PartResolver`]: lib3mf_core::model::resolver::PartResolver
+    pub fn write_with_resolver<W: Write, A: lib3mf_core::archive::ArchiveReader>(
+        model: &Model,
+        mut resolver: lib3mf_core::model::resolver::PartResolver<A>,
+        mut writer: W,
+    ) -> Result<()> {
+        let mut objects: Vec<(String, glam::Mat4, Mesh)> = Vec::new();
+
+        for item in &model.build.items {
+            let name = model
+                .resources
+                .get_object(item.object_id)
+                .and_then(|o| o.name.clone());
+            collect_obj_objects(
+                &mut resolver,
+                item.object_id,
+                item.transform,
+                None,
+                name,
+                &mut objects,
+            )?;
+        }
+
+        let mut vertex_offset: u32 = 1;
+        for (name, transform, mesh) in &objects {
+            writeln!(writer, "g {name}").map_err(Lib3mfError::Io)?;
+
+            for v in &mesh.vertices {
+                let p = transform.transform_point3(glam::Vec3::new(v.x, v.y, v.z));
+                writeln!(writer, "v {} {} {}", p.x, p.y, p.z).map_err(Lib3mfError::Io)?;
+            }
+
+            for tri in &mesh.triangles {
+                writeln!(
+                    writer,
+                    "f {} {} {}",
+                    tri.v1 + vertex_offset,
+                    tri.v2 + vertex_offset,
+                    tri.v3 + vertex_offset
+                )
+                .map_err(Lib3mfError::Io)?;
+            }
+
+            vertex_offset += mesh.vertices.len() as u32;
+        }
+        Ok(())
+    }
+}
+
+fn collect_obj_objects<A: lib3mf_core::archive::ArchiveReader>(
+    resolver: &mut lib3mf_core::model::resolver::PartResolver<A>,
+    object_id: ResourceId,
+    transform: glam::Mat4,
+    path: Option<&str>,
+    name: Option<String>,
+    objects: &mut Vec<(String, glam::Mat4, Mesh)>,
+) -> Result<()> {
+    let (resolved_name, geometry) = {
+        let res = resolver.resolve_object(object_id, path)?;
+        if let Some((_, obj)) = res {
+            (obj.name.clone().or(name), Some(obj.geometry.clone()))
+        } else {
+            (name, None)
+        }
+    };
+
+    if let Some(geo) = geometry {
+        match geo {
+            lib3mf_core::model::Geometry::Mesh(mesh) => {
+                objects.push((
+                    resolved_name.unwrap_or_else(|| "Object".to_string()),
+                    transform,
+                    mesh,
+                ));
+            }
+            lib3mf_core::model::Geometry::Components(comps) => {
+                for comp in comps.components {
+                    let new_transform = transform * comp.transform;
+                    let next_path_store = comp.path.clone();
+                    let next_path = next_path_store.as_deref().or(path);
+                    collect_obj_objects(
+                        resolver,
+                        comp.object_id,
+                        new_transform,
+                        next_path,
+                        None,
+                        objects,
+                    )?;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
